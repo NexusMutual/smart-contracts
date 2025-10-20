@@ -1,4 +1,7 @@
 const { ethers, nexus } = require('hardhat');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
+const { init } = require('../../init');
 
 const { ContractIndexes } = nexus.constants;
 const { parseEther } = ethers;
@@ -14,6 +17,7 @@ const assignRoles = accounts => ({
 });
 
 async function setup() {
+  await loadFixture(init);
   const accounts = assignRoles(await ethers.getSigners());
   const registry = await ethers.deployContract('GVMockRegistry', []);
   const tokenController = await ethers.deployContract('GVMockTokenController', []);

@@ -1,11 +1,11 @@
 const { expect } = require('chai');
 const { ethers, nexus } = require('hardhat');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
-const { parseEther, MaxUint256, ZeroAddress } = ethers;
-const { PoolAsset } = nexus.constants;
+const { loadFixture, setBalance } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { setup } = require('./setup');
-const { setEtherBalance } = require('../../utils/evm');
+
+const { parseEther, MaxUint256, ZeroAddress } = ethers;
+const { PoolAsset, PauseTypes } = nexus.constants;
 
 const gracePeriod = 120 * 24 * 3600; // 120 days
 const NXM_ASSET_ID = 255;
@@ -117,9 +117,11 @@ describe('buyCover', function () {
 
   it('emits CoverBought event', async function () {
     const fixture = await loadFixture(setup);
-    const { cover } = fixture;
+    const { cover, registry } = fixture;
     const [coverBuyer] = fixture.accounts.members;
     const { amount, productId, coverAsset, period, expectedPremium } = buyCoverFixture;
+
+    const memberId = await registry.getMemberId(coverBuyer.address);
 
     const tx = await cover.connect(coverBuyer).buyCover(
       {
@@ -140,7 +142,37 @@ describe('buyCover', function () {
     );
 
     const coverId = await cover.getCoverDataCount();
-    await expect(tx).to.emit(cover, 'CoverBought').withArgs(coverId, coverId, productId, coverBuyer.address, '');
+    await expect(tx).to.emit(cover, 'CoverBought').withArgs(coverId, coverId, memberId, productId);
+  });
+
+  it('stores the ipfs data', async function () {
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
+    const [coverBuyer] = fixture.accounts.members;
+    const { amount, productId, coverAsset, period, expectedPremium } = buyCoverFixture;
+    const ipfsData = 'test data';
+
+    await cover.connect(coverBuyer).buyCover(
+      {
+        coverId: 0,
+        owner: coverBuyer.address,
+        productId,
+        coverAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremium,
+        paymentAsset: coverAsset,
+        commissionRatio: parseEther('0'),
+        commissionDestination: ZeroAddress,
+        ipfsData,
+      },
+      poolAllocationRequest,
+      { value: expectedPremium },
+    );
+
+    const coverId = await cover.getCoverDataCount();
+    const coverMetadata = await cover.getCoverMetadata(coverId);
+    expect(coverMetadata).to.equal(ipfsData);
   });
 
   it('should purchase new cover with fixed price using 1 staking pool', async function () {
@@ -628,31 +660,35 @@ describe('buyCover', function () {
 
   it('reverts if system is paused', async function () {
     const fixture = await loadFixture(setup);
-    const { cover, master } = fixture;
+    const { cover, registry } = fixture;
     const [coverBuyer] = fixture.accounts.members;
     const { amount, productId, coverAsset, period, expectedPremium } = buyCoverFixture;
 
-    await master.setEmergencyPause(true);
+    const buyCoverParams = {
+      coverId: 0,
+      owner: coverBuyer.address,
+      productId,
+      coverAsset,
+      amount,
+      period,
+      maxPremiumInAsset: expectedPremium,
+      paymentAsset: coverAsset,
+      commissionRatio: parseEther('0'),
+      commissionDestination: ZeroAddress,
+      ipfsData: '',
+    };
 
-    await expect(
-      cover.connect(coverBuyer).buyCover(
-        {
-          coverId: 0,
-          owner: coverBuyer.address,
-          productId,
-          coverAsset,
-          amount,
-          period,
-          maxPremiumInAsset: expectedPremium,
-          paymentAsset: coverAsset,
-          commissionRatio: parseEther('0'),
-          commissionDestination: ZeroAddress,
-          ipfsData: '',
-        },
-        poolAllocationRequest,
-        { value: expectedPremium },
-      ),
-    ).to.be.revertedWith('System is paused');
+    await registry.confirmPauseConfig(PauseTypes.PAUSE_COVER);
+
+    await expect(cover.connect(coverBuyer).buyCover(buyCoverParams, poolAllocationRequest))
+      .to.be.revertedWithCustomError(cover, 'Paused')
+      .withArgs(PauseTypes.PAUSE_COVER, PauseTypes.PAUSE_COVER);
+
+    await registry.confirmPauseConfig(PauseTypes.PAUSE_GLOBAL);
+
+    await expect(cover.connect(coverBuyer).buyCover(buyCoverParams, poolAllocationRequest))
+      .to.be.revertedWithCustomError(cover, 'Paused')
+      .withArgs(PauseTypes.PAUSE_GLOBAL, PauseTypes.PAUSE_COVER);
   });
 
   it('reverts if caller is not member', async function () {
@@ -683,7 +719,7 @@ describe('buyCover', function () {
         poolAllocationRequest,
         { value: expectedPremium },
       ),
-    ).to.be.revertedWith('Caller is not a member');
+    ).to.be.revertedWithCustomError(cover, 'OnlyMember');
   });
 
   it('reverts if owner is address zero', async function () {
@@ -1220,12 +1256,12 @@ describe('buyCover', function () {
       { value: expectedPremiumWithCommission },
     );
 
-    await setEtherBalance(reentrantExploiter.target, expectedPremium * 2n);
+    await setBalance(reentrantExploiter.target, expectedPremium * 2n);
     await reentrantExploiter.setReentrancyParams(cover, expectedPremium, txData.data);
 
     // The test uses the payment to the commission destination to trigger reentrancy for the buyCover call.
     // The nonReentrant protection will make the new call revert, making the payment to the commission address to fail.
-    // The expected custom error is 'SendingEthToCommissionDestinationFailed'
+    // The expected custom error is 'ETHTransferFailed'
     // because the commission payment fails thanks to the nonReentrant guard.
     // Even if we can't verify that the transaction reverts with the "ReentrancyGuard: reentrant call" message
     // if the nonReentrant guard is removed from the buyCover() method this test will fail because the following
@@ -1242,13 +1278,13 @@ describe('buyCover', function () {
           maxPremiumInAsset: expectedPremiumWithCommission,
           paymentAsset: coverAsset,
           commissionRatio,
-          commissionDestination: reentrantExploiter.target,
+          commissionDestination: reentrantExploiter,
           ipfsData: '',
         },
         poolAllocationRequest,
         { value: expectedPremiumWithCommission },
       ),
-    ).to.be.revertedWithCustomError(cover, 'SendingEthToCommissionDestinationFailed');
+    ).to.be.revertedWithCustomError(cover, 'ETHTransferFailed');
   });
 
   it('correctly store cover and allocation data for the second cover buyer', async function () {

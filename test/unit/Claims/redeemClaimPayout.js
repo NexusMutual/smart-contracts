@@ -146,7 +146,7 @@ describe('redeemClaimPayout', function () {
 
   it('triggers twap update when fetching the token price', async function () {
     const fixture = await loadFixture(setup);
-    const { claims, cover, assessment, pool } = fixture.contracts;
+    const { claims, cover, assessment, ramm } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
 
     await createMockCover(cover, { owner: coverOwner.address });
@@ -154,7 +154,7 @@ describe('redeemClaimPayout', function () {
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
     await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Accepted);
 
-    expect(await claims.connect(coverOwner).redeemClaimPayout(claimId)).to.emit(pool, 'TwapUpdateTriggered');
+    await expect(claims.connect(coverOwner).redeemClaimPayout(claimId)).to.emit(ramm, 'TwapUpdateTriggered');
   });
 
   it('sends the payout amount in ETH and the assessment deposit to the cover owner', async function () {

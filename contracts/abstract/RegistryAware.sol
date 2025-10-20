@@ -30,6 +30,7 @@ uint constant PAUSE_SWAPS         = 1 << 2;   // 4
 uint constant PAUSE_MEMBERSHIP    = 1 << 3;   // 8
 uint constant PAUSE_ASSESSMENTS   = 1 << 4;   // 16
 uint constant PAUSE_CLAIMS        = 1 << 5;   // 32
+uint constant PAUSE_COVER         = 1 << 6;   // 64
 
 contract RegistryAware {
 
@@ -38,6 +39,7 @@ contract RegistryAware {
   error Paused(uint currentState, uint checks);
   error Unauthorized(address caller, uint callerIndex, uint authorizedBitmap);
   error OnlyMember();
+  error OnlyAdvisoryBoard();
 
   modifier whenNotPaused(uint mask) {
     uint config = registry.getPauseConfig();
@@ -55,12 +57,16 @@ contract RegistryAware {
     _;
   }
 
+  modifier onlyAdvisoryBoard() {
+    require(registry.isAdvisoryBoardMember(msg.sender), OnlyAdvisoryBoard());
+    _;
+  }
+
   modifier onlyMember() {
     require(registry.isMember(msg.sender), OnlyMember());
     _;
   }
 
-  // TODO: find a better short name for this function
   function fetch(uint index) internal view returns (address) {
     return registry.getContractAddressByIndex(index);
   }

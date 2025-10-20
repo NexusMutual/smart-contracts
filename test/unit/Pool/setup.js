@@ -1,7 +1,10 @@
 const { ethers, nexus } = require('hardhat');
-const { ContractIndexes } = nexus.constants;
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
+const { init } = require('../../init');
 
 const { parseEther } = ethers;
+const { ContractIndexes } = nexus.constants;
 const { ETH } = nexus.constants.Assets;
 
 const assignRoles = accounts => ({
@@ -17,6 +20,7 @@ const assignRoles = accounts => ({
 });
 
 async function setup() {
+  await loadFixture(init);
   const accounts = assignRoles(await ethers.getSigners());
   const [governor] = accounts.governor;
   const [claims] = accounts.claims;
@@ -57,18 +61,18 @@ async function setup() {
   await oldPool.addAsset(cbBTC, true);
   await oldPriceFeedOracle.setAssetAggregator(cbBTC, cbBTCAggregator, 1);
 
-  await Promise.all([
-    registry.addContract(
-      ContractIndexes.C_GOVERNOR,
-      governor,
-      false, // registry does not track itself as a proxy
-    ),
-    registry.addContract(ContractIndexes.C_REGISTRY, registry, false),
-    registry.addContract(ContractIndexes.C_COVER, cover, false),
-    registry.addContract(ContractIndexes.C_RAMM, ramm, false),
-    registry.addContract(ContractIndexes.C_SWAP_OPERATOR, swapOperator, false),
-    registry.addContract(ContractIndexes.C_CLAIMS, claims, false),
-  ]);
+  await registry.addContract(
+    ContractIndexes.C_GOVERNOR,
+    governor,
+    false, // registry does not track itself as a proxy
+  );
+
+  await registry.addContract(ContractIndexes.C_REGISTRY, registry, false);
+  await registry.addContract(ContractIndexes.C_COVER, cover, false);
+  await registry.addContract(ContractIndexes.C_RAMM, ramm, false);
+  await registry.addContract(ContractIndexes.C_SWAP_OPERATOR, swapOperator, false);
+  await registry.addContract(ContractIndexes.C_CLAIMS, claims, false);
+
   const pool = await ethers.deployContract('Pool', [registry]);
 
   // TODO: this needs to be done using DisposablePool to initialize the values
@@ -76,7 +80,8 @@ async function setup() {
   //       or override contract code directly using setCode
 
   // mocking master address
-  await cover.setMaster(governor);
+  await cover.setCoverProducts(oldMCR);
+  await oldMCR.setMaster(governor); // oldMcr is used as coverProducts during Pool migration
   await pool.connect(governor).migrate(oldPool, oldMCR);
 
   const MCR_RATIO_DECIMALS = await pool.MCR_RATIO_DECIMALS();

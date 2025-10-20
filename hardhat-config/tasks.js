@@ -1,21 +1,16 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const { extendEnvironment, task } = require('hardhat/config');
+const { extendConfig, extendEnvironment, task } = require('hardhat/config');
+const { TASK_TEST } = require('hardhat/builtin-tasks/task-names');
 const { TASK_TYPECHAIN } = require('@typechain/hardhat/dist/constants');
-const { TASK_COMPILE, TASK_TEST } = require('hardhat/builtin-tasks/task-names');
 
 extendEnvironment(hre => {
   hre.nexus = require('../lib');
 });
 
-task(TASK_TYPECHAIN, async (args, hre, runSuper) => {
-  hre.config.typechain.dontOverrideCompile = false;
-  await runSuper();
-});
-
-task(TASK_COMPILE).setAction(async function (_, hre, runSuper) {
-  const { compilers, overrides } = hre.config.solidity;
+extendConfig(config => {
+  const { compilers, overrides } = config.solidity;
 
   // add storageLayout to compilers if missing
   for (const compiler of compilers) {
@@ -32,7 +27,10 @@ task(TASK_COMPILE).setAction(async function (_, hre, runSuper) {
       output.push('storageLayout');
     }
   }
+});
 
+task(TASK_TYPECHAIN, async (args, hre, runSuper) => {
+  hre.config.typechain.dontOverrideCompile = false;
   await runSuper();
 });
 

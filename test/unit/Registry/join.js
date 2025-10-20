@@ -4,7 +4,7 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { setup } = require('./setup');
 
-const { signJoinMessage } = nexus.membership;
+const { signJoinMessage } = nexus.signing;
 const { PauseTypes, ContractIndexes } = nexus.constants;
 
 const { ZeroAddress } = ethers;

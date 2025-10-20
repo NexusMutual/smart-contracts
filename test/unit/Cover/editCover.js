@@ -1163,7 +1163,7 @@ describe('editCover', function () {
 
   it('emits CoverBought event', async function () {
     const fixture = await loadFixture(setupEditCoverFixture);
-    const { cover, coverNFT, coverId, coverData } = fixture;
+    const { cover, coverNFT, coverId, coverData, registry } = fixture;
     const { COVER_BUY_FIXTURE } = fixture.constants;
 
     const [coverBuyer] = fixture.accounts.members;
@@ -1184,6 +1184,8 @@ describe('editCover', function () {
 
     const coverOwner = await coverNFT.ownerOf(coverId);
     expect(coverOwner).to.be.equal(coverBuyer.address);
+
+    const memberId = await registry.getMemberId(coverBuyer.address);
 
     const ipfsData = 'test data';
     const editedCoverId = coverId + 1n;
@@ -1209,7 +1211,57 @@ describe('editCover', function () {
       ),
     )
       .to.emit(cover, 'CoverBought')
-      .withArgs(editedCoverId, coverId, productId, coverBuyer.address, ipfsData);
+      .withArgs(editedCoverId, coverId, memberId, productId);
+  });
+
+  it('stores the ipfs data for the new cover', async function () {
+    const fixture = await loadFixture(setupEditCoverFixture);
+    const { cover, coverNFT, coverId, coverData } = fixture;
+    const { COVER_BUY_FIXTURE } = fixture.constants;
+
+    const [coverBuyer] = fixture.accounts.members;
+
+    const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = COVER_BUY_FIXTURE;
+
+    const passedPeriod = 10n;
+    const editTimestamp = coverData.start + passedPeriod;
+    await setNextBlockTime(Number(editTimestamp));
+
+    const increasedAmount = amount * 2n;
+    const expectedRefund =
+      (coverData.amount * targetPriceRatio * (coverData.period - passedPeriod)) / MAX_COVER_PERIOD / priceDenominator;
+
+    // premium for the new amount, without refunds
+    const expectedEditPremium = (increasedAmount * targetPriceRatio * period) / (priceDenominator * 3600n * 24n * 365n);
+    const extraPremium = expectedEditPremium - expectedRefund;
+
+    const coverOwner = await coverNFT.ownerOf(coverId);
+    expect(coverOwner).to.be.equal(coverBuyer.address);
+
+    const ipfsData = 'test data';
+    const editedCoverId = coverId + 1n;
+
+    await cover.connect(coverBuyer).buyCover(
+      {
+        coverId,
+        owner: coverBuyer.address,
+        productId,
+        coverAsset,
+        amount: increasedAmount,
+        period,
+        maxPremiumInAsset: extraPremium,
+        paymentAsset: coverAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: ZeroAddress,
+        ipfsData,
+      },
+      [{ poolId: 1, coverAmountInAsset: increasedAmount }],
+      { value: extraPremium },
+    );
+
+    const coverMetadata = await cover.getCoverMetadata(editedCoverId);
+    expect(coverMetadata).to.equal(ipfsData);
   });
 
   it('retrieves the premium difference from the user in ETH', async function () {

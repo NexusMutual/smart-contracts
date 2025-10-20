@@ -35,11 +35,12 @@ const config = {
   },
 
   mocha: {
-    exit: true,
     bail: false,
-    timeout: 0,
+    exit: true,
+    jobs: Number(process.env.MOCHA_JOBS) || undefined,
+    parallel: true,
     slow: 5000,
-    jobs: Number(process.env.MOCHA_JOBS) || 3,
+    timeout: 0,
   },
 
   networks: require('./networks'),

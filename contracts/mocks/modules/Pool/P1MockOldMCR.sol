@@ -8,6 +8,10 @@ pragma solidity ^0.8.18;
 // - use setters and getters instead of hardcoding values in the contract
 
 contract P1MockMCR {
+
+  // helper for Pool migration - MasterAwareV2 compatibility
+  address public master;
+
   function updateMCRInternal(bool) external pure {
     // do nothing
   }
@@ -23,4 +27,9 @@ contract P1MockMCR {
   function lastUpdateTime() external pure returns (uint80) {
     return 1751371403;
   }
+
+  function setMaster(address _master) public {
+    master = _master;
+  }
+
 }

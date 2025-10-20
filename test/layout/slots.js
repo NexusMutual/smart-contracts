@@ -1,8 +1,9 @@
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+
 const { config } = require('hardhat');
 const { expect } = require('chai');
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
 
 const extractStorageLayout = require(path.join(config.paths.root, 'scripts/extract-storage-layout'));
 
@@ -64,35 +65,40 @@ describe('Storage layout', function () {
     // }
     const exceptions = {
       Cover: {
-        _unused_products: {
+        master: {
           label: '__unused_0',
-          type: ['t_array(t_struct(Product)_storage)dyn_storage', 't_uint256'],
+          size: [20, 288], // uses 9 slots now, 32 * 9 = 288 bytes
+          type: ['t_address', 't_array(t_uint256)_storage'],
         },
-        _unused_productTypes: {
-          label: '__unused_1',
-          type: ['t_array(t_struct(ProductType)_storage)dyn_storage', 't_uint256'],
+        internalContracts: {
+          deleted: true,
         },
-        coverSegmentAllocations: {
-          label: '_legacyCoverSegmentAllocations',
+        _status: {
+          deleted: true,
         },
-        _unused_allowedPools: {
-          label: '__unused_4',
-          type: ['t_mapping(t_uint256,t_array(t_uint256)dyn_storage)', 't_uint256'],
+        __unused_0: {
+          deleted: true,
         },
-        _coverSegments: {
-          label: '_legacyCoverSegments',
-          type: [
-            't_mapping(t_uint256,t_array(t_struct(CoverSegment)_storage)dyn_storage)',
-            't_mapping(t_uint256,t_array(t_struct(LegacyCoverSegment)_storage)dyn_storage)',
-          ],
+        __unused_1: {
+          deleted: true,
         },
-        _unused_productNames: {
-          label: '__unused_8',
-          type: ['t_mapping(t_uint256,t_string_storage)', 't_uint256'],
+        _legacyCoverData: {
+          deleted: true,
         },
-        _unused_productTypeNames: {
-          label: '__unused_9',
-          type: ['t_mapping(t_uint256,t_string_storage)', 't_uint256'],
+        _legacyCoverSegmentAllocations: {
+          deleted: true,
+        },
+        __unused_4: {
+          deleted: true,
+        },
+        _legacyCoverSegments: {
+          deleted: true,
+        },
+        __unused_8: {
+          deleted: true,
+        },
+        __unused_9: {
+          deleted: true,
         },
       },
       TokenController: {

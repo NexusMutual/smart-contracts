@@ -1,5 +1,7 @@
 const { ethers, nexus } = require('hardhat');
-const { setBalance, impersonateAccount } = require('@nomicfoundation/hardhat-network-helpers');
+const { impersonateAccount, loadFixture, setBalance } = require('@nomicfoundation/hardhat-network-helpers');
+
+const { init } = require('../init');
 
 const { parseEther, parseUnits, ZeroAddress, MaxUint256 } = ethers;
 const { ContractIndexes, ClaimMethod, AggregatorType, Assets } = nexus.constants;
@@ -16,6 +18,7 @@ const assignRoles = accounts => ({
 });
 
 async function setup() {
+  await loadFixture(init);
   const accounts = assignRoles(await ethers.getSigners());
   const { defaultSender, members, advisoryBoardMembers, stakingPoolManagers, emergencyAdmins } = accounts;
   const [abMember] = advisoryBoardMembers;
@@ -188,10 +191,9 @@ async function setup() {
   ]);
 
   const coverImplementation = await ethers.deployContract('Cover', [
-    coverNFT,
-    stakingNFT,
-    stakingPoolFactory,
+    registry,
     stakingPoolImplementation,
+    await registry.getContractAddressByIndex(ContractIndexes.C_COVER), // verifying contract
   ]);
 
   const coverProductsImplementation = await ethers.deployContract('CoverProducts', []);
@@ -299,11 +301,7 @@ async function setup() {
     );
   }
 
-  const masterAwareContracts = [
-    ContractIndexes.C_COVER,
-    ContractIndexes.C_COVER_PRODUCTS,
-    ContractIndexes.C_STAKING_PRODUCTS,
-  ];
+  const masterAwareContracts = [ContractIndexes.C_COVER_PRODUCTS, ContractIndexes.C_STAKING_PRODUCTS];
 
   for (const contract of masterAwareContracts) {
     const contractAddress = await registry.getContractAddressByIndex(contract);
@@ -312,8 +310,8 @@ async function setup() {
     await masterAwareContract.changeDependentContractAddress();
   }
 
-  const coverBroker = await ethers.deployContract('CoverBroker', [registry.target, defaultSender.address]);
-  await registry.addMembers([coverBroker.target]);
+  const coverBroker = await ethers.deployContract('CoverBroker', [registry, defaultSender.address]);
+  await registry.addMembers([coverBroker]);
 
   // work done, switch to the real Governor, registry and Master contracts
   await registry.replaceGovernor(numberToBytes32(1337), governorImplementation);

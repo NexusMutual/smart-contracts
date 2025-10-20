@@ -8,7 +8,7 @@ const {
 
 const { setup } = require('./setup');
 
-const { signJoinMessage } = nexus.membership;
+const { signJoinMessage } = nexus.signing;
 const { PauseTypes } = nexus.constants;
 const { toBytes2 } = nexus.helpers;
 const JOINING_FEE = ethers.parseEther('0.002');

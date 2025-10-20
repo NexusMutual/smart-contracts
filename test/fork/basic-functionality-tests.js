@@ -106,7 +106,7 @@ describe('basic functionality tests', function () {
     const { chainId } = await ethers.provider.getNetwork();
 
     for (const member of this.members) {
-      const signature = await nexus.membership.signJoinMessage(this.kycAuthSigner, member, this.registry, { chainId });
+      const signature = await nexus.signing.signJoinMessage(this.kycAuthSigner, member, this.registry, { chainId });
       await this.registry.join(member, signature, { value: JOINING_FEE });
       expect(await this.registry.isMember(member.address)).to.be.true;
     }
@@ -851,12 +851,7 @@ describe('basic functionality tests', function () {
     const stakingPoolImplementation = await this.cover.stakingPoolImplementation();
 
     // Cover.sol
-    const cover = await deployContract('Cover', [
-      this.coverNFT,
-      this.stakingNFT,
-      this.stakingPoolFactory,
-      stakingPoolImplementation,
-    ]);
+    const cover = await deployContract('Cover', [this.registry.target, stakingPoolImplementation, this.cover]);
 
     const swapOperator = await deployContract('SwapOperator', [
       this.registry,

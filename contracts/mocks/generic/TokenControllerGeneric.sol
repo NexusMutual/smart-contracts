@@ -6,7 +6,7 @@ import "../../interfaces/ITokenController.sol";
 
 contract TokenControllerGeneric is ITokenController {
 
-  INXMToken public token;
+  INXMToken public immutable token;
 
   function changeOperator(address) external pure {
     revert("changeOperator unsupported");

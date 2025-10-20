@@ -3,7 +3,7 @@
 pragma solidity ^0.8.18;
 
 import "../../../libraries/SafeUintCast.sol";
-
+import "../../../interfaces/ICoverProducts.sol";
 import "../../generic/CoverGeneric.sol";
 
 contract P1MockCover is CoverGeneric {
@@ -11,8 +11,7 @@ contract P1MockCover is CoverGeneric {
 
   mapping(uint assetId => ActiveCover) public activeCover;
 
-  // MasterAwareV2 compatibility
-  address public master;
+  ICoverProducts public override coverProducts;
 
   function totalActiveCoverInAsset(uint assetId) public override view returns (uint) {
     return uint(activeCover[assetId].totalActiveCoverInAsset);
@@ -22,8 +21,8 @@ contract P1MockCover is CoverGeneric {
     activeCover[_assetId].totalActiveCoverInAsset = _totalActiveCoverInAsset.toUint192();
   }
 
-  function setMaster(address _master) public {
-    master = _master;
+  function setCoverProducts(address _coverProducts) public {
+    coverProducts = ICoverProducts(_coverProducts);
   }
 
 }

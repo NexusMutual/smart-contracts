@@ -68,6 +68,9 @@ contract CoverNFTDescriptor is ICoverNFTDescriptor {
 
     // Get cover data
     CoverData memory coverData = cover.getCoverData(tokenId);
+    Ri memory coverRi = cover.getCoverRi(tokenId);
+    uint amount = coverData.amount + coverRi.amount;
+
     string memory productName = coverProducts.getProductName(coverData.productId);
 
     // Check if cover has already expired
@@ -91,7 +94,7 @@ contract CoverNFTDescriptor is ICoverNFTDescriptor {
     descriptionString = string(
       abi.encodePacked(
         "This NFT represents a cover purchase made for: ", productName,
-        " \\nAmount Covered: ", FloatingPoint.toFloat(uint(coverData.amount), getAssetDecimals(coverData.coverAsset))," ", getAssetSymbol(coverData.coverAsset),
+        " \\nAmount Covered: ", FloatingPoint.toFloat(uint(amount), getAssetDecimals(coverData.coverAsset))," ", getAssetSymbol(coverData.coverAsset),
         " \\nExpiry Date: ", expiry,
         " \\n", expiryMessage
       )
@@ -101,7 +104,7 @@ contract CoverNFTDescriptor is ICoverNFTDescriptor {
       productName,
       getAssetSymbol(coverData.coverAsset),
       expiry,
-      coverData.amount,
+      amount,
       tokenId,
       getAssetDecimals(coverData.coverAsset)
     );

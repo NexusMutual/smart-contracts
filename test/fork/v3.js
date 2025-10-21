@@ -398,7 +398,7 @@ describe('v3 launch', function () {
     // get last claim id
     const individualClaims = await ethers.getContractAt(abis.IndividualClaims, addresses.IndividualClaims);
     const latestClaimCount = await individualClaims.getClaimsCount();
-    const latestClaimId = latestClaimCount - 1n; // TODO: why subtract 1?!
+    const latestClaimId = latestClaimCount - 1n;
 
     const claimsAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_CLAIMS);
     this.claims = await ethers.getContractAt('Claims', claimsAddress);
@@ -407,6 +407,34 @@ describe('v3 launch', function () {
     tGovernorTxs.push({
       target: this.claims.target,
       data: this.claims.interface.encodeFunctionData('initialize', [latestClaimId]),
+    });
+
+    // TGovernor -> Assessments.addAssessorsToGroup
+    const assessmentsAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_ASSESSMENTS);
+    this.assessments = await ethers.getContractAt('Assessments', assessmentsAddress);
+
+    const assessorIds = [
+      await this.registry.getMemberId('0x87B2a7559d85f4653f13E6546A14189cd5455d45'),
+      await this.registry.getMemberId('0x43f4cd7d153701794ce25a01eFD90DdC32FF8e8E'),
+      await this.registry.getMemberId('0x9063a2C78aFd6C8A3510273d646111Df67D6CB4b'),
+    ];
+
+    tGovernorTxs.push({
+      target: this.assessments.target,
+      data: this.assessments.interface.encodeFunctionData('addAssessorsToGroup', [assessorIds, 0]), // create new group
+    });
+
+    // TGovernor -> Assessments.setAssessingGroupIdForProductTypes
+    const assessmentGroupId = 1;
+    const latestProductTypeCount = await this.coverProducts.getProductTypeCount();
+    const allProductTypeIds = Array.from({ length: Number(latestProductTypeCount) }, (_, i) => i);
+
+    tGovernorTxs.push({
+      target: this.assessments.target,
+      data: this.assessments.interface.encodeFunctionData('setAssessingGroupIdForProductTypes', [
+        allProductTypeIds,
+        assessmentGroupId,
+      ]),
     });
 
     // TGovernance -> NXMaster.migrate
@@ -438,9 +466,6 @@ describe('v3 launch', function () {
 
     const receipt = await abTx.wait();
     console.log('Phase 3 AB tx gas used:', receipt.gasUsed.toString());
-
-    const assessmentsAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_ASSESSMENTS);
-    this.assessments = await ethers.getContractAt('Assessments', assessmentsAddress);
 
     const coverProductsAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_COVER_PRODUCTS);
     this.coverProducts = await ethers.getContractAt('CoverProducts', coverProductsAddress);

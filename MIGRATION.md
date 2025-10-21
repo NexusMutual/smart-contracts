@@ -58,7 +58,7 @@ phase 3 (second ab action)
    - claims.initialize
    - master.migrate (copies assets/oracles/mcr and moves the funds!)
    - transfer registry proxy ownership to Governor
-   - setup assessing groups for product types
+   - setup 1 assessing group for all product types
 2. safe transaction via TGovernor.execute
    - upgrade TGovernor to `Governor.sol` - in theory can be batched above
 
@@ -69,6 +69,7 @@ Non AB:
 
 Single AB member ops:
 - update existing CoverProduct productTypes to add assessmentCooldownPeriod and payoutRedemptionPeriod values
+- cover.populateIpfsMetadata - set cover IPFS metadata to storage
 
 Enzyme:
 - remove old depositors and set SwapOperator as a depositor

@@ -1,18 +1,25 @@
-# Release 3.0 Assessment, Claims, Registry and Governor Contracts
+# Release 3.0: Assessment, Claims, Registry and Governor contracts
 
 ## Github PR
 
-* [audit: governance and assessments august 2025](https://github.com/NexusMutual/smart-contracts/pull/1429
-)
+* [audit: governance and assessments august 2025](https://github.com/NexusMutual/smart-contracts/pull/1429)
 
 ## Contracts to be deployed / upgraded
 
+__Phase 0:__
+
+* LegacyAssessment.sol
+* LegacyMemberRoles.sol
+* TemporaryGovernance.sol
+
+__Phase 2:__
+
 * Assessments.sol
+* Claims.sol
 * Cover.sol
+* CoverBroker.sol
 * CoverNFTDescriptor.sol
 * CoverProducts.sol
-* CoverBroker.sol
-* Claims.sol
 * Governor.sol
 * LimitOrders.sol
 * NXMaster.sol

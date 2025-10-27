@@ -1,7 +1,6 @@
 const { artifacts, ethers, network, nexus, run } = require('hardhat');
 
-const { CREATE1_PRIVATE_KEY } = process.env;
-const { waitForInput } = nexus.helpers;
+const { read, waitForInput } = nexus.helpers;
 const ADDRESS_REGEX = /^0x[a-f0-9]{40}$/i;
 
 const usage = () => {
@@ -24,9 +23,6 @@ const usage = () => {
         Gas limit for the tx.
       --help, -h
         Print this help message.
-
-    Environment variables:
-      CREATE1_PRIVATE_KEY - the private key of the account that will deploy the contract
   `);
 };
 
@@ -159,28 +155,21 @@ async function main() {
     process.exit(1);
   });
 
-  if (!CREATE1_PRIVATE_KEY) {
-    console.error('CREATE1_PRIVATE_KEY environment variable is required');
-    process.exit(1);
-  }
+  const create1PrivateKey = await read('Enter the private key of the account that will deploy the contract: ');
+  const deployer = new ethers.Wallet(create1PrivateKey, ethers.provider);
 
-  await run('compile');
-
-  const deploymentBytecode = await getDeploymentBytecode(opts);
-  const deployer = new ethers.Wallet(CREATE1_PRIVATE_KEY, ethers.provider);
-  const actualAddress = ethers.getCreateAddress({ from: deployer.address, nonce: 0 });
+  const nonce = await ethers.provider.getTransactionCount(deployer.address);
+  const actualAddress = ethers.getCreateAddress({ from: deployer.address, nonce });
 
   if (actualAddress.toLowerCase() !== opts.address.toLowerCase()) {
     console.error(`Address mismatch! Expected ${opts.address} but got ${actualAddress}`);
     process.exit(1);
   }
 
-  const txCount = await ethers.provider.getTransactionCount(deployer.address);
+  await run('compile');
 
-  if (txCount > 0) {
-    console.error('Deployer nonce not 0');
-    process.exit(1);
-  }
+  const deploymentBytecode = await getDeploymentBytecode(opts);
+  const factory = new ethers.ContractFactory([], deploymentBytecode, deployer);
 
   const baseFee = ethers.parseUnits(opts.baseFee, 'gwei');
   const maxPriorityFeePerGas = ethers.parseUnits(opts.priorityFee, 'gwei');
@@ -189,7 +178,6 @@ async function main() {
   console.log(`Deploying ${opts.contract}:${actualAddress} to ${network.name}`);
   await waitForInput('Press enter to continue...');
 
-  const factory = new ethers.ContractFactory([], deploymentBytecode, deployer);
   const contract = await factory.deploy({
     maxFeePerGas,
     maxPriorityFeePerGas,

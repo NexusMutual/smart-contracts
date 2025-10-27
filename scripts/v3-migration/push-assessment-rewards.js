@@ -4,9 +4,9 @@ const path = require('node:path');
 const { ethers, nexus } = require('hardhat');
 const { abis, addresses } = require('@nexusmutual/deployments');
 
-const { getSigner, SIGNER_TYPE } = require('../create2/get-signer');
-
 const { waitForInput } = nexus.helpers;
+
+const USE_AWS_KMS = process.env.SIGNER_TYPE === 'aws-kms';
 
 /// Script to withdraw assessment rewards on behalf of users
 /// Note: execute `npx hardhat run ./script/v3-migration/03-get-assessment-data.js --network mainnet` first
@@ -47,9 +47,8 @@ async function main() {
   const network = await ethers.provider.getNetwork();
   console.log(`Connected to network: ${network.name} (chainId: ${network.chainId})`);
 
-  const signerType = process.env.SIGNER_TYPE || SIGNER_TYPE.LOCAL;
-  const signer = await getSigner(signerType);
-  console.log(`Using signer type: ${signerType} (${await signer.getAddress()})`);
+  const [signer] = USE_AWS_KMS ? [nexus.awsKms.getSigner(ethers.provider)] : await ethers.getSigners();
+  console.log(`Using signer type: ${USE_AWS_KMS ? 'AWS KMS' : 'local'} (${await signer.getAddress()})`);
 
   await waitForInput(`Going to send transactions on ${network.name} - press enter to continue...`);
   await pushRewards(signer);

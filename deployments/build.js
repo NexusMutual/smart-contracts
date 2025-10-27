@@ -34,6 +34,7 @@ const contractList = [
   'StakingViewer',
   'SwapOperator',
   'TokenController',
+  'VotePower',
   'wNXM',
 ];
 

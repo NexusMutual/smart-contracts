@@ -573,9 +573,10 @@ ENABLE_OPTIMIZER=1 npx hardhat verify --network mainnet \
 
 * Constructor Params
   * _registry = `0xcafea2c575550512582090AA06d0a069E7236b9e`
+  * _owner = `0x7CB8e530c3310fe192b07315A3ccaD440cb7281c`
 * Address brute force command
-  * Address: `0xcafeac90410f069C24a876c208Eb2b3E53424EA5`
-  * Salt: 113518498
+  * Address: `0xCBcbcBCbfa2EDa48a41Da0711E1f3D7B42605Cc9`
+  * Salt: 233904542
 ```bash
 ENABLE_OPTIMIZER=1 node scripts/create2/find-salt.js \
   -t cafea \

@@ -27,7 +27,12 @@ phase 1: first ab actions
 phase 2: prep for ab actions
 1. execute script to push LegacyAssessment stake and rewards
 2. call LegacyMemberRoles.migrateMembers
-3. deploy new contract implementations (create2)
+3. deploy non-proxy contracts (create2)
+   - CoverNFTDescriptor
+   - VotePower
+   - StakingViewer
+   - CoverBroker
+4. deploy new proxy contract implementations (create2)
    - Pool
    - SwapOperator
    - Ramm
@@ -62,6 +67,11 @@ phase 3 (second ab action)
 2. safe transaction via TGovernor.execute
    - upgrade TGovernor to `Governor.sol` - in theory can be batched above
 
+phase 4 (post phase 3 actions)
+1. Singe AB member ops:
+   - `coverProducts.setProductTypes` set assessmentCooldownPeriod and payoutRedemptionPeriod values to all product types
+   - `cover.populateIpfsMetadata` - sets covers IPFS metadata to storage
+
 Total transactions for AB: 4
 
 Non AB:
@@ -69,7 +79,11 @@ Non AB:
 
 Single AB member ops:
 - update existing CoverProduct productTypes to add assessmentCooldownPeriod and payoutRedemptionPeriod values
-- cover.populateIpfsMetadata - set cover IPFS metadata to storage
+- cover.populateIpfsMetadata - sets covers IPFS metadata to storage
+
+CoverBroker Safe Owner
+- switchMembership to new CoverBroker
+- maxApproveCoverContract for cbBTC and USDC
 
 Enzyme:
 - remove old depositors and set SwapOperator as a depositor

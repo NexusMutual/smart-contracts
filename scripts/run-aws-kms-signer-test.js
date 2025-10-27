@@ -5,7 +5,7 @@ const main = async () => {
 
   // get signer and sign message
   console.log('Getting signer and signing message...');
-  const signer = nexus.awskms.getSigner(ethers.provider);
+  const signer = nexus.awsKms.getSigner(ethers.provider);
   const [signature, ethAddress] = await Promise.all([signer.signMessage(testMessage), signer.getAddress()]);
 
   // recover address from signature

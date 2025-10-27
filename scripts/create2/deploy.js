@@ -211,7 +211,7 @@ async function main() {
   const maxPriorityFeePerGas = ethers.parseUnits(opts.priorityFee, 'gwei');
   const maxFeePerGas = baseFee + maxPriorityFeePerGas;
 
-  const [signer] = opts.kms ? [nexus.awskms.getSigner(ethers.provider)] : await ethers.getSigners();
+  const [signer] = opts.kms ? [nexus.awsKms.getSigner(ethers.provider)] : await ethers.getSigners();
   const deployer = await ethers.getContractAt('Deployer', opts.factory, signer);
   const deployTx = await deployer.deployAt(bytecode, opts.salt, opts.address, {
     maxFeePerGas,

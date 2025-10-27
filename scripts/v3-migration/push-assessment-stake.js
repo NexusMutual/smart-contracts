@@ -35,7 +35,7 @@ async function main() {
   const network = await ethers.provider.getNetwork();
   console.log(`Connected to network: ${network.name} (chainId: ${network.chainId})`);
 
-  const [signer] = USE_AWS_KMS ? [nexus.awskms.getSigner(ethers.provider)] : await ethers.getSigners();
+  const [signer] = USE_AWS_KMS ? [nexus.awsKms.getSigner(ethers.provider)] : await ethers.getSigners();
   console.log(`Using signer type: ${USE_AWS_KMS ? 'AWS KMS' : 'local'} (${await signer.getAddress()})`);
 
   await waitForInput(`Going to send transactions on ${network.name} - press enter to continue...`);

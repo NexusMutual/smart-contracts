@@ -1,12 +1,12 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const { ethers } = require('hardhat');
+const { ethers, network } = require('hardhat');
 const ipfsClient = require('ipfs-http-client');
 
 const { constants } = require('./helpers');
 
-const { JsonRpcSigner } = ethers;
+const { AbiCoder, JsonRpcSigner, JsonRpcProvider } = ethers;
 const { AB_MEMBER, GOVERNANCE_ADDRESS, IPFS_API_URL, CATEGORY_PARAM_TYPES } = constants;
 
 const ipfs = ipfsClient({ url: IPFS_API_URL });
@@ -57,7 +57,8 @@ const main = async (proposalFilePath, categoryId, actionParamsRaw, solutionHash 
     );
   }
 
-  const encodedActionParams = ethers.utils.defaultAbiCoder.encode(CATEGORY_PARAM_TYPES[categoryId], actionParams);
+  const abiCoder = new AbiCoder();
+  const encodedActionParams = abiCoder.encode(CATEGORY_PARAM_TYPES[categoryId], actionParams);
 
   // upload proposal file to IPFS
   const file = await ipfs.add(fs.readFileSync(proposalFilePath));
@@ -66,7 +67,7 @@ const main = async (proposalFilePath, categoryId, actionParamsRaw, solutionHash 
   // group the inputs for the createProposalWithSolution transaction
   const inputs = [proposal.title, proposal.shortDescription, file.path, categoryId, solutionHash, encodedActionParams];
 
-  const signer = new JsonRpcSigner(ethers.provider, AB_MEMBER);
+  const signer = new JsonRpcSigner(new JsonRpcProvider(network.config.url), AB_MEMBER);
   const tx = await governance.connect(signer).createProposalwithSolution(...inputs);
   console.log(`Tx hash: ${tx.hash}`);
   console.log(`Tx data: ${tx.data}`);

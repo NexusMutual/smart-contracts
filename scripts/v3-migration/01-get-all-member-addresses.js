@@ -1,16 +1,17 @@
-const { ethers, nexus } = require('hardhat');
 const fs = require('node:fs');
 const path = require('node:path');
+
 const { addresses, MemberRoles } = require('@nexusmutual/deployments');
+const { ethers, nexus } = require('hardhat');
 
 const { multicall, encodeWithSelector, decodeResult } = nexus.multicall;
 const { Role } = nexus.constants;
 
 const fetchMembers = async () => {
   const memberRoles = await ethers.getContractAt(MemberRoles, addresses.MemberRoles);
-  const membersArrayLenght = await memberRoles.membersLength(Role.Member);
+  const membersArrayLength = await memberRoles.membersLength(Role.Member);
 
-  const calls = Array.from({ length: Number(membersArrayLenght) }, (_, i) => ({
+  const calls = Array.from({ length: Number(membersArrayLength) }, (_, i) => ({
     target: addresses.MemberRoles,
     callData: encodeWithSelector(memberRoles.memberAtIndex.fragment, [Role.Member, i]),
   }));

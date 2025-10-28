@@ -1,21 +1,27 @@
 const { ethers, network, nexus, tracer } = require('hardhat');
 const { expect } = require('chai');
 const { abis, addresses } = require('@nexusmutual/deployments');
-const { setBalance, setStorageAt, takeSnapshot } = require('@nomicfoundation/hardhat-network-helpers');
+const {
+  impersonateAccount,
+  setBalance,
+  setStorageAt,
+  takeSnapshot,
+} = require('@nomicfoundation/hardhat-network-helpers');
 
 const {
   Addresses,
   createSafeExecutor,
+  deployCreate2,
   getImplementation,
   getFundedSigner,
   getSigner,
   revertToSnapshot,
   submitGovernanceProposal,
-  deployCreate2,
-} = require('../utils');
-const { create1Proxies, create2Proxies, create2Impl } = require('../../../release/3.0/config/fork-deployments.js');
+  tenderlySetStorageAt,
+} = require('./utils');
+const { create1Proxies, create2Impl, create2Proxies } = require('../../release/3.0/config/fork-deployments.js');
 
-const { AbiCoder, deployContract, encodeBytes32String, parseEther, parseUnits, toBeHex, toUtf8Bytes } = ethers;
+const { AbiCoder, toBeHex, parseEther, toUtf8Bytes } = ethers;
 const { ContractCode, ContractIndexes, ProposalCategory } = nexus.constants;
 const { toBytes2 } = nexus.helpers;
 
@@ -25,16 +31,16 @@ const defaultAbiCoder = AbiCoder.defaultAbiCoder();
 const truthy = v => !/^(false|0|)$/i.test((v || '').trim());
 const FAST_MIGRATION = truthy(process.env.FAST_MIGRATION);
 
-async function getPoolBalances(thisParam, poolAddress, prefix) {
+async function getPoolBalances(poolAddress, prefix) {
   const balanceConfig = [
     { name: 'ETH', getBalance: () => ethers.provider.getBalance(poolAddress), decimals: 18 },
-    { name: 'DAI', getBalance: () => thisParam.dai.balanceOf(poolAddress), decimals: 18 },
-    { name: 'stETH', getBalance: () => thisParam.stEth.balanceOf(poolAddress), decimals: 18 },
-    { name: 'NXMTY', getBalance: () => thisParam.enzymeShares.balanceOf(poolAddress), decimals: 18 },
-    { name: 'rEth', getBalance: () => thisParam.rEth.balanceOf(poolAddress), decimals: 18 },
-    { name: 'SafeTracker', getBalance: () => thisParam.safeTracker.balanceOf(poolAddress), decimals: 18 },
-    { name: 'USDC', getBalance: () => thisParam.usdc.balanceOf(poolAddress), decimals: 6 },
-    { name: 'cbBTC', getBalance: () => thisParam.cbBTC.balanceOf(poolAddress), decimals: 8 },
+    { name: 'DAI', getBalance: () => this.dai.balanceOf(poolAddress), decimals: 18 },
+    { name: 'stETH', getBalance: () => this.stEth.balanceOf(poolAddress), decimals: 18 },
+    { name: 'NXMTY', getBalance: () => this.enzymeShares.balanceOf(poolAddress), decimals: 18 },
+    { name: 'rEth', getBalance: () => this.rEth.balanceOf(poolAddress), decimals: 18 },
+    { name: 'SafeTracker', getBalance: () => this.safeTracker.balanceOf(poolAddress), decimals: 18 },
+    { name: 'USDC', getBalance: () => this.usdc.balanceOf(poolAddress), decimals: 6 },
+    { name: 'cbBTC', getBalance: () => this.cbBTC.balanceOf(poolAddress), decimals: 8 },
   ];
 
   console.log(`\n${prefix} POOL BALANCES:`);
@@ -127,7 +133,7 @@ describe('v3 launch', function () {
     }
   });
 
-  // push legacy governance rewards
+  // push legacy governance rewards (DONE)
   // require('../../scripts/v3-migration/push-governance-rewards');
 
   // Phase 0
@@ -147,25 +153,22 @@ describe('v3 launch', function () {
   //      - master.transferOwnershipToRegistry
   //      - registry.migrate
   it('should run phase 0 and 1', async function () {
-    // @TODO: push old governance rewards
-    // @TODO: calculate salts for registry and registry proxy
+    this.registryProxy = await ethers.getContractAt('UpgradeableProxy', create1Proxies.Registry.expectedAddress);
 
-    const registryProxyConfig = create1Proxies.Registry;
-    await impersonateAccount(registryProxyConfig.deployer);
-    await setBalance(registryProxyConfig.deployer, parseEther('1'));
-    const registryProxyDeployerSigner = await ethers.getSigner(registryProxyConfig.deployer);
+    const registryOwner = await this.registryProxy.proxyOwner();
+    await impersonateAccount(registryOwner);
+    await setBalance(registryOwner, parseEther('1'));
+    const registryOwnerSigner = await getSigner(registryOwner);
 
-    this.registryProxy = await deployContract('UpgradeableProxy', [], registryProxyDeployerSigner);
-    expect(this.registryProxy.target).to.equal(registryProxyConfig.expectedAddress);
-
-    const registryImpl = await deployCreate2('Registry', create2Impl.Registry);
-    await this.registryProxy.upgradeTo(registryImpl);
-    await this.registryProxy.transferProxyOwnership(Addresses.ADVISORY_BOARD_MULTISIG);
+    const registryImpl = await ethers.getContractAt('Registry', create2Impl.Registry.expectedAddress);
+    await this.registryProxy.connect(registryOwnerSigner).upgradeTo(registryImpl.target);
+    await this.registryProxy.connect(registryOwnerSigner).transferProxyOwnership(Addresses.ADVISORY_BOARD_MULTISIG);
 
     // deploy new implementations
-    const temporaryGovernanceImpl = await deployContract('TemporaryGovernance', [Addresses.ADVISORY_BOARD_MULTISIG]);
-    const legacyAssessmentImpl = await deployContract('LegacyAssessment', [this.nxm]);
-    const legacyMemberRolesImpl = await deployContract('LegacyMemberRoles', [this.registryProxy, this.nxm]);
+    const { TemporaryGovernance: TGovernance, LegacyAssessment, LegacyMemberRoles } = create2Impl;
+    const temporaryGovernanceImpl = await ethers.getContractAt('TemporaryGovernance', TGovernance.expectedAddress);
+    const legacyAssessmentImpl = await ethers.getContractAt('LegacyAssessment', LegacyAssessment.expectedAddress);
+    const legacyMemberRolesImpl = await ethers.getContractAt('LegacyMemberRoles', LegacyMemberRoles.expectedAddress);
 
     // submit governance proposal - upgrade multiple contracts
     const codes = [ContractCode.Governance, ContractCode.Assessment, ContractCode.MemberRoles].map(c => toUtf8Bytes(c));
@@ -219,8 +222,12 @@ describe('v3 launch', function () {
     const receipt = await abTx.wait();
     console.log('Phase 1 AB tx gas used:', receipt.gasUsed.toString());
 
-    const actualMasterImplementatinon = await masterProxy.implementation();
-    expect(actualMasterImplementatinon).to.equal(masterImpl.target);
+    const actualMasterImplementation = await masterProxy.implementation();
+    expect(actualMasterImplementation).to.equal(masterImpl.target);
+
+    // set tGovernor contract
+    const governorAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_GOVERNOR);
+    this.tGovernor = await ethers.getContractAt('TemporaryGovernance', governorAddress);
   });
 
   it('verify post phase 1 state', async function () {
@@ -243,7 +250,7 @@ describe('v3 launch', function () {
     // verify contract proxy ownerships are transferred to registry
     while (true) {
       const code = await this.master.contractCodes(codeIndex++).catch(e => {
-        if (e.message.includes('Transaction reverted')) {
+        if (e.message.includes('reverted')) {
           // return false for revert, expecting invalid opcode meaning out of bounds read
           return false;
         }
@@ -262,20 +269,36 @@ describe('v3 launch', function () {
       }
     }
 
-    // get governor contract
-    const governorAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_GOVERNOR);
-    this.tGovernor = await ethers.getContractAt('TemporaryGovernance', governorAddress);
+    // AB multisig is the Registry owner
+    expect(await this.registryProxy.proxyOwner()).to.equal(Addresses.ADVISORY_BOARD_MULTISIG);
   });
 
   // Phase 2
-  //   - push legacy assessment stake and rewards
-  //   - legacyMemberRoles.migrateMembers (including AB members)
-  //   - legacyMemberRoles.recoverETH
-  //   - deploy new P1, SO, RA, ST, AS, CL implementations
+  // - push legacy assessment stake and rewards
+  // - migrate legacyMemberRoles (including AB members)
+  // - legacyMemberRoles.migrateMembers (including AB members)
+  // - deploy non-proxy contract (create2)
+  //   - CoverNFTDescriptor
+  //   - VotePower
+  //   - StakingViewer
+  //   - CoverBroker
+  // - deploy new proxy contract implementations (create2)
+  //   - Pool
+  //   - SwapOperator
+  //   - Ramm
+  //   - SafeTracker
+  //   - Assessments
+  //   - Claims
+  //   - TokenController
+  //   - Cover
+  //   - CoverProducts
+  //   - LimitOrders
+  //   - StakingProducts
+  //   - Governor
 
   // push legacy assessment stake and rewards
-  // require('../../scripts/v3-migration/push-assessment-stake');
-  // require('../../scripts/v3-migration/push-assessment-rewards');
+  require('../../scripts/v3-migration/push-assessment-stake');
+  require('../../scripts/v3-migration/push-assessment-rewards');
 
   it('should run phase 2', async function () {
     // memberRoles.migrateMembers (including AB members)
@@ -292,15 +315,8 @@ describe('v3 launch', function () {
 
     console.log('memberRoles.migrateMembers done');
 
-    const abMembers = [
-      '0x87B2a7559d85f4653f13E6546A14189cd5455d45',
-      '0x8D38C81B7bE9Dbe7440D66B92d4EF529806baAE7',
-      '0x23E1B127Fd62A4dbe64cC30Bb30FFfBfd71BcFc6',
-      '0x9063a2C78aFd6C8A3510273d646111Df67D6CB4b',
-      '0x43f4cd7d153701794ce25a01eFD90DdC32FF8e8E',
-    ];
-
     if (FAST_MIGRATION) {
+      const abMembers = this.abMembers.map(ab => ab.address);
       const mrSigner = await getSigner(this.memberRoles.target);
 
       // 1. migrate ab members
@@ -312,23 +328,10 @@ describe('v3 launch', function () {
 
       // 3. overwrite `nextMemberStorageIndex` to mark the migration as completed
       const targetLength = await this.memberRoles.getMembersArrayLength(2);
-      const slot = 18;
+      const setStorageAtFn = network.name === 'tenderly' ? tenderlySetStorageAt : setStorageAt;
+      await setStorageAtFn(this.memberRoles.target, 18, targetLength);
 
-      if (network.name === 'tenderly') {
-        // tenderly_setStorageAt must be 32-byte padded slot and value
-        const slotAsHex = toBeHex(slot, 32);
-        const targetLengthAsHex = toBeHex(targetLength, 32);
-        await ethers.provider.send('tenderly_setStorageAt', [this.memberRoles.target, slotAsHex, targetLengthAsHex]);
-      } else {
-        // hardhat_setStorageAt
-        await setStorageAt(this.memberRoles.target, slot, targetLength);
-      }
       expect(await this.memberRoles.nextMemberStorageIndex()).to.equal(targetLength);
-    }
-
-    // verify abMembers were migrated
-    for (const address of abMembers) {
-      expect(await this.registry.isAdvisoryBoardMember(address)).to.equal(true, `AB member ${address} not migrated`);
     }
 
     // deploy non-proxy contracts
@@ -350,6 +353,9 @@ describe('v3 launch', function () {
     const limitOrdersImplementation = await deployCreate2('LimitOrders', create2Impl.LimitOrders);
     const stakingProductsImplementation = await deployCreate2('StakingProducts', create2Impl.StakingProducts);
 
+    // upgraded separately once all phase 3 actions are done
+    this.governorImplementation = await deployCreate2('Governor', create2Impl.Governor);
+
     this.contractUpgrades = [
       { index: ContractIndexes.C_POOL, address: poolImplementation.target },
       { index: ContractIndexes.C_SWAP_OPERATOR, address: swapOperatorImplementation.target },
@@ -360,7 +366,39 @@ describe('v3 launch', function () {
       { index: ContractIndexes.C_TOKEN_CONTROLLER, address: tokenControllerImplementation.target },
       { index: ContractIndexes.C_COVER_PRODUCTS, address: coverProductsImplementation.target },
       { index: ContractIndexes.C_COVER, address: coverImplementation.target },
+      { index: ContractIndexes.C_LIMIT_ORDERS, address: limitOrdersImplementation.target },
+      { index: ContractIndexes.C_STAKING_PRODUCTS, address: stakingProductsImplementation.target },
     ];
+  });
+
+  it('verify post phase 2 members migration state', async function () {
+    const members = FAST_MIGRATION
+      ? this.abMembers.map(ab => ab.address)
+      : require('../../scripts/v3-migration/data/members.json');
+    const batchSize = 100;
+    const totalBatches = Math.ceil(members.length / batchSize);
+
+    for (let i = 0; i < members.length; i += batchSize) {
+      const currentBatch = Math.floor(i / batchSize) + 1;
+      const batch = members.slice(i, i + batchSize);
+
+      console.log(`Member migration check batch ${currentBatch}/${totalBatches}`);
+
+      await Promise.all(
+        batch.map(async member => {
+          const isMember = await this.registry.isMember(member);
+          if (!isMember) {
+            console.log(`Member ${member} is not migrated`);
+          }
+          expect(isMember).to.be.true;
+        }),
+      );
+    }
+
+    // verify abMembers were migrated
+    for (const address of this.abMembers.map(ab => ab.address)) {
+      expect(await this.registry.isAdvisoryBoardMember(address)).to.equal(true, `AB member ${address} not migrated`);
+    }
   });
 
   it('store pre phase 3 state', async function () {
@@ -375,20 +413,33 @@ describe('v3 launch', function () {
     }
 
     // store pool balances
-    this.prevPoolBeforeBalance = await getPoolBalances(this, addresses.Pool, 'OLD POOL BALANCES');
+    this.prevPoolBeforeBalance = await getPoolBalances.call(this, addresses.Pool, '(BEFORE MIGRATION) OLD');
   });
 
   /*
-   * Phase 3
+   * Phase 3 - all are TGovernor actions except master.migrate
+   * - upgrade contracts:
+   *   - Pool
+   *   - SwapOperator
+   *   - Ramm
+   *   - SafeTracker
+   *   - Assessment
+   *   - Claims
+   *   - TokenController
+   *   - CoverProducts
+   *   - Cover
+   *   - LimitOrders
+   *   - StakingProducts
    * - registry.setEmergencyAdmin
    * - registry.setKycAuthAddress
-   * - upgrade Pool, SwapOperator, Ramm, SafeTracker, Assessment, Claims via governor proposal
-   * - claims.initialize
    * - swapOperator.setSwapController
-   * - memberRoles.recoverETH
-   * - master.migrate
-   * - pool.migrate
-   * - update existing productTypes with new assessmentCooldownPeriod and payoutRedemptionPeriod fields
+   * - claims.initialize
+   * - assessments.addAssessorsToGroup
+   * - assessments.setAssessingGroupIdForProductTypes
+   * - Cover.changeCoverNFTDescriptor
+   * - master.migrate (TGovernance action)
+   * - registryProxy.transferProxyOwnership to Governor
+   * - registry.upgradeContract tGovernorImpl -> governorImpl
    */
   it('should run phase 3', async function () {
     const tGovernorTxs = [];
@@ -429,7 +480,7 @@ describe('v3 launch', function () {
     // get last claim id
     const individualClaims = await ethers.getContractAt(abis.IndividualClaims, addresses.IndividualClaims);
     const latestClaimCount = await individualClaims.getClaimsCount();
-    this.latestClaimId = latestClaimCount - 1n;
+    this.latestClaimId = latestClaimCount - 1n; // latestClaimId is the last index
 
     const claimsAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_CLAIMS);
     this.claims = await ethers.getContractAt('Claims', claimsAddress);
@@ -468,6 +519,12 @@ describe('v3 launch', function () {
       ]),
     });
 
+    // TGovernor -> Cover.changeCoverNFTDescriptor
+    tGovernorTxs.push({
+      target: this.cover.target,
+      data: this.cover.interface.encodeFunctionData('changeCoverNFTDescriptor', [this.coverNFTDescriptor.target]),
+    });
+
     // TGovernance -> NXMaster.migrate
     this.master = await ethers.getContractAt('NXMaster', this.master.target); // get upgraded master contract
     tGovernanceTxs.push({
@@ -497,21 +554,10 @@ describe('v3 launch', function () {
     const receipt = await abTx.wait();
     console.log('Phase 3 AB tx gas used:', receipt.gasUsed.toString());
 
-    const coverProductsAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_COVER_PRODUCTS);
-    this.coverProducts = await ethers.getContractAt('CoverProducts', coverProductsAddress);
-
-    const poolAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_POOL);
-    this.pool = await ethers.getContractAt('Pool', poolAddress);
-
-    const coverAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_COVER);
-    this.cover = await ethers.getContractAt('Cover', coverAddress);
-
-    const governorImplementation = await deployCreate2('Governor', create2Impl.Governor);
-
-    // TGovernor -> Registry.upgradeContract
+    // Last Step: TGovernor -> Registry.upgradeContract (tGovernorImpl -> governorImpl)
     const registryCallData = this.registry.interface.encodeFunctionData('upgradeContract', [
       ContractIndexes.C_GOVERNOR,
-      governorImplementation.target,
+      this.governorImplementation.target,
     ]);
 
     // tx.data for safe -> TGovernor
@@ -524,25 +570,32 @@ describe('v3 launch', function () {
     tracer.printNext = true;
     await this.executeSafeTransaction([tGovernorCall]);
 
+    // set v3 contracts
     this.governor = await ethers.getContractAt('Governor', this.tGovernor.target);
 
-    const governorProxyImplementation = await getImplementation(this.governor);
-    expect(governorProxyImplementation).to.equal(governorImplementation.target);
+    const coverProductsAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_COVER_PRODUCTS);
+    this.coverProducts = await ethers.getContractAt('CoverProducts', coverProductsAddress);
+
+    const poolAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_POOL);
+    this.pool = await ethers.getContractAt('Pool', poolAddress);
+
+    const coverAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_COVER);
+    this.cover = await ethers.getContractAt('Cover', coverAddress);
   });
 
   it('verify post phase 3 state', async function () {
     // master.migrate - Pool migration
     expect(await this.master.registry()).to.equal(this.registry.target);
 
-    // old Pool balance should be 0
-    const prevPoolAfterBalance = await getPoolBalances(this, addresses.Pool, 'OLD POOL BALANCES AFTER POOL.MIGRATION');
-    for (const [token, balance] of Object.entries(prevPoolAfterBalance.balances)) {
-      expect(balance).to.be.closeTo(0n, 1n); // allow tiny deviation
+    // old Pool balance should be 0 (allow tiny deviation ~ 1 wei)
+    const prevPoolAfterBalance = await getPoolBalances.call(this, addresses.Pool, '(AFTER MIGRATION) OLD');
+    for (const balance of Object.values(prevPoolAfterBalance.balances)) {
+      expect(balance).to.be.closeTo(0n, 1n);
     }
     expect(prevPoolAfterBalance.totalPoolValueInEth).to.be.closeTo(0n, 1n);
 
-    // new Pool balance same as prev Pool balance before migration
-    const newPoolBalance = await getPoolBalances(this, this.pool.target, 'NEW POOL BALANCES AFTER POOL.MIGRATION');
+    // new Pool balance same as prev Pool balance before migration (allow tiny deviation ~ 2 wei)
+    const newPoolBalance = await getPoolBalances.call(this, this.pool.target, '(AFTER MIGRATION) NEW');
     for (const [token, balance] of Object.entries(newPoolBalance.balances)) {
       expect(balance).to.be.closeTo(this.prevPoolBeforeBalance.balances[token], 2n);
     }
@@ -578,6 +631,10 @@ describe('v3 launch', function () {
 
     // RegistryProxy.transferProxyOwnership
     expect(await this.registryProxy.proxyOwner()).to.equal(this.governor.target);
+
+    // Governor upgraded from tGovernor to real governor implementation
+    const governorProxyImplementation = await getImplementation(this.governor);
+    expect(governorProxyImplementation).to.equal(this.governorImplementation.target);
   });
 
   // phase 4:
@@ -615,13 +672,13 @@ describe('v3 launch', function () {
     await this.coverProducts.connect(this.abMembers[0]).setProductTypes(updatedProductTypeParams);
 
     // send MemberRoles ETH to pool
-    this.poolBalanceBefore = await ethers.provider.getBalance(this.pool.target);
-    this.mrBalanceBefore = await ethers.provider.getBalance(this.memberRoles.target);
+    this.poolBalanceBefore = await ethers.provider.getBalance(this.pool);
+    this.mrBalanceBefore = await ethers.provider.getBalance(this.memberRoles);
 
     await this.memberRoles.recoverETH();
 
     // migrate cover IPFS metadata to storage
-    const { coverIds, ipfsMetadata } = require('../../../scripts/v3-migration/data/cover-ipfs-metadata.json');
+    const { coverIds, ipfsMetadata } = require('../../scripts/v3-migration/data/cover-ipfs-metadata.json');
 
     await this.cover.connect(this.abMembers[0]).populateIpfsMetadata(coverIds, ipfsMetadata);
 
@@ -675,7 +732,7 @@ describe('v3 launch', function () {
     expect(await ethers.provider.getBalance(this.memberRoles)).to.equal(0n);
 
     // cover IPFS metadata storage
-    const { coverIds, ipfsMetadata } = require('../../../scripts/v3-migration/data/cover-ipfs-metadata.json');
+    const { coverIds, ipfsMetadata } = require('../../scripts/v3-migration/data/cover-ipfs-metadata.json');
     for (const [index, coverId] of coverIds.entries()) {
       expect(await this.cover.getCoverMetadata(coverId)).to.equal(ipfsMetadata[index]);
     }

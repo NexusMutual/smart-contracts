@@ -15,7 +15,7 @@ contract TestnetRegistry is Registry {
   function recoverSigner(
     bytes memory /* message */,
     bytes memory /* signature */
-  ) internal view override returns (address) {
+  ) public view override returns (address) {
     return membersMeta.kycAuthAddress;
   }
 

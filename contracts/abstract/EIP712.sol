@@ -21,7 +21,7 @@ abstract contract EIP712 {
   function recoverSigner(
     bytes memory message,
     bytes memory signature
-  ) internal view virtual returns (address signer) {
+  ) public view virtual returns (address signer) {
     bytes32 digest = ECDSA.toTypedDataHash(DOMAIN_SEPARATOR, keccak256(message));
     return ECDSA.recover(digest, signature);
   }

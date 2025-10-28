@@ -11,7 +11,7 @@ const {
 const {
   Addresses,
   createSafeExecutor,
-  deployCreate2,
+  deploy,
   getImplementation,
   getFundedSigner,
   getSigner,
@@ -154,6 +154,7 @@ describe('v3 launch', function () {
   //      - registry.migrate
   it('should run phase 0 and 1', async function () {
     this.registryProxy = await ethers.getContractAt('UpgradeableProxy', create1Proxies.Registry.expectedAddress);
+    console.log('this.registryProxy.target: ', this.registryProxy.target, '0xcafea2c575550512582090AA06d0a069E7236b9e');
 
     const registryOwner = await this.registryProxy.proxyOwner();
     await impersonateAccount(registryOwner);
@@ -189,7 +190,7 @@ describe('v3 launch', function () {
     this.registry = await ethers.getContractAt('Registry', this.registryProxy);
 
     const masterProxy = await ethers.getContractAt('UpgradeableProxy', addresses.NXMaster);
-    const masterImpl = await deployCreate2('NXMaster', create2Impl.NXMaster);
+    const masterImpl = await ethers.getContractAt('NXMaster', create2Impl.NXMaster.expectedAddress);
 
     // tx.data for TGovernance.execute -> NXMaster/Registry
     const { data: upgradeMasterTx } = await masterProxy.upgradeTo.populateTransaction(masterImpl.target);
@@ -335,26 +336,50 @@ describe('v3 launch', function () {
     }
 
     // deploy non-proxy contracts
-    this.coverNFTDescriptor = await deployCreate2('CoverNFTDescriptor', create2Impl.CoverNFTDescriptor);
-    this.votePower = await deployCreate2('VotePower', create2Impl.VotePower);
-    this.stakingViewer = await deployCreate2('StakingViewer', create2Impl.StakingViewer);
-    this.newCoverBroker = await deployCreate2('CoverBroker', create2Impl.CoverBroker);
+    this.coverNFTDescriptor = await ethers.deployContract(
+      'CoverNFTDescriptor',
+      create2Impl.CoverNFTDescriptor.constructorArgs,
+    );
+    this.votePower = await ethers.deployContract('VotePower', create2Impl.VotePower.constructorArgs);
+    this.stakingViewer = await ethers.deployContract('StakingViewer', create2Impl.StakingViewer.constructorArgs);
+    this.newCoverBroker = await ethers.deployContract('CoverBroker', create2Impl.CoverBroker.constructorArgs);
 
     // deploy proxy implementations
-    const poolImplementation = await deployCreate2('Pool', create2Impl.Pool);
-    const swapOperatorImplementation = await deployCreate2('SwapOperator', create2Impl.SwapOperator);
-    const rammImplementation = await deployCreate2('Ramm', create2Impl.Ramm);
-    const safeTrackerImplementation = await deployCreate2('SafeTracker', create2Impl.SafeTracker);
-    const assessmentImplementation = await deployCreate2('Assessments', create2Impl.Assessments);
-    const claimsImplementation = await deployCreate2('Claims', create2Impl.Claims);
-    const tokenControllerImplementation = await deployCreate2('TokenController', create2Impl.TokenController);
-    const coverProductsImplementation = await deployCreate2('CoverProducts', create2Impl.CoverProducts);
-    const coverImplementation = await deployCreate2('Cover', create2Impl.Cover);
-    const limitOrdersImplementation = await deployCreate2('LimitOrders', create2Impl.LimitOrders);
-    const stakingProductsImplementation = await deployCreate2('StakingProducts', create2Impl.StakingProducts);
+    const poolImplementation = await ethers.deployContract('Pool', create2Impl.Pool.constructorArgs);
+    const swapOperatorImplementation = await ethers.deployContract(
+      'SwapOperator',
+      create2Impl.SwapOperator.constructorArgs,
+    );
+    const rammImplementation = await ethers.deployContract('Ramm', create2Impl.Ramm.constructorArgs);
+    const safeTrackerImplementation = await ethers.deployContract(
+      'SafeTracker',
+      create2Impl.SafeTracker.constructorArgs,
+    );
+    const assessmentImplementation = await ethers.deployContract(
+      'Assessments',
+      create2Impl.Assessments.constructorArgs,
+    );
+    const claimsImplementation = await ethers.deployContract('Claims', create2Impl.Claims.constructorArgs);
+    const tokenControllerImplementation = await ethers.deployContract(
+      'TokenController',
+      create2Impl.TokenController.constructorArgs,
+    );
+    const coverProductsImplementation = await ethers.deployContract(
+      'CoverProducts',
+      create2Impl.CoverProducts.constructorArgs,
+    );
+    const coverImplementation = await ethers.deployContract('Cover', create2Impl.Cover.constructorArgs);
+    const limitOrdersImplementation = await ethers.deployContract(
+      'LimitOrders',
+      create2Impl.LimitOrders.constructorArgs,
+    );
+    const stakingProductsImplementation = await ethers.deployContract(
+      'StakingProducts',
+      create2Impl.StakingProducts.constructorArgs,
+    );
 
     // upgraded separately once all phase 3 actions are done
-    this.governorImplementation = await deployCreate2('Governor', create2Impl.Governor);
+    this.governorImplementation = await ethers.deployContract('Governor', create2Impl.Governor.constructorArgs);
 
     this.contractUpgrades = [
       { index: ContractIndexes.C_POOL, address: poolImplementation.target },

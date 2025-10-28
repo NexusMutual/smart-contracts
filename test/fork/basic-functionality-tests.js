@@ -87,6 +87,9 @@ describe('basic functionality tests', function () {
 
   it('switch kyc auth wallet', async function () {
     this.kycAuthSigner = ethers.Wallet.createRandom().connect(ethers.provider);
+    const oldKycAuth = await this.registry.getKycAuthAddress();
+    console.log('oldKycAuth: ', oldKycAuth, Addresses.KYC_AUTH_ADDRESS);
+    expect(oldKycAuth).to.be.equal(Addresses.KYC_AUTH_ADDRESS);
 
     const txs = [
       {
@@ -98,6 +101,7 @@ describe('basic functionality tests', function () {
     await executeGovernorProposal(this.governor, this.abMembers, txs);
 
     const currentKycAuth = await this.registry.getKycAuthAddress();
+    console.log('currentKycAuth: ', currentKycAuth, this.kycAuthSigner.address);
     expect(currentKycAuth).to.be.equal(this.kycAuthSigner.address);
   });
 
@@ -107,6 +111,33 @@ describe('basic functionality tests', function () {
 
     for (const member of this.members) {
       const signature = await nexus.signing.signJoinMessage(this.kycAuthSigner, member, this.registry, { chainId });
+
+      // await this.registry.recoverSigner(signature);
+      console.log('signature: ', signature);
+      console.log('this.kycAuthSigner.target: ', this.kycAuthSigner.address);
+      console.log('this.registry.target: ', this.registry.target);
+      // const recoveredAddress = await nexus.signing.recoverSignerTypedData(
+      //   signature,
+      //   member.address,
+      //   this.kycAuthSigner,
+      //   this.registry,
+      //   { chainId },
+      // );
+      // console.log('recoveredAddress: ', recoveredAddress, this.kycAuthSigner.address);
+      const { digest, recoveredAddress } = await nexus.signing.recoverSignerTypedData(
+        signature,
+        member.address,
+        this.kycAuthSigner,
+        this.registry,
+        { chainId },
+      );
+      console.log('lib recoveredAddress: ', recoveredAddress, this.kycAuthSigner.address);
+
+      console.log('digest: ', digest);
+      console.log('signature: ', signature);
+      // const recoveredAuthSigner = await this.registry.recoverSigner(digest, signature)
+      console.log('authSigner: ', recoveredAuthSigner, this.kycAuthSigner.address);
+
       await this.registry.join(member, signature, { value: JOINING_FEE });
       expect(await this.registry.isMember(member.address)).to.be.true;
     }

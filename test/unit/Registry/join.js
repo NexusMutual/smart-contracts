@@ -20,6 +20,15 @@ describe('join', () => {
     const expectedMemberId = initialMemberCount + 1n;
     const signature = await signJoinMessage(kycAuth, alice, registry);
 
+    const recoveredAddress = await nexus.signing.recoverSignerTypedData(
+      signature,
+      alice.address,
+      kycAuth,
+      registry,
+      // { chainId },
+    );
+    console.log('recoveredAddress: ', recoveredAddress, kycAuth.address);
+
     // called using bob's address to verify that msg.sender is not used anywhere
     await expect(registry.connect(bob).join(alice, signature, { value: JOINING_FEE }))
       // Registry emits the event

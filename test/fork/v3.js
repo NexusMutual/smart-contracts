@@ -19,7 +19,7 @@ const {
   submitGovernanceProposal,
   tenderlySetStorageAt,
 } = require('./utils');
-const { create1Proxies, create2Impl, create2Proxies } = require('../../release/3.0/config/fork-deployments.js');
+const { create1Proxies, create2Impl, create2Proxies } = require('../../release/3.0/config/deployments-config.js');
 
 const { AbiCoder, toBeHex, parseEther, toUtf8Bytes } = ethers;
 const { ContractCode, ContractIndexes, ProposalCategory } = nexus.constants;

@@ -19,10 +19,10 @@ phase 1: first ab actions
    - upgrade Governance to TemporaryGovernance
    - upgrade Assessment to LegacyAssessment
    - upgrade MemberRoles to LegacyMemberRoles
-2. batch transactions using safe multisig calling TGovernance (todo: check gas limit):
+2. batch transactions using safe multisig calling TGovernance:
    - upgrade NXMaster
    - NXMaster.transferOwnershipToRegistry
-   - Registry.migrate (will also upgade Governor to use TemporaryGovernance)
+   - Registry.migrate (will also upgrade Governor to use TemporaryGovernance)
 
 phase 2: prep for ab actions
 1. execute script to push LegacyAssessment stake and rewards
@@ -37,9 +37,11 @@ phase 2: prep for ab actions
    - TokenController
    - Cover
    - CoverProducts
+   - LimitOrders
+   - StakingProducts
    - Governor
 
-phase 3 (second ab action)
+phase 3 (second ab action) - all are TGovernor actions except master.migrate
 1. batch transactions using safe multisig calling TGovernor (todo: check gas limit)
    - upgrade contracts
      - Pool
@@ -51,25 +53,30 @@ phase 3 (second ab action)
      - TokenController
      - Cover
      - CoverProducts
-   - registry.setEmergencyAdmin 1
-   - registry.setEmergencyAdmin 2
+     - LimitOrders
+     - StakingProducts
+   - registry.setEmergencyAdmin 1 & 2
    - registry.setKycAuthAddress
    - swapOperator.setSwapController
    - claims.initialize
-   - master.migrate (copies assets/oracles/mcr and moves the funds!)
-   - transfer registry proxy ownership to Governor
-   - setup 1 assessing group for all product types
+   - assessments.addAssessorsToGroup (create new group for 3 assessors)
+   - assessments.setAssessingGroupIdForProductTypes (set new group as assessing group for all product types)
+   - cover.changeCoverNFTDescriptor to new CoverNFTDescriptor
+   - master.migrate (copies assets/oracles/mcr and moves the funds!) [TGovernance action]
+   - transfer Registry proxy ownership to Governor
 2. safe transaction via TGovernor.execute
    - upgrade TGovernor to `Governor.sol` - in theory can be batched above
 
+phase 4 (post phase 3 actions)
+1. Singe AB member ops:
+   - coverProducts.setProductTypes set assessmentCooldownPeriod and payoutRedemptionPeriod values to all product types
+   - cover.populateIpfsMetadata sets covers IPFS metadata to storage
+2. CoverBroker Safe Owner
+   - switchMembership to new CoverBroker
+   - maxApproveCoverContract for cbBTC and USDC
+3. Non AB
+   - memberRoles.recoverETH
+4. Enzyme (via UI)
+   - remove old depositors and set SwapOperator as a depositor
+
 Total transactions for AB: 4
-
-Non AB:
-- memberRoles.recoverETH
-
-Single AB member ops:
-- update existing CoverProduct productTypes to add assessmentCooldownPeriod and payoutRedemptionPeriod values
-- cover.populateIpfsMetadata - set cover IPFS metadata to storage
-
-Enzyme:
-- remove old depositors and set SwapOperator as a depositor

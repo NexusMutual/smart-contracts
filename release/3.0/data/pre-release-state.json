@@ -1,0 +1,243 @@
+{
+  "productTypes": [
+    {
+      "productTypeId": 0,
+      "productTypeName": "Single Protocol Cover",
+      "ipfsHash": "QmQz38DSo6DyrHkRj8uvtGFyx842izVvnx8a3qqF99dctG",
+      "productType": {
+        "claimMethod": 0,
+        "gracePeriod": 3024000
+      }
+    },
+    {
+      "productTypeId": 1,
+      "productTypeName": "Custody",
+      "ipfsHash": "QmYhCNjfrNTMq8eyg8i7LbBpTkMCHfix9Sv1jrPb7dYZKd",
+      "productType": {
+        "claimMethod": 0,
+        "gracePeriod": 10368000
+      }
+    },
+    {
+      "productTypeId": 2,
+      "productTypeName": "Yield Token",
+      "ipfsHash": "QmcPdiLNZmBM8pjQcCzLhH8tjPuhphCVKZeP5P4SBiLx3h",
+      "productType": {
+        "claimMethod": 1,
+        "gracePeriod": 1209600
+      }
+    },
+    {
+      "productTypeId": 3,
+      "productTypeName": "Sherlock Excess",
+      "ipfsHash": "QmUTUfdfuZUjtPAiMZ4YRu77SaiyCov7jrSXTgeGeK8qt3",
+      "productType": {
+        "claimMethod": 0,
+        "gracePeriod": 3024000
+      }
+    },
+    {
+      "productTypeId": 4,
+      "productTypeName": "Stakewise ETH Staking",
+      "ipfsHash": "QmPmwtwbyKnXBae1dmYD6jmgnewCeZGPMFGepkWMLWaiwC",
+      "productType": {
+        "claimMethod": 0,
+        "gracePeriod": 3024000
+      }
+    },
+    {
+      "productTypeId": 5,
+      "productTypeName": "Liquid Collective ETH Staking",
+      "ipfsHash": "QmUKhLi5ZahnzSxsMC9YQZbwwAKGhkHcoYqHUVgE31cXLe",
+      "productType": {
+        "claimMethod": 0,
+        "gracePeriod": 3024000
+      }
+    },
+    {
+      "productTypeId": 6,
+      "productTypeName": "ETH Slashing",
+      "ipfsHash": "QmWepFbtMYSzJt22ddF1CK9PwbrYgiLk9qJjryDrgpGuus",
+      "productType": {
+        "claimMethod": 0,
+        "gracePeriod": 3024000
+      }
+    },
+    {
+      "productTypeId": 7,
+      "productTypeName": "Sherlock Quota Share",
+      "ipfsHash": "QmQfYgbBhyC3gJMvan9gbzUaZtd4Xy4gubEYfgTFKycBDZ",
+      "productType": {
+        "claimMethod": 0,
+        "gracePeriod": 3024000
+      }
+    },
+    {
+      "productTypeId": 8,
+      "productTypeName": "Native Protocol Cover",
+      "ipfsHash": "QmQz38DSo6DyrHkRj8uvtGFyx842izVvnx8a3qqF99dctG",
+      "productType": {
+        "claimMethod": 0,
+        "gracePeriod": 3024000
+      }
+    },
+    {
+      "productTypeId": 9,
+      "productTypeName": "The Retail Mutual",
+      "ipfsHash": "QmYvjtM4FoK8woRySpmmcp8zP7Bmc5ucDgQEc4boLzqie8",
+      "productType": {
+        "claimMethod": 0,
+        "gracePeriod": 36720000
+      }
+    },
+    {
+      "productTypeId": 10,
+      "productTypeName": "UnoRe Quota Share",
+      "ipfsHash": "QmWXYjBYjdKoRw6kyUvp5gYKjj2ojPPVxNYKr1gDjMLssY",
+      "productType": {
+        "claimMethod": 0,
+        "gracePeriod": 3024000
+      }
+    },
+    {
+      "productTypeId": 11,
+      "productTypeName": "Multi Protocol Cover",
+      "ipfsHash": "QmQz38DSo6DyrHkRj8uvtGFyx842izVvnx8a3qqF99dctG",
+      "productType": {
+        "claimMethod": 0,
+        "gracePeriod": 3024000
+      }
+    },
+    {
+      "productTypeId": 12,
+      "productTypeName": "ETH Slashing Umbrella",
+      "ipfsHash": "QmQx2H9A51SARNc4W8Ta2D2woXv2ebkUGZMC5HZoQW8TUX",
+      "productType": {
+        "claimMethod": 0,
+        "gracePeriod": 3024000
+      }
+    },
+    {
+      "productTypeId": 13,
+      "productTypeName": " OpenCover Transaction",
+      "ipfsHash": "QmWRir4JSeSv3oKbHyDRz1xFKXh1d8wgew5Rr4koCMeYYu",
+      "productType": {
+        "claimMethod": 0,
+        "gracePeriod": 3024000
+      }
+    },
+    {
+      "productTypeId": 14,
+      "productTypeName": "Fund Portfolio Cover",
+      "ipfsHash": "QmevgAXtzi7773NaBrzGyW95aKSrt3MBtpQU1SQCPyCbSF",
+      "productType": {
+        "claimMethod": 0,
+        "gracePeriod": 3024000
+      }
+    },
+    {
+      "productTypeId": 15,
+      "productTypeName": "Sherlock Bug Bounty Cover",
+      "ipfsHash": "QmUtdg2CmNDh1ZkDKE2zwgbc7RF8yWDCCLEwqQ2zt8J7eT",
+      "productType": {
+        "claimMethod": 0,
+        "gracePeriod": 3024000
+      }
+    },
+    {
+      "productTypeId": 16,
+      "productTypeName": "DeFi Pass",
+      "ipfsHash": "QmQLh2wNDD2b2RGg9rNFbyrQwxqTthrTNaTsHenZnRg6u6",
+      "productType": {
+        "claimMethod": 0,
+        "gracePeriod": 3024000
+      }
+    },
+    {
+      "productTypeId": 17,
+      "productTypeName": "Follow On Cover",
+      "ipfsHash": "QmYgZNrGSAQZCGKEGdgvR132KWkLKtSDXmZVGfoGSKfYMG",
+      "productType": {
+        "claimMethod": 0,
+        "gracePeriod": 8640000
+      }
+    },
+    {
+      "productTypeId": 18,
+      "productTypeName": "Immunefi Bug Bounty Cover",
+      "ipfsHash": "QmRzT2MF4aWQs2UJZBTHU8gFnPsEGQWRQ75zwQP4dh514Y",
+      "productType": {
+        "claimMethod": 0,
+        "gracePeriod": 3024000
+      }
+    },
+    {
+      "productTypeId": 19,
+      "productTypeName": "Nexus Mutual Cover",
+      "ipfsHash": "QmYdBBwtdn9Z6j9nX3SkzPjWmvHxjMUbu44sibnQ9QrCHX",
+      "productType": {
+        "claimMethod": 0,
+        "gracePeriod": 3024000
+      }
+    },
+    {
+      "productTypeId": 20,
+      "productTypeName": "Generalized Fund Portfolio Cover",
+      "ipfsHash": "QmWWsaMfuumQw9JEF5YPbgwv7TP5bKYdgjrhYyMo66pXwa",
+      "productType": {
+        "claimMethod": 0,
+        "gracePeriod": 10368000
+      }
+    },
+    {
+      "productTypeId": 21,
+      "productTypeName": "Crypto Cover",
+      "ipfsHash": "QmaR79gHuSzU371e7V6EEk1V14ohDm2Hk25FFuRgk9vrfx",
+      "productType": {
+        "claimMethod": 0,
+        "gracePeriod": 10368000
+      }
+    },
+    {
+      "productTypeId": 22,
+      "productTypeName": "Native Syndicate Cover",
+      "ipfsHash": "QmUzkWmZhEr9i8eMxPpoz59aZRxZ4uVSbjkD8EnAxrX3VP",
+      "productType": {
+        "claimMethod": 0,
+        "gracePeriod": 3024000
+      }
+    },
+    {
+      "productTypeId": 23,
+      "productTypeName": "Spearbit Cantina Cover",
+      "ipfsHash": "QmR8jRGHA3fsLnBK5dtj27evTDQ3Vyic3zJnCh7dVas3pL",
+      "productType": {
+        "claimMethod": 0,
+        "gracePeriod": 3024000
+      }
+    },
+    {
+      "productTypeId": 24,
+      "productTypeName": "Leveraged Liquidation Cover",
+      "ipfsHash": "QmdwP8CfiEdr2CqeZf7GhzbPAT2SECbKr8FZmx1KwvfHS4",
+      "productType": {
+        "claimMethod": 0,
+        "gracePeriod": 3024000
+      }
+    }
+  ],
+  "poolBalances": {
+    "balances": {
+      "ETH": "6915346863578781546577",
+      "DAI": "0",
+      "stETH": "11590410009881942426088",
+      "NXMTY": "15348001519741036985819",
+      "rEth": "9990040234555019396994",
+      "SafeTracker": "2917563585938252134275",
+      "USDC": "1683082077604",
+      "cbBTC": "351029181"
+    },
+    "totalPoolValueInEth": "47222287464937281774923"
+  },
+  "memberRolesBalance": "6594000000000000000"
+}

@@ -1,5 +1,7 @@
-[{
-  "title": "",
-  "shortDescription": "",
-  "description": ""
-}]
+[
+  {
+    "title": "Claims and Governance upgrade",
+    "shortDescription": "On-chain implementation for the Claims and Governance upgrade voted in proposal #261",
+    "description": "As per proposal #261 members voted to upgrade the claims and governance. This proposal contains the on-chain action for the first phase of the upgrade."
+  }
+]

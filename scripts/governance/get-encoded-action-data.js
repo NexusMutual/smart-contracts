@@ -1,6 +1,6 @@
 const { ethers } = require('hardhat');
 
-const { defaultAbiCoder, toUtf8Bytes } = ethers.utils;
+const { AbiCoder, toUtf8Bytes } = ethers;
 
 const ADDRESS_REGEX = /^0x[a-f0-9]{40}$/i;
 const CATEGORIES_HANDLERS = {
@@ -123,8 +123,8 @@ const getContractCodeHexBytes = code => `0x${Buffer.from(toUtf8Bytes(code)).toSt
 
 function encodeReleaseNewContractCode(options) {
   const contractCodeBytes = options.contractCodes.map(getContractCodeHexBytes);
-  const decodedAction = defaultAbiCoder.encode(['bytes2[]', 'address[]'], [contractCodeBytes, options.addresses]);
-
+  const abiCoder = new AbiCoder();
+  const decodedAction = abiCoder.encode(['bytes2[]', 'address[]'], [contractCodeBytes, options.addresses]);
   console.log(`Encoded Release New Contract Code (29):\n${decodedAction}`);
 }
 

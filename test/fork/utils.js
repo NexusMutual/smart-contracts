@@ -135,7 +135,8 @@ const createSafeExecutor = async multisigAddress => {
   safe = safe.connect(ownerSigner);
 
   // sets threshold to 1
-  await setStorageAt(multisigAddress, 4, 1);
+  const setStorageAtFn = network.name === 'tenderly' ? tenderlySetStorageAt : setStorageAt;
+  await setStorageAtFn(multisigAddress, 4, 1);
 
   /**
    * @param {{ to: string, value?: bigint | number | string, data?: string }[]} txs
@@ -146,7 +147,9 @@ const createSafeExecutor = async multisigAddress => {
   const executeSafeTransaction = async (txs, value = 0n, overrides = {}) => {
     const blob = concat(txs.map(packMultiSendTx));
     const data = multiSendIface.encodeFunctionData('multiSend', [blob]);
-    await setNextBlockBaseFeePerGas(0);
+    if (network.name !== 'tenderly') {
+      await setNextBlockBaseFeePerGas(0);
+    }
 
     return safe.execTransaction(
       Addresses.MULTISEND,
@@ -256,6 +259,13 @@ const deployCreate2 = async (
   return ethers.getContractAt(contractName, expectedAddress);
 };
 
+/**
+ * tenderly_setStorageAt must be 32-byte padded slot which is different from the conventional setStorageAt
+ */
+const tenderlySetStorageAt = async (address, slot, value) => {
+  return ethers.provider.send('tenderly_setStorageAt', [address, toBeHex(slot, 32), toBeHex(value, 32)]);
+};
+
 module.exports = {
   Addresses,
   submitGovernanceProposal,
@@ -270,4 +280,5 @@ module.exports = {
   setCbBTCBalance,
   getImplementation,
   deployCreate2,
+  tenderlySetStorageAt,
 };

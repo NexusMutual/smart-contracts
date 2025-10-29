@@ -103,7 +103,7 @@ HARDHAT_NETWORK=mainnet ENABLE_OPTIMIZER=1 node scripts/create2/deploy.js \
 ```bash
 ENABLE_OPTIMIZER=1 npx hardhat verify --network mainnet \
   "$(jq -r '.Assessments.expectedAddress' release/3.0/config/deployments.json)" \
-  --constructor-args "$(jq -c '.Assessments.constructorArgs' release/3.0/config/deployments.json)" \
+  $(jq -r '.Assessments.constructorArgs | .[]' release/3.0/config/deployments.json | xargs -I {} echo '"{}"' | xargs) \
   --contract contracts/modules/assessment/Assessments.sol:Assessments
 ```
 
@@ -137,7 +137,7 @@ HARDHAT_NETWORK=mainnet ENABLE_OPTIMIZER=1 node scripts/create2/deploy.js \
 ```bash
 ENABLE_OPTIMIZER=1 npx hardhat verify --network mainnet \
   "$(jq -r '.Cover.expectedAddress' release/3.0/config/deployments.json)" \
-  --constructor-args "$(jq -c '.Cover.constructorArgs' release/3.0/config/deployments.json)" \
+  $(jq -r '.Cover.constructorArgs | .[]' release/3.0/config/deployments.json | xargs -I {} echo '"{}"' | xargs) \
   --contract contracts/modules/cover/Cover.sol:Cover
 ```
 
@@ -169,7 +169,7 @@ HARDHAT_NETWORK=mainnet ENABLE_OPTIMIZER=1 node scripts/create2/deploy.js \
 ```bash
 ENABLE_OPTIMIZER=1 npx hardhat verify --network mainnet \
   "$(jq -r '.CoverNFTDescriptor.expectedAddress' release/3.0/config/deployments.json)" \
-  --constructor-args "$(jq -c '.CoverNFTDescriptor.constructorArgs' release/3.0/config/deployments.json)" \
+  $(jq -r '.CoverNFTDescriptor.constructorArgs | .[]' release/3.0/config/deployments.json | xargs -I {} echo '"{}"' | xargs) \
   --contract contracts/modules/cover/CoverNFTDescriptor.sol:CoverNFTDescriptor
 ```
 
@@ -230,7 +230,7 @@ HARDHAT_NETWORK=mainnet ENABLE_OPTIMIZER=1 node scripts/create2/deploy.js \
 ```bash
 ENABLE_OPTIMIZER=1 npx hardhat verify --network mainnet \
   "$(jq -r '.Claims.expectedAddress' release/3.0/config/deployments.json)" \
-  --constructor-args "$(jq -c '.Claims.constructorArgs' release/3.0/config/deployments.json)" \
+  $(jq -r '.Claims.constructorArgs | .[]' release/3.0/config/deployments.json | xargs -I {} echo '"{}"' | xargs) \
   --contract contracts/modules/assessment/Claims.sol:Claims
 ```
 
@@ -262,7 +262,7 @@ HARDHAT_NETWORK=mainnet ENABLE_OPTIMIZER=1 node scripts/create2/deploy.js \
 ```bash
 ENABLE_OPTIMIZER=1 npx hardhat verify --network mainnet \
   "$(jq -r '.Governor.expectedAddress' release/3.0/config/deployments.json)" \
-  --constructor-args "$(jq -c '.Governor.constructorArgs' release/3.0/config/deployments.json)" \
+  $(jq -r '.Governor.constructorArgs | .[]' release/3.0/config/deployments.json | xargs -I {} echo '"{}"' | xargs) \
   --contract contracts/modules/governance/Governor.sol:Governor
 ```
 
@@ -296,7 +296,7 @@ HARDHAT_NETWORK=mainnet ENABLE_OPTIMIZER=1 node scripts/create2/deploy.js \
 ```bash
 ENABLE_OPTIMIZER=1 npx hardhat verify --network mainnet \
   "$(jq -r '.LimitOrders.expectedAddress' release/3.0/config/deployments.json)" \
-  --constructor-args "$(jq -c '.LimitOrders.constructorArgs' release/3.0/config/deployments.json)" \
+  $(jq -r '.LimitOrders.constructorArgs | .[]' release/3.0/config/deployments.json | xargs -I {} echo '"{}"' | xargs) \
   --contract contracts/modules/cover/LimitOrders.sol:LimitOrders
 ```
 
@@ -357,7 +357,7 @@ HARDHAT_NETWORK=mainnet ENABLE_OPTIMIZER=1 node scripts/create2/deploy.js \
 ```bash
 ENABLE_OPTIMIZER=1 npx hardhat verify --network mainnet \
   "$(jq -r '.Pool.expectedAddress' release/3.0/config/deployments.json)" \
-  --constructor-args "$(jq -c '.Pool.constructorArgs' release/3.0/config/deployments.json)" \
+  $(jq -r '.Pool.constructorArgs | .[]' release/3.0/config/deployments.json | xargs -I {} echo '"{}"' | xargs) \
   --contract contracts/modules/capital/Pool.sol:Pool
 ```
 
@@ -392,7 +392,7 @@ HARDHAT_NETWORK=mainnet ENABLE_OPTIMIZER=1 node scripts/create2/deploy.js \
 ```bash
 ENABLE_OPTIMIZER=1 npx hardhat verify --network mainnet \
   "$(jq -r '.Ramm.expectedAddress' release/3.0/config/deployments.json)" \
-  --constructor-args "$(jq -c '.Ramm.constructorArgs' release/3.0/config/deployments.json)" \
+  $(jq -r '.Ramm.constructorArgs | .[]' release/3.0/config/deployments.json | xargs -I {} echo '"{}"' | xargs) \
   --contract contracts/modules/capital/Ramm.sol:Ramm
 ```
 
@@ -425,7 +425,7 @@ HARDHAT_NETWORK=mainnet ENABLE_OPTIMIZER=1 node scripts/create2/deploy.js \
 ```bash
 ENABLE_OPTIMIZER=1 npx hardhat verify --network mainnet \
   "$(jq -r '.Registry.expectedAddress' release/3.0/config/deployments.json)" \
-  --constructor-args "$(jq -c '.Registry.constructorArgs' release/3.0/config/deployments.json)" \
+  $(jq -r '.Registry.constructorArgs | .[]' release/3.0/config/deployments.json | xargs -I {} echo '"{}"' | xargs) \
   --contract contracts/modules/governance/Registry.sol:Registry
 ```
 
@@ -463,7 +463,7 @@ HARDHAT_NETWORK=mainnet ENABLE_OPTIMIZER=1 node scripts/create2/deploy.js \
 ```bash
 ENABLE_OPTIMIZER=1 npx hardhat verify --network mainnet \
   "$(jq -r '.SafeTracker.expectedAddress' release/3.0/config/deployments.json)" \
-  --constructor-args "$(jq -c '.SafeTracker.constructorArgs' release/3.0/config/deployments.json)" \
+  $(jq -r '.SafeTracker.constructorArgs | .[]' release/3.0/config/deployments.json | xargs -I {} echo '"{}"' | xargs) \
   --contract contracts/modules/capital/SafeTracker.sol:SafeTracker
 ```
 
@@ -496,7 +496,7 @@ HARDHAT_NETWORK=mainnet ENABLE_OPTIMIZER=1 node scripts/create2/deploy.js \
 ```bash
 ENABLE_OPTIMIZER=1 npx hardhat verify --network mainnet \
   "$(jq -r '.StakingProducts.expectedAddress' release/3.0/config/deployments.json)" \
-  --constructor-args "$(jq -c '.StakingProducts.constructorArgs' release/3.0/config/deployments.json)" \
+  $(jq -r '.StakingProducts.constructorArgs | .[]' release/3.0/config/deployments.json | xargs -I {} echo '"{}"' | xargs) \
   --contract contracts/modules/staking/StakingProducts.sol:StakingProducts
 ```
 
@@ -531,7 +531,7 @@ HARDHAT_NETWORK=mainnet ENABLE_OPTIMIZER=1 node scripts/create2/deploy.js \
 ```bash
 ENABLE_OPTIMIZER=1 npx hardhat verify --network mainnet \
   "$(jq -r '.SwapOperator.expectedAddress' release/3.0/config/deployments.json)" \
-  --constructor-args "$(jq -c '.SwapOperator.constructorArgs' release/3.0/config/deployments.json)" \
+  $(jq -r '.SwapOperator.constructorArgs | .[]' release/3.0/config/deployments.json | xargs -I {} echo '"{}"' | xargs) \
   --contract contracts/modules/capital/SwapOperator.sol:SwapOperator
 ```
 
@@ -563,7 +563,7 @@ HARDHAT_NETWORK=mainnet ENABLE_OPTIMIZER=1 node scripts/create2/deploy.js \
 ```bash
 ENABLE_OPTIMIZER=1 npx hardhat verify --network mainnet \
   "$(jq -r '.TokenController.expectedAddress' release/3.0/config/deployments.json)" \
-  --constructor-args "$(jq -c '.TokenController.constructorArgs' release/3.0/config/deployments.json)" \
+  $(jq -r '.TokenController.constructorArgs | .[]' release/3.0/config/deployments.json | xargs -I {} echo '"{}"' | xargs) \
   --contract contracts/modules/token/TokenController.sol:TokenController
 ```
 
@@ -597,7 +597,7 @@ HARDHAT_NETWORK=mainnet ENABLE_OPTIMIZER=1 node scripts/create2/deploy.js \
 ```bash
 ENABLE_OPTIMIZER=1 npx hardhat verify --network mainnet \
   "$(jq -r '.VotePower.expectedAddress' release/3.0/config/deployments.json)" \
-  --constructor-args "$(jq -c '.VotePower.constructorArgs' release/3.0/config/deployments.json)" \
+  $(jq -r '.VotePower.constructorArgs | .[]' release/3.0/config/deployments.json | xargs -I {} echo '"{}"' | xargs) \
   --contract contracts/modules/governance/VotePower.sol:VotePower
 ```
 
@@ -629,7 +629,7 @@ HARDHAT_NETWORK=mainnet ENABLE_OPTIMIZER=1 node scripts/create2/deploy.js \
 ```bash
 ENABLE_OPTIMIZER=1 npx hardhat verify --network mainnet \
   "$(jq -r '.StakingViewer.expectedAddress' release/3.0/config/deployments.json)" \
-  --constructor-args "$(jq -c '.StakingViewer.constructorArgs' release/3.0/config/deployments.json)" \
+  $(jq -r '.StakingViewer.constructorArgs | .[]' release/3.0/config/deployments.json | xargs -I {} echo '"{}"' | xargs) \
   --contract contracts/modules/staking/StakingViewer.sol:StakingViewer
 ```
 
@@ -662,6 +662,6 @@ HARDHAT_NETWORK=mainnet ENABLE_OPTIMIZER=1 node scripts/create2/deploy.js \
 ```bash
 ENABLE_OPTIMIZER=1 npx hardhat verify --network mainnet \
   "$(jq -r '.CoverBroker.expectedAddress' release/3.0/config/deployments.json)" \
-  --constructor-args "$(jq -c '.CoverBroker.constructorArgs' release/3.0/config/deployments.json)" \
+  $(jq -r '.CoverBroker.constructorArgs | .[]' release/3.0/config/deployments.json | xargs -I {} echo '"{}"' | xargs) \
   --contract contracts/external/cover/CoverBroker.sol:CoverBroker
 ```

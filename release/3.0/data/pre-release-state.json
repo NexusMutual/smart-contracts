@@ -228,16 +228,79 @@
   ],
   "poolBalances": {
     "balances": {
-      "ETH": "6915346863578781546577",
+      "ETH": "6867384533914021661072",
       "DAI": "0",
-      "stETH": "11590410009881942426088",
+      "stETH": "11591212559642262367624",
       "NXMTY": "15348001519741036985819",
       "rEth": "9990040234555019396994",
-      "SafeTracker": "2917563585938252134275",
-      "USDC": "1683082077604",
+      "SafeTracker": "3038264521368231788840",
+      "USDC": "1683335236881",
       "cbBTC": "351029181"
     },
-    "totalPoolValueInEth": "47222287464937281774923"
+    "totalPoolValueInEth": "47318963825278157869327"
   },
-  "memberRolesBalance": "6594000000000000000"
+  "memberRolesBalance": "6594000000000000000",
+  "mcr": {
+    "stored": "7481818484955019211494",
+    "desired": "7481818484955019211494",
+    "updatedAt": "1761736211"
+  },
+  "poolAssets": [
+    {
+      "assetAddress": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "isCoverAsset": true,
+      "isAbandoned": false,
+      "oracle": "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
+      "oracleType": "1"
+    },
+    {
+      "assetAddress": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+      "isCoverAsset": true,
+      "isAbandoned": false,
+      "oracle": "0x773616E4d11A78F511299002da57A0a94577F1f4",
+      "oracleType": "0"
+    },
+    {
+      "assetAddress": "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84",
+      "isCoverAsset": false,
+      "isAbandoned": false,
+      "oracle": "0x86392dC19c0b719886221c78AB11eb8Cf5c52812",
+      "oracleType": "0"
+    },
+    {
+      "assetAddress": "0x27F23c710dD3d878FE9393d93465FeD1302f2EbD",
+      "isCoverAsset": false,
+      "isAbandoned": false,
+      "oracle": "0xCc72039A141c6e34a779eF93AEF5eB4C82A893c7",
+      "oracleType": "0"
+    },
+    {
+      "assetAddress": "0xae78736Cd615f374D3085123A210448E74Fc6393",
+      "isCoverAsset": false,
+      "isAbandoned": false,
+      "oracle": "0x536218f9E9Eb48863970252233c8F271f554C2d0",
+      "oracleType": "0"
+    },
+    {
+      "assetAddress": "0xcafeaB8B01C74c2239eA9b2B0F6aB2dD409c6c13",
+      "isCoverAsset": false,
+      "isAbandoned": false,
+      "oracle": "0xcafeaB8B01C74c2239eA9b2B0F6aB2dD409c6c13",
+      "oracleType": "0"
+    },
+    {
+      "assetAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "isCoverAsset": true,
+      "isAbandoned": false,
+      "oracle": "0x986b5E1e1755e3C2440e960477f25201B0a8bbD4",
+      "oracleType": "0"
+    },
+    {
+      "assetAddress": "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
+      "isCoverAsset": true,
+      "isAbandoned": false,
+      "oracle": "0x2665701293fCbEB223D11A08D826563EDcCE423A",
+      "oracleType": "1"
+    }
+  ]
 }

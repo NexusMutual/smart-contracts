@@ -1,5 +1,6 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const { inspect } = require('node:util');
 
 const v2 = require('@nexusmutual/deployments');
 const { expect } = require('chai');
@@ -51,6 +52,8 @@ describe('v3 verify', function () {
     // v2
     this.individualClaims = await ethers.getContractAt(v2.abis.IndividualClaims, v2.addresses.IndividualClaims);
     this.coverProductsV2 = await ethers.getContractAt(v2.abis.CoverProducts, v2.addresses.CoverProducts);
+    this.mcr = await ethers.getContractAt(v2.abis.MCR, v2.addresses.MCR);
+    this.legacyPool = await ethers.getContractAt(v2.abis.Pool, oldPoolAddress);
 
     // v3
     this.assessments = await ethers.getContractAt('Assessments', addresses.Assessments);
@@ -83,6 +86,10 @@ describe('v3 verify', function () {
     // Legacy
     const memberRolesAddress = await this.master.getLatestAddress(toUtf8Bytes('MR'));
     this.memberRoles = await ethers.getContractAt('LegacyMemberRoles', memberRolesAddress);
+
+    // Price Feed Oracle
+    const priceFeedOracleAddress = await this.legacyPool.priceFeedOracle();
+    this.priceFeedOracle = await ethers.getContractAt(v2.abis.PriceFeedOracle, priceFeedOracleAddress);
   });
 
   it('store pre release state', async function () {
@@ -111,11 +118,41 @@ describe('v3 verify', function () {
     const poolBalances = await getPoolBalances.call(this, oldPoolAddress, '(BEFORE MIGRATION) OLD');
     const memberRolesBalance = await ethers.provider.getBalance(this.memberRoles);
 
+    // fetch MCR value (drifts w/ time)
+    const [stored, desired, updatedAt] = await Promise.all([
+      this.mcr.getMCR(),
+      this.mcr.desiredMCR(),
+      this.mcr.lastUpdateTime(),
+    ]);
+
+    // fetch assets
+    const assets = await this.legacyPool.getAssets();
+
+    const poolAssets = [];
+    for (const asset of assets) {
+      const { aggregator, aggregatorType } = await this.priceFeedOracle.assetsMap(asset.assetAddress);
+      poolAssets.push({
+        assetAddress: asset.assetAddress,
+        isCoverAsset: asset.isCoverAsset,
+        isAbandoned: asset.isAbandoned,
+        oracle: aggregator,
+        oracleType: aggregatorType.toString(),
+      });
+    }
+
     const preReleaseState = {
       productTypes,
       poolBalances,
       memberRolesBalance: memberRolesBalance.toString(),
+      mcr: {
+        stored: stored.toString(),
+        desired: desired.toString(),
+        updatedAt: updatedAt.toString(),
+      },
+      poolAssets,
     };
+
+    console.log('preReleaseState: ', inspect(preReleaseState, { depth: null }));
 
     // store pre release state
     await fs.writeFile(preReleaseStatePath, JSON.stringify(preReleaseState, null, 2));
@@ -189,6 +226,7 @@ describe('v3 verify', function () {
 
   // execute in isolation AFTER phase 3
   it.skip('verify post phase 3 state', async function () {
+    const prevState = require(preReleaseStatePath);
     expect(await this.master.registry()).to.equal(this.registry.target);
 
     // old Pool balance should be 0 (allow tiny deviation ~ 1 wei)
@@ -199,12 +237,38 @@ describe('v3 verify', function () {
     expect(prevPoolAfterBalance.totalPoolValueInEth).to.be.closeTo(0n, 1n);
 
     // new Pool balance same as prev Pool balance before migration (allow tiny deviation ~ 2 wei)
-    const prevState = require(preReleaseStatePath);
     const newPoolBalance = await getPoolBalances.call(this, addresses.Pool, '(AFTER MIGRATION) NEW');
     for (const [token, balance] of Object.entries(newPoolBalance.balances)) {
       expect(balance).to.be.closeTo(prevState.poolBalances.balances[token], 2n);
     }
     expect(newPoolBalance.totalPoolValueInEth).to.be.closeTo(prevState.poolBalances.totalPoolValueInEth, 2n);
+
+    // verify MCR value
+    const [stored, desired, updatedAt] = await Promise.all([
+      this.mcr.getMCR(),
+      this.mcr.desiredMCR(),
+      this.mcr.lastUpdateTime(),
+    ]);
+    const prevMCR = prevState.mcr;
+    expect(stored.toString()).to.equal(prevMCR.stored);
+    expect(desired.toString()).to.equal(prevMCR.desired);
+    expect(updatedAt.toString()).to.equal(prevMCR.updatedAt);
+
+    // verify assets are migrated correctly
+    const assets = await this.pool.getAssets();
+    expect(assets.length).to.equal(prevState.poolAssets.length);
+
+    for (const [index, asset] of Object.entries(assets)) {
+      const prevAsset = prevState.poolAssets[index];
+      const { aggregator, aggregatorType } = await this.priceFeedOracle.assetsMap(asset.assetAddress);
+      const expectedIsAbandoned = asset.assetAddress === Addresses.DAI_ADDRESS ? true : prevAsset.isAbandoned;
+
+      expect(asset.assetAddress).to.equal(prevAsset.assetAddress);
+      expect(asset.isCoverAsset).to.equal(prevAsset.isCoverAsset);
+      expect(asset.isAbandoned).to.equal(expectedIsAbandoned);
+      expect(aggregator).to.equal(prevAsset.oracle);
+      expect(aggregatorType.toString()).to.equal(prevAsset.oracleType);
+    }
 
     // Registry.setEmergencyAdmin 1 & 2
     const emergencyAdmins = [Addresses.EMERGENCY_ADMIN_1, Addresses.EMERGENCY_ADMIN_2];

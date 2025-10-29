@@ -55,7 +55,7 @@ phase 3 (second ab action) - all are TGovernor actions except master.migrate
      - CoverProducts
      - LimitOrders
      - StakingProducts
-   - registry.setEmergencyAdmin 1 & 2
+   - registry.setEmergencyAdmin x6
    - registry.setKycAuthAddress
    - swapOperator.setSwapController
    - claims.initialize

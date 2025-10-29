@@ -414,7 +414,7 @@ describe('v3 launch', function () {
    * - pool.migrate
    * - update existing productTypes with new assessmentCooldownPeriod and payoutRedemptionPeriod fields
    */
-  it('should run phase 3', async function () {
+  it.skip('should run phase 3', async function () {
     const tGovernorTxs = [];
     const tGovernanceTxs = [];
 
@@ -585,6 +585,30 @@ describe('v3 launch', function () {
 
     const governorProxyImplementation = await getImplementation(this.governor);
     expect(governorProxyImplementation).to.equal(this.governorImplementationAddress);
+  });
+
+  it('load post phase 3 contracts', async function () {
+    const swapOperatorAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_SWAP_OPERATOR);
+    this.swapOperator = await ethers.getContractAt('SwapOperator', swapOperatorAddress);
+
+    const claimsAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_CLAIMS);
+    this.claims = await ethers.getContractAt('Claims', claimsAddress);
+
+    const assessmentsAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_ASSESSMENTS);
+    this.assessments = await ethers.getContractAt('Assessments', assessmentsAddress);
+
+    this.master = await ethers.getContractAt('NXMaster', this.master.target); // get upgraded master contract
+
+    const coverProductsAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_COVER_PRODUCTS);
+    this.coverProducts = await ethers.getContractAt('CoverProducts', coverProductsAddress);
+
+    const poolAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_POOL);
+    this.pool = await ethers.getContractAt('Pool', poolAddress);
+
+    const coverAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_COVER);
+    this.cover = await ethers.getContractAt('Cover', coverAddress);
+
+    this.governor = await ethers.getContractAt('Governor', this.tGovernor.target);
   });
 
   // post phase 3:

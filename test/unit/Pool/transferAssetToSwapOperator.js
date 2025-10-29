@@ -96,7 +96,7 @@ describe('transferAssetToSwapOperator', function () {
     await impersonateAccount(swapOperator.target);
     const swapOperatorSigner = await ethers.getSigner(swapOperator.target);
     await setBalance(swapOperator.target, amount);
-    usdc.mint(pool.target, amount);
+    await usdc.mint(pool.target, amount);
 
     await pool.connect(swapOperatorSigner).transferAssetToSwapOperator(usdc, amount);
 

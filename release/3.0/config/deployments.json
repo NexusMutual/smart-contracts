@@ -1,0 +1,161 @@
+{
+  "Registry": {
+    "expectedAddress": "0xcafeaC64cBE73e6e8973b52cDAE8982DE6Fb500E",
+    "salt": 269845781,
+    "constructorArgs": [
+      "0xcafea2c575550512582090AA06d0a069E7236b9e",
+      "0x01BFd82675DBCc7762C84019cA518e701C0cD07e"
+    ]
+  },
+  "LegacyAssessment": {
+    "expectedAddress": "0xcafeaCEbFF1C1D92B491860e55c037D6E46db77C",
+    "salt": 3118384,
+    "constructorArgs": [
+      "0xd7c49CEE7E9188cCa6AD8FF264C1DA2e69D4Cf3B"
+    ]
+  },
+  "LegacyMemberRoles": {
+    "expectedAddress": "0xcafea01C7Ca7c05c056A030e5Af7AE28a588d2B1",
+    "salt": 69566376,
+    "constructorArgs": [
+      "0xcafea2c575550512582090AA06d0a069E7236b9e",
+      "0xd7c49CEE7E9188cCa6AD8FF264C1DA2e69D4Cf3B"
+    ]
+  },
+  "TemporaryGovernance": {
+    "expectedAddress": "0xcafeaf47dAc3aCBa0Aa0974DcA9195209DA6ef20",
+    "salt": 59439088,
+    "constructorArgs": [
+      "0x51ad1265C8702c9e96Ea61Fe4088C2e22eD4418e"
+    ]
+  },
+  "CoverNFTDescriptor": {
+    "expectedAddress": "0xcafeaCFc311451c5ec176bba27a1E802caC2fCeF",
+    "salt": 24836729,
+    "constructorArgs": [
+      "0x01BFd82675DBCc7762C84019cA518e701C0cD07e"
+    ]
+  },
+  "NXMaster": {
+    "expectedAddress": "0xcafea22375708092fd1Ae65CDf93C9c2BA58A438",
+    "salt": 67834859
+  },
+  "Pool": {
+    "expectedAddress": "0xcafea77A34BabEcC065eBe9AE0EAE6d0C4AECfCA",
+    "salt": 1873535,
+    "constructorArgs": [
+      "0xcafea2c575550512582090AA06d0a069E7236b9e"
+    ]
+  },
+  "SwapOperator": {
+    "expectedAddress": "0xcafea1Eb0aB6731044E4842c12317036b58D26bE",
+    "salt": 12981051,
+    "constructorArgs": [
+      "0xcafea2c575550512582090AA06d0a069E7236b9e",
+      "0x9008D19f58AAbD9eD0D60971565AA8510560ab41",
+      "0x27F23c710dD3d878FE9393d93465FeD1302f2EbD",
+      "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+    ]
+  },
+  "Ramm": {
+    "expectedAddress": "0xcafea5fB679d6c57e47faaBB9d385E38B59eC9f5",
+    "salt": 4289586,
+    "constructorArgs": [
+      "0xcafea2c575550512582090AA06d0a069E7236b9e",
+      "9852395000000000"
+    ]
+  },
+  "SafeTracker": {
+    "expectedAddress": "0xcafea05ab88D2549d4aAf3739F8493fCBB279989",
+    "salt": 377081778,
+    "constructorArgs": [
+      "0xcafea2c575550512582090AA06d0a069E7236b9e",
+      "25000000000000",
+      "0x51ad1265C8702c9e96Ea61Fe4088C2e22eD4418e",
+      "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+      "0x4d5F47FA6A74757f35C14fD3a6Ef8E3C9BC514E8",
+      "0x72E95b8931767C79bA4EeE721354d6E99a61D004"
+    ]
+  },
+  "Assessments": {
+    "expectedAddress": "0xcafeaa54703C9829B697086785f1E2945be6Be20",
+    "salt": 330944124,
+    "constructorArgs": [
+      "0xcafea2c575550512582090AA06d0a069E7236b9e"
+    ]
+  },
+  "Claims": {
+    "expectedAddress": "0xcafea6f4d69BD1ef5936a4b9F23F7A0301f4C401",
+    "salt": 16868614,
+    "constructorArgs": [
+      "0xcafea2c575550512582090AA06d0a069E7236b9e"
+    ]
+  },
+  "TokenController": {
+    "expectedAddress": "0xcafea535C1613d3f3339d2cC85F758095D754f80",
+    "salt": 45020786,
+    "constructorArgs": [
+      "0xcafea2c575550512582090AA06d0a069E7236b9e"
+    ]
+  },
+  "CoverProducts": {
+    "expectedAddress": "0xcafea4A986A8d88dc63095034cE36bC8387A8534",
+    "salt": 2295602
+  },
+  "Cover": {
+    "expectedAddress": "0xcafea6DcD8Ef5836E300b4E62E9a90975b0477EA",
+    "salt": 15283923,
+    "constructorArgs": [
+      "0xcafea2c575550512582090AA06d0a069E7236b9e",
+      "0xcafeade1872f14adc0a03Ec7b0088b61D76ec729",
+      "0xcafeac0fF5dA0A2777d915531bfA6B29d282Ee62"
+    ]
+  },
+  "LimitOrders": {
+    "expectedAddress": "0xcafea69b744f907C22Ad7F17AA5a94546f6B5d13",
+    "salt": 19789036,
+    "constructorArgs": [
+      "0xd7c49CEE7E9188cCa6AD8FF264C1DA2e69D4Cf3B",
+      "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+      "0xA2dB05Ab09b00725f0C0327df6EFcbdA3F584C97"
+    ]
+  },
+  "StakingProducts": {
+    "expectedAddress": "0xcafeae132d8350775624f12185Dfac12ed6Bb819",
+    "salt": 21864975,
+    "constructorArgs": [
+      "0xcafeac0fF5dA0A2777d915531bfA6B29d282Ee62",
+      "0xcafeafb97BF8831D95C0FC659b8eB3946B101CB3"
+    ]
+  },
+  "Governor": {
+    "expectedAddress": "0xcafea466bF6dEFe480cdd54056C020c63b7DA830",
+    "salt": 1779232,
+    "constructorArgs": [
+      "0xcafea2c575550512582090AA06d0a069E7236b9e"
+    ]
+  },
+  "VotePower": {
+    "expectedAddress": "0xcafeac90410f069C24a876c208Eb2b3E53424EA5",
+    "salt": 113518498,
+    "constructorArgs": [
+      "0xcafea2c575550512582090AA06d0a069E7236b9e"
+    ]
+  },
+  "StakingViewer": {
+    "expectedAddress": "0xcafea5c7d25a192ba70ECA0E2dB62F835c1cF81F",
+    "salt": 132035513,
+    "constructorArgs": [
+      "0xcafea2c575550512582090AA06d0a069E7236b9e"
+    ]
+  },
+  "CoverBroker": {
+    "expectedAddress": "0xCBcbcBCbfa2EDa48a41Da0711E1f3D7B42605Cc9",
+    "salt": 233904542,
+    "constructorArgs": [
+      "0xcafea2c575550512582090AA06d0a069E7236b9e",
+      "0x7CB8e530c3310fe192b07315A3ccaD440cb7281c"
+    ]
+  }
+}

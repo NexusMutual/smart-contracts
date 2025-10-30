@@ -6,12 +6,16 @@ const { bytesToHex, hexToBytes } = require('ethereum-cryptography/utils');
 const linker = require('solc/linker');
 const workerpool = require('workerpool');
 
+const { AbiCoder } = ethers;
+
 const ADDRESS_REGEX = /^0x[a-f0-9]{40}$/i;
 const Position = {
   start: 'start',
   end: 'end',
   any: 'any',
 };
+
+const defaultAbiCoder = AbiCoder.defaultAbiCoder();
 
 const usage = () => {
   console.log(`
@@ -169,7 +173,7 @@ const getDeploymentBytecode = async options => {
     );
   }
 
-  const constructorArgs = ethers.utils.defaultAbiCoder.encode(constructorAbi.inputs, options.constructorArgs);
+  const constructorArgs = defaultAbiCoder.encode(constructorAbi.inputs, options.constructorArgs);
 
   return `${bytecode}${constructorArgs.replace(/^0x/i, '')}`;
 };

@@ -4,9 +4,8 @@ pragma solidity ^0.8.18;
 
 import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/IMasterAwareV2.sol";
-import "../../modules/capital/Pool.sol";
 
-contract MasterMock {
+contract MasterMock is INXMMaster {
 
   enum Role {
     Unassigned,
@@ -22,11 +21,9 @@ contract MasterMock {
 
   bool paused;
   address public tokenAddress;
-
   address public emergencyAdmin;
 
   /* utils */
-
 
   function setEmergencyAdmin(address _emergencyAdmin) external {
     emergencyAdmin = _emergencyAdmin;
@@ -68,10 +65,6 @@ contract MasterMock {
     paused = false;
   }
 
-  function upgradeCapitalPool(address payable currentPoolAddress, address payable newPoolAddress) external {
-    Pool(currentPoolAddress).upgradeCapitalPool(newPoolAddress);
-  }
-
   /* mocked implementations */
 
   function checkIsAuthToGoverned(address caller) public view returns (bool) {
@@ -94,21 +87,11 @@ contract MasterMock {
     return paused;
   }
 
-  /* unused functions */
-
-  modifier unused {
-    require(false, "Unexpected MasterMock call");
-    _;
+  function transferOwnershipToRegistry(address) pure external {
+    revert("Unsupported");
   }
 
-  function delegateCallBack(bytes32) unused external {}
-
-  function masterInitialized() unused public view returns (bool) {}
-
-  function updatePauseTime(uint) unused public {}
-
-  function owner() external view returns (address) {}
-
-  function pauseTime() external view returns (uint) {}
-
+  function migrate(address) pure external {
+    revert("Unsupported");
+  }
 }

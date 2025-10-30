@@ -1,119 +1,218 @@
-const hre = require('hardhat');
-const { ethers } = hre;
-const { expect } = require('chai');
-const { BigNumber } = require('ethers');
+const { ethers, nexus } = require('hardhat');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
 const { getAccounts } = require('../../utils/accounts');
+const { init } = require('../../init');
 
-const { Role } = require('../utils').constants;
-const { hex } = require('../utils').helpers;
+const { MaxUint256, deployContract, parseEther } = ethers;
+const { ContractIndexes, PoolAsset, Role } = nexus.constants;
+const { hex } = nexus.helpers;
 
-const { MaxUint256 } = ethers.constants;
-const { getContractAddress, parseEther } = ethers.utils;
-
-const getDeployAddressAfter = async (account, txCount) => {
-  const from = account.address;
-  const nonce = (await account.getTransactionCount()) + txCount;
-  return getContractAddress({ from, nonce });
+const ASSETS = {
+  ETH: 0,
+  USDC: 1,
+  cbBTC: 2,
 };
 
-const Assets = {
-  ETH: 1,
-  DAI: 2,
-  USDC: 3,
+const DEFAULT_POOL_FEE = '5';
+const DEFAULT_PRODUCTS = [
+  {
+    productName: 'Product A',
+    productId: MaxUint256,
+    ipfsMetadata: 'ipfs metadata',
+    product: {
+      productType: '0',
+      minPrice: 0,
+      __gap: 0,
+      coverAssets: 0, // use fallback
+      initialPriceRatio: '1000', // 10%
+      capacityReductionRatio: '0',
+      isDeprecated: false,
+      useFixedPrice: false,
+    },
+    allowedPools: [],
+  },
+  {
+    productName: 'Product B',
+    productId: MaxUint256,
+    ipfsMetadata: 'ipfs metadata',
+    product: {
+      productType: '0',
+      minPrice: 0,
+      __gap: 0,
+      coverAssets: 0, // use fallback
+      initialPriceRatio: '1000', // 10%
+      capacityReductionRatio: '0',
+      isDeprecated: false,
+      useFixedPrice: true,
+    },
+    allowedPools: [1],
+  },
+  {
+    productName: 'Product C',
+    productId: MaxUint256,
+    ipfsMetadata: 'ipfs metadata',
+    product: {
+      productType: '0',
+      minPrice: 0,
+      __gap: 0,
+      coverAssets: ASSETS.ETH | ASSETS.cbBTC, // ETH and cbBTC, no USDC
+      initialPriceRatio: '1000', // 10%
+      capacityReductionRatio: '0',
+      isDeprecated: false,
+      useFixedPrice: true,
+    },
+    allowedPools: [1],
+  },
+  {
+    productName: 'Product D',
+    productId: MaxUint256,
+    ipfsMetadata: 'ipfs metadata',
+    product: {
+      productType: '0',
+      minPrice: 0,
+      __gap: 0,
+      coverAssets: ASSETS.ETH | ASSETS.cbBTC, // ETH and cbBTC, no USDC
+      initialPriceRatio: '1000', // 10%
+      capacityReductionRatio: '0',
+      isDeprecated: false,
+      useFixedPrice: true,
+    },
+    allowedPools: [],
+  },
+];
+const COVER_BUY_FIXTURE = {
+  coverId: 0n,
+  productId: 0n,
+  coverAsset: 0n, // ETH
+  paymentAsset: 0n, // ETH
+  period: 3600n * 24n * 30n, // 30 days
+  amount: parseEther('1000'),
+  targetPriceRatio: 260n,
+  priceDenominator: 10000n,
+  activeCover: parseEther('5000'),
+  capacity: parseEther('10000'),
+  capacityFactor: '10000',
 };
 
 async function setup() {
+  await loadFixture(init);
   const accounts = await getAccounts();
-  const master = await ethers.deployContract('MasterMock');
-  const memberRoles = await ethers.deployContract('MemberRolesMock');
-  const nxm = await ethers.deployContract('NXMTokenMock');
-  const tokenController = await ethers.deployContract('TokenControllerMock', [nxm.address]);
+  const [governor] = accounts.governanceContracts;
+  const [riSigner, riPremiumDst] = accounts.generalPurpose;
 
-  await nxm.setOperator(tokenController.address);
+  // deploy proxy contracts
+  const coverProxy = await deployContract('UpgradeableProxy');
+  const coverProductsProxy = await deployContract('UpgradeableProxy');
+  const stakingProductsProxy = await deployContract('UpgradeableProxy');
+  const tokenControllerProxy = await deployContract('UpgradeableProxy');
+  const poolProxy = await deployContract('UpgradeableProxy');
 
-  const mcr = await ethers.deployContract('COMockMCR');
-  await mcr.setMCR(parseEther('600000'));
+  // deploy immutable contracts
+  const stakingPoolFactory = await deployContract('StakingPoolFactory', [stakingProductsProxy]); // SP is the operator
+  const coverNFT = await deployContract('COMockCoverNFT');
+  const stakingNFT = await deployContract('COMockStakingNFT');
+  const nxm = await deployContract('NXMTokenMock');
+  await nxm.setOperator(tokenControllerProxy);
 
-  const stakingPoolImplementation = await ethers.deployContract('COMockStakingPool');
-  const coverNFT = await ethers.deployContract('COMockCoverNFT');
-  const stakingNFT = await ethers.deployContract('COMockStakingNFT');
+  const registry = await deployContract('RegistryMock');
+  await registry.addContract(ContractIndexes.C_REGISTRY, registry, false);
+  await registry.addContract(ContractIndexes.C_GOVERNOR, governor, false);
 
-  const { defaultSender } = accounts;
-  const expectedStakingProductsAddress = await getDeployAddressAfter(defaultSender, 3);
+  // add immutables
+  await registry.addContract(ContractIndexes.C_STAKING_POOL_FACTORY, stakingPoolFactory, false);
+  await registry.addContract(ContractIndexes.C_COVER_NFT, coverNFT, false);
+  await registry.addContract(ContractIndexes.C_STAKING_NFT, stakingNFT, false);
+  await registry.addContract(ContractIndexes.C_TOKEN, nxm, false);
 
-  const stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [expectedStakingProductsAddress]);
+  // add proxies
+  await registry.addContract(ContractIndexes.C_COVER, coverProxy, true);
+  await registry.addContract(ContractIndexes.C_COVER_PRODUCTS, coverProductsProxy, true);
+  await registry.addContract(ContractIndexes.C_STAKING_PRODUCTS, stakingProductsProxy, true);
+  await registry.addContract(ContractIndexes.C_TOKEN_CONTROLLER, tokenControllerProxy, true);
+  await registry.addContract(ContractIndexes.C_POOL, poolProxy, true);
 
-  const cover = await ethers.deployContract('Cover', [
-    coverNFT.address,
-    stakingNFT.address,
-    stakingPoolFactory.address,
-    stakingPoolImplementation.address,
+  // deploy implementations
+  const stakingPoolImplementation = await deployContract('COMockStakingPool');
+  const coverImplementation = await deployContract('Cover', [registry, stakingPoolImplementation, coverProxy]);
+  const tokenControllerImplementation = await deployContract('TokenControllerMock', [nxm]);
+  const coverProductsImplementation = await ethers.deployContract('CoverProducts');
+  const stakingProductsImplementation = await ethers.deployContract('COMockStakingProducts', [
+    coverProxy,
+    stakingPoolFactory,
+    tokenControllerProxy,
+    coverProductsProxy,
   ]);
+  const poolImplementation = await deployContract('PoolMock');
 
-  const coverProducts = await ethers.deployContract('CoverProducts');
+  // upgrade proxies
+  await coverProxy.upgradeTo(coverImplementation);
+  await tokenControllerProxy.upgradeTo(tokenControllerImplementation);
+  await coverProductsProxy.upgradeTo(coverProductsImplementation);
+  await stakingProductsProxy.upgradeTo(stakingProductsImplementation);
+  await poolProxy.upgradeTo(poolImplementation);
 
-  const stakingProducts = await ethers.deployContract('COMockStakingProducts', [
-    cover.address,
-    stakingPoolFactory.address,
-    tokenController.address,
-    coverProducts.address,
-  ]);
-  expect(expectedStakingProductsAddress).to.equal(stakingProducts.address);
+  // get contract instances
+  const cover = await ethers.getContractAt('Cover', coverProxy);
+  const tokenController = await ethers.getContractAt('TokenControllerMock', tokenControllerProxy);
+  const coverProducts = await ethers.getContractAt('CoverProducts', coverProductsProxy);
+  const stakingProducts = await ethers.getContractAt('COMockStakingProducts', stakingProductsProxy);
+  const pool = await ethers.getContractAt('PoolMock', poolProxy);
 
-  const dai = await ethers.deployContract('ERC20Mock');
-  const usdc = await ethers.deployContract('ERC20CustomDecimalsMock', [6]); // 6 decimals
+  const usdc = await deployContract('ERC20CustomDecimalsMock', [6]);
+  const cbBTC = await deployContract('ERC20CustomDecimalsMock', [8]);
 
-  const pool = await ethers.deployContract('PoolMock');
+  const riProviderId = 0n;
+  await cover.connect(governor).setRiSigner(riSigner);
+  await cover.connect(governor).setRiConfig(riProviderId, riPremiumDst);
+
   await pool.setAssets([
-    { assetAddress: dai.address, isCoverAsset: true, isAbandoned: false },
-    { assetAddress: usdc.address, isCoverAsset: true, isAbandoned: false },
+    { assetAddress: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', isCoverAsset: true, isAbandoned: false },
+    { assetAddress: usdc.target, isCoverAsset: true, isAbandoned: false },
+    { assetAddress: cbBTC.target, isCoverAsset: true, isAbandoned: false },
   ]);
 
   await pool.setTokenPrice('0', parseEther('1'));
   await pool.setTokenPrice('1', parseEther('1'));
   await pool.setTokenPrice('2', parseEther('1'));
 
-  // set contract addresses
-  await master.setTokenAddress(nxm.address);
-  await master.setLatestAddress(hex('P1'), pool.address);
-  await master.setLatestAddress(hex('MR'), memberRoles.address);
-  await master.setLatestAddress(hex('CO'), cover.address);
-  await master.setLatestAddress(hex('TC'), tokenController.address);
-  await master.setLatestAddress(hex('MC'), mcr.address);
-  await master.setLatestAddress(hex('SP'), stakingProducts.address);
-  await master.setLatestAddress(hex('CP'), coverProducts.address);
+  // legacy contracts
+  const memberRoles = await deployContract('MemberRolesMock');
+  const master = await deployContract('MasterMock');
 
-  const pooledStakingSigner = accounts.members[4];
-  await master.setLatestAddress(hex('PS'), pooledStakingSigner.address);
+  await master.setTokenAddress(nxm);
+  await master.setLatestAddress(hex('P1'), pool);
+  await master.setLatestAddress(hex('CO'), cover);
+  await master.setLatestAddress(hex('TC'), tokenController);
+  await master.setLatestAddress(hex('SP'), stakingProducts);
+  await master.setLatestAddress(hex('CP'), coverProducts);
+  await master.setLatestAddress(hex('MR'), memberRoles);
 
   for (const member of accounts.members) {
-    await master.enrollMember(member.address, Role.Member);
-    await memberRoles.setRole(member.address, Role.Member);
-    await dai.mint(member.address, parseEther('100000'));
-    await dai.connect(member).approve(cover.address, parseEther('100000'));
+    await master.enrollMember(member, Role.Member);
+    await memberRoles.setRole(member, Role.Member);
+    await registry.join(member, '0x');
+    await usdc.mint(member, parseEther('100000'));
+    await usdc.connect(member).approve(cover, parseEther('100000'));
+    await cbBTC.mint(member, parseEther('100000'));
+    await cbBTC.connect(member).approve(cover, parseEther('100000'));
   }
 
   for (const advisoryBoardMember of accounts.advisoryBoardMembers) {
-    await master.enrollMember(advisoryBoardMember.address, Role.AdvisoryBoard);
-    await memberRoles.setRole(advisoryBoardMember.address, Role.AdvisoryBoard);
+    await master.enrollMember(advisoryBoardMember, Role.AdvisoryBoard);
+    await memberRoles.setRole(advisoryBoardMember, Role.AdvisoryBoard);
+    await registry.join(advisoryBoardMember, '0x');
   }
 
   for (const internalContract of accounts.internalContracts) {
-    await master.enrollInternal(internalContract.address);
+    await master.enrollInternal(internalContract);
   }
 
-  // there is only one in reality, but it doesn't matter
-  for (const governanceContract of accounts.governanceContracts) {
-    await master.enrollGovernance(governanceContract.address);
-  }
+  await coverProducts.changeMasterAddress(master);
+  await coverProducts.changeDependentContractAddress();
 
-  for (const contract of [cover, coverProducts, tokenController]) {
-    await contract.changeMasterAddress(master.address);
-    await contract.changeDependentContractAddress();
-    await master.enrollInternal(contract.address);
-  }
-
-  await master.setEmergencyAdmin(await accounts.emergencyAdmin.getAddress());
+  const emergencyAdmin = accounts.emergencyAdmins[0];
+  await master.setEmergencyAdmin(emergencyAdmin); // can only set one
 
   await coverProducts.connect(accounts.advisoryBoardMembers[0]).setProductTypes([
     {
@@ -122,104 +221,102 @@ async function setup() {
       ipfsMetadata: 'ipfs metadata',
       productType: {
         claimMethod: '0',
+        assessmentCooldownPeriod: 24 * 3600,
+        payoutRedemptionPeriod: 3 * 24 * 3600,
         gracePeriod: 120 * 24 * 3600, // 120 days
       },
     },
   ]);
 
   // add products
-  await coverProducts.connect(accounts.advisoryBoardMembers[0]).setProducts([
-    {
-      productName: 'Product A',
-      productId: MaxUint256,
-      ipfsMetadata: 'ipfs metadata',
-      product: {
-        productType: '0',
-        minPrice: 0,
-        __gap: 0,
-        coverAssets: 0, // use fallback
-        initialPriceRatio: '1000', // 10%
-        capacityReductionRatio: '0',
-        isDeprecated: false,
-        useFixedPrice: false,
-      },
-      allowedPools: [],
-    },
-    {
-      productName: 'Product B',
-      productId: MaxUint256,
-      ipfsMetadata: 'ipfs metadata',
-      product: {
-        productType: '0',
-        minPrice: 0,
-        __gap: 0,
-        coverAssets: 0, // use fallback
-        initialPriceRatio: '1000', // 10%
-        capacityReductionRatio: '0',
-        isDeprecated: false,
-        useFixedPrice: true,
-      },
-      allowedPools: [1],
-    },
-    {
-      productName: 'Product C',
-      productId: MaxUint256,
-      ipfsMetadata: 'ipfs metadata',
-      product: {
-        productType: '0',
-        minPrice: 0,
-        __gap: 0,
-        coverAssets: Assets.ETH | Assets.DAI, // ETH and DAI, no USDC
-        initialPriceRatio: '1000', // 10%
-        capacityReductionRatio: '0',
-        isDeprecated: false,
-        useFixedPrice: true,
-      },
-      allowedPools: [1],
-    },
-    {
-      productName: 'Product D',
-      productId: MaxUint256,
-      ipfsMetadata: 'ipfs metadata',
-      product: {
-        productType: '0',
-        minPrice: 0,
-        __gap: 0,
-        coverAssets: Assets.ETH | Assets.DAI, // ETH and DAI, no USDC
-        initialPriceRatio: '1000', // 10%
-        capacityReductionRatio: '0',
-        isDeprecated: false,
-        useFixedPrice: true,
-      },
-      allowedPools: [],
-    },
-  ]);
+  await coverProducts.connect(accounts.advisoryBoardMembers[0]).setProducts(DEFAULT_PRODUCTS);
+
+  // create 1st stakingPool
+  const productInitializationParams = DEFAULT_PRODUCTS.map(() => {
+    return {
+      productId: 0,
+      weight: 100,
+      initialPrice: COVER_BUY_FIXTURE.targetPriceRatio,
+      targetPrice: COVER_BUY_FIXTURE.targetPriceRatio,
+    };
+  });
+
+  await stakingProducts.connect(accounts.members[0]).createStakingPool(
+    false, // isPrivatePool,
+    DEFAULT_POOL_FEE, // initialPoolFee
+    DEFAULT_POOL_FEE, // maxPoolFee,
+    productInitializationParams,
+    'ipfsDescriptionHash',
+  );
+
+  const stakingPoolId1 = await stakingPoolFactory.stakingPoolCount();
+  const stakingPoolAddress1 = await stakingProducts.stakingPool(stakingPoolId1);
+  const stakingPool1 = await ethers.getContractAt('COMockStakingPool', stakingPoolAddress1);
+
+  for (let i = 0; i < DEFAULT_PRODUCTS.length; i++) {
+    if (DEFAULT_PRODUCTS[i].allowedPools.length !== 0 || DEFAULT_PRODUCTS[i].allowedPools.includes(stakingPoolId1)) {
+      continue;
+    }
+    await stakingPool1.setStake(i, COVER_BUY_FIXTURE.capacity);
+    await stakingPool1.setUsedCapacity(i, COVER_BUY_FIXTURE.activeCover);
+    await stakingPool1.setPrice(i, COVER_BUY_FIXTURE.targetPriceRatio); // 2.6%
+  }
+
+  // create 2nd stakingPool
+  await stakingProducts.connect(accounts.members[1]).createStakingPool(
+    false, // isPrivatePool,
+    DEFAULT_POOL_FEE, // initialPoolFee
+    DEFAULT_POOL_FEE, // maxPoolFee,
+    productInitializationParams,
+    'ipfsDescriptionHash',
+  );
+
+  const stakingPoolId2 = await stakingPoolFactory.stakingPoolCount();
+  const stakingPoolAddress2 = await stakingProducts.stakingPool(stakingPoolId2);
+  const stakingPool2 = await ethers.getContractAt('COMockStakingPool', stakingPoolAddress2);
+
+  for (let i = 0; i < DEFAULT_PRODUCTS.length; i++) {
+    await stakingPool2.setStake(i, COVER_BUY_FIXTURE.capacity);
+    await stakingPool2.setUsedCapacity(i, COVER_BUY_FIXTURE.activeCover);
+    await stakingPool2.setPrice(i, COVER_BUY_FIXTURE.targetPriceRatio); // 2.6%
+  }
 
   const DEFAULT_MIN_PRICE_RATIO = await cover.DEFAULT_MIN_PRICE_RATIO();
   const MAX_COMMISSION_RATIO = await cover.MAX_COMMISSION_RATIO();
-  const BUCKET_SIZE = BigNumber.from(7 * 24 * 3600); // 7 days
+  const BUCKET_SIZE = 7n * 24n * 3600n; // 7 days
   const capacityFactor = '20000';
 
   return {
+    accounts,
+    registry,
     master,
     pool,
-    dai,
     usdc,
+    cbBTC,
     nxm,
     tokenController,
     memberRoles,
     cover,
     coverNFT,
-    accounts,
     capacityFactor,
+    coverProducts,
     stakingPoolImplementation,
     stakingPoolFactory,
     stakingProducts,
-    coverProducts,
+    stakingPool1,
+    stakingPool2,
     config: { DEFAULT_MIN_PRICE_RATIO, BUCKET_SIZE, MAX_COMMISSION_RATIO },
-    Assets,
-    pooledStakingSigner,
+    riSigner,
+    riPremiumDst,
+    riProviderId,
+    constants: {
+      PoolAsset,
+      ASSETS,
+      DEFAULT_POOL_FEE,
+      DEFAULT_PRODUCTS,
+      COVER_BUY_FIXTURE,
+    },
   };
 }
 
-module.exports = setup;
+module.exports = { setup };

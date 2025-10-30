@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts-v4/utils/Base64.sol";
 import "@openzeppelin/contracts-v4/utils/Strings.sol";
+
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverNFT.sol";
 import "../../interfaces/ICoverNFTDescriptor.sol";
@@ -13,7 +14,6 @@ import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/IPool.sol";
 import "../../libraries/DateTime.sol";
 import "../../libraries/FloatingPoint.sol";
-
 
 contract CoverNFTDescriptor is ICoverNFTDescriptor {
   using Strings for uint;
@@ -68,6 +68,9 @@ contract CoverNFTDescriptor is ICoverNFTDescriptor {
 
     // Get cover data
     CoverData memory coverData = cover.getCoverData(tokenId);
+    Ri memory coverRi = cover.getCoverRi(tokenId);
+    uint amount = coverData.amount + coverRi.amount;
+
     string memory productName = coverProducts.getProductName(coverData.productId);
 
     // Check if cover has already expired
@@ -91,7 +94,7 @@ contract CoverNFTDescriptor is ICoverNFTDescriptor {
     descriptionString = string(
       abi.encodePacked(
         "This NFT represents a cover purchase made for: ", productName,
-        " \\nAmount Covered: ", FloatingPoint.toFloat(uint(coverData.amount), getAssetDecimals(coverData.coverAsset))," ", getAssetSymbol(coverData.coverAsset),
+        " \\nAmount Covered: ", FloatingPoint.toFloat(uint(amount), getAssetDecimals(coverData.coverAsset))," ", getAssetSymbol(coverData.coverAsset),
         " \\nExpiry Date: ", expiry,
         " \\n", expiryMessage
       )
@@ -101,7 +104,7 @@ contract CoverNFTDescriptor is ICoverNFTDescriptor {
       productName,
       getAssetSymbol(coverData.coverAsset),
       expiry,
-      coverData.amount,
+      amount,
       tokenId,
       getAssetDecimals(coverData.coverAsset)
     );

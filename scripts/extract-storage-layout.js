@@ -2,6 +2,8 @@ const { artifacts, config, run } = require('hardhat');
 const fs = require('fs');
 const path = require('path');
 
+// @dev This script is used by storage layout tests
+
 async function main(outputFile) {
   const { compilers, overrides } = config.solidity;
 

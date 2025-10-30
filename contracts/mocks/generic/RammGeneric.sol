@@ -9,15 +9,15 @@ contract RammGeneric is IRamm {
     revert("Unsupported");
   }
 
-  function getInternalPriceAndUpdateTwap() external override pure returns (uint) {
+  function getInternalPriceAndUpdateTwap() external virtual override pure returns (uint) {
     revert("Unsupported");
   }
 
-  function getInternalPrice() external override pure returns (uint) {
+  function getInternalPrice() external virtual override pure returns (uint) {
     revert("Unsupported");
   }
 
-  function getSpotPrices() external override pure returns (uint, uint) {
+  function getSpotPrices() external virtual override pure returns (uint, uint) {
     revert("Unsupported");
   }
 

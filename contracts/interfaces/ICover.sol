@@ -3,9 +3,9 @@
 pragma solidity >=0.5.0;
 
 import "./ICoverNFT.sol";
+import "./ICoverProducts.sol";
 import "./IStakingNFT.sol";
-import "./IStakingPool.sol";
-import "./ICompleteStakingPoolFactory.sol";
+import "./IStakingPoolBeacon.sol";
 
 /* io structs */
 
@@ -37,21 +37,6 @@ struct PoolAllocation {
   uint24 allocationId;
 }
 
-struct LegacyCoverData {
-  uint24 productId;
-  uint8 coverAsset;
-  uint96 amountPaidOut;
-}
-
-struct LegacyCoverSegment {
-  uint96 amount;
-  uint32 start;
-  uint32 period; // seconds
-  uint32 gracePeriod; // seconds
-  uint24 globalRewardsRatio;
-  uint24 globalCapacityRatio;
-}
-
 struct CoverData {
   uint24 productId;
   uint8 coverAsset;
@@ -68,7 +53,25 @@ struct CoverReference {
   uint32 latestCoverId; // used only in the original cover (set to 0 in original cover if never edited)
 }
 
-interface ICover {
+// reinsurance info
+struct Ri {
+  uint24 providerId;
+  uint96 amount;
+}
+
+struct RiConfig {
+  uint24 nextNonce;
+  address premiumDestination;
+}
+
+struct RiRequest {
+  uint providerId;
+  uint amount;
+  uint premium;
+  bytes signature;
+}
+
+interface ICover is IStakingPoolBeacon {
 
   /* ========== DATA STRUCTURES ========== */
 
@@ -94,13 +97,19 @@ interface ICover {
 
   function getCoverData(uint coverId) external view returns (CoverData memory);
 
-  function getPoolAllocations(uint coverId) external view returns (PoolAllocation[] memory);
+  function getCoverRi(uint coverId) external view returns (Ri memory);
 
-  function getCoverDataCount() external view returns (uint);
+  function getCoverDataWithRi(uint coverId) external view returns (CoverData memory, Ri memory);
 
   function getCoverReference(uint coverId) external view returns(CoverReference memory);
 
   function getCoverDataWithReference(uint coverId) external view returns (CoverData memory, CoverReference memory);
+
+  function getCoverMetadata(uint coverId) external view returns (string memory);
+
+  function getCoverDataCount() external view returns (uint);
+
+  function getPoolAllocations(uint coverId) external view returns (PoolAllocation[] memory);
 
   function getLatestEditCoverData(uint coverId) external view returns (CoverData memory);
 
@@ -121,6 +130,14 @@ interface ICover {
 
   function DEFAULT_MIN_PRICE_RATIO() external view returns (uint);
 
+  function coverNFT() external returns (ICoverNFT);
+
+  function stakingNFT() external returns (IStakingNFT);
+
+  function stakingPoolFactory() external returns (address);
+
+  function coverProducts() external returns (ICoverProducts);
+
   /* === MUTATIVE FUNCTIONS ==== */
 
   function buyCover(
@@ -134,31 +151,21 @@ interface ICover {
     address buyer
   ) external payable returns (uint coverId);
 
-  function burnStake(uint coverId, uint amount) external returns (address coverOwner);
+  function buyCoverWithRi(
+    BuyCoverParams calldata params,
+    PoolAllocationRequest[] calldata coverChunkRequests,
+    RiRequest calldata riRequest
+  ) external payable returns (uint coverId);
 
-  function coverNFT() external returns (ICoverNFT);
-
-  function stakingNFT() external returns (IStakingNFT);
-
-  function stakingPoolFactory() external returns (ICompleteStakingPoolFactory);
+  function burnStake(uint coverId, uint amount) external;
 
   /* ========== EVENTS ========== */
 
   event CoverBought(
     uint indexed coverId,
     uint indexed originalCoverId,
-    uint productId,
-    address indexed buyer,
-    string ipfsMetadata
-  );
-
-  // left here for legacy support (frontend needs it to scan past events)
-  event CoverEdited(
-    uint indexed coverId,
-    uint indexed productId,
-    uint indexed unused,
-    address buyer,
-    string ipfsMetadata
+    uint indexed buyerMemberId,
+    uint productId
   );
 
   // Auth
@@ -167,19 +174,16 @@ interface ICover {
   // Cover details
   error CoverPeriodTooShort();
   error CoverPeriodTooLong();
-  error CoverOutsideOfTheGracePeriod();
   error CoverAmountIsZero();
   error CoverAssetMismatch();
 
   // Products
   error ProductNotFound();
   error ProductDeprecated();
-  error UnexpectedProductId();
 
   // Cover and payment assets
   error CoverAssetNotSupported();
   error InvalidPaymentAsset();
-  error UnexpectedCoverAsset();
   error UnexpectedEthSent();
   error EditNotSupported();
   error MustBeOriginalCoverId(uint originalCoverId);
@@ -190,14 +194,18 @@ interface ICover {
 
   // ETH transfers
   error InsufficientEthSent();
-  error SendingEthToPoolFailed();
-  error SendingEthToCommissionDestinationFailed();
-  error ReturningEthRemainderToSenderFailed();
+  error ETHTransferFailed(address to, uint amount);
 
   // Misc
   error ExpiredCoversCannotBeEdited();
   error CoverNotYetExpired(uint coverId);
   error InsufficientCoverAmountAllocated();
-  error UnexpectedPoolId();
   error AlreadyMigratedCoverData(uint coverId);
+
+  // Ri
+  error InvalidSignature();
+  error WrongCoverEditEntrypoint();
+  error RiAmountIsZero();
+  error InvalidRiConfig();
+  error UnexpectedRiPremium();
 }

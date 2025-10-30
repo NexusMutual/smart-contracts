@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.28;
 
-import "../interfaces/IERC20.sol";
+contract WETH9 {
 
-contract WETH9 is IERC20 {
   string public name = "Wrapped Ether";
   string public symbol = "WETH";
   uint8  public decimals = 18;
@@ -23,9 +22,9 @@ contract WETH9 is IERC20 {
   }
 
   function withdraw(uint wad) public {
-    require(balanceOf[msg.sender] >= wad, "");
+    require(balanceOf[msg.sender] >= wad, "ERC20: transfer amount exceeds balance");
     balanceOf[msg.sender] -= wad;
-    msg.sender.transfer(wad);
+    payable(msg.sender).transfer(wad);
     emit Withdrawal(msg.sender, wad);
   }
 
@@ -44,12 +43,13 @@ contract WETH9 is IERC20 {
   }
 
   function transferFrom(address src, address dst, uint wad) public returns (bool){
-    require(balanceOf[src] >= wad, "");
 
-    if (src != msg.sender && allowance[src][msg.sender] != uint(- 1)) {
-      require(allowance[src][msg.sender] >= wad, "");
+    if (src != msg.sender && allowance[src][msg.sender] != type(uint).max) {
+      require(allowance[src][msg.sender] >= wad, "ERC20: insufficient allowance");
       allowance[src][msg.sender] -= wad;
     }
+
+    require(balanceOf[src] >= wad, "ERC20: transfer amount exceeds balance");
 
     balanceOf[src] -= wad;
     balanceOf[dst] += wad;

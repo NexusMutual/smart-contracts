@@ -4,6 +4,7 @@ pragma solidity ^0.8.28;
 
 import "../../abstract/MasterAwareV2.sol";
 import "../../abstract/Multicall.sol";
+import "../../interfaces/ICompleteStakingPoolFactory.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverProducts.sol";
 import "../../interfaces/IStakingProducts.sol";
@@ -15,6 +16,8 @@ import "../../libraries/StakingPoolLibrary.sol";
 contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   using SafeUintCast for uint;
 
+  // storage
+
   // pool id => product id => Product
   mapping(uint => mapping(uint => StakedProduct)) private _products;
   // pool id => { totalEffectiveWeight, totalTargetWeight }
@@ -23,8 +26,12 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   // pool id => metadata
   mapping(uint => string) internal poolMetadata;
 
+  // immutables
+
+  ICompleteStakingPoolFactory public immutable stakingPoolFactory;
   address public immutable coverContract;
-  address public immutable stakingPoolFactory;
+
+  // constants
 
   // base price bump
   // +0.05% for each 1% of capacity used, ie +5% for 100%
@@ -58,7 +65,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
   constructor(address _coverContract, address _stakingPoolFactory) {
     coverContract = _coverContract;
-    stakingPoolFactory = _stakingPoolFactory;
+    stakingPoolFactory = ICompleteStakingPoolFactory(_stakingPoolFactory);
   }
 
   function getProductTargetWeight(uint poolId, uint productId) external view override returns (uint) {
@@ -348,8 +355,8 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     bool useFixedPrice,
     uint nxmPerAllocationUnit
   ) public returns (uint premium) {
-    
-    require(msg.sender == StakingPoolLibrary.getAddress(stakingPoolFactory, poolId), OnlyStakingPool());
+
+    require(msg.sender == StakingPoolLibrary.getAddress(address(stakingPoolFactory), poolId), OnlyStakingPool());
 
     StakedProduct memory product = _products[poolId][productId];
     uint targetPrice = Math.max(product.targetPrice, productMinPrice);
@@ -453,7 +460,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   }
 
   function getStakingPoolCount() external view returns (uint) {
-    return IStakingPoolFactory(stakingPoolFactory).stakingPoolCount();
+    return stakingPoolFactory.stakingPoolCount();
   }
 
   function createStakingPool(
@@ -469,7 +476,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     ICoverProducts coverProducts = _coverProducts();
 
     // create and initialize staking pool
-    (uint poolId, address stakingPoolAddress) = ICompleteStakingPoolFactory(stakingPoolFactory).create(coverContract);
+    (uint poolId, address stakingPoolAddress) = stakingPoolFactory.create(coverContract);
     IStakingPool(stakingPoolAddress).initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId);
 
     // assign pool manager
@@ -494,7 +501,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     for (uint i = 0; i < numProducts; i++) {
       productIds[i] = params[i].productId;
     }
-    uint[] memory minPriceRatios = _coverProducts().getMinPrices(productIds); 
+    uint[] memory minPriceRatios = _coverProducts().getMinPrices(productIds);
     uint totalTargetWeight;
 
     for (uint i = 0; i < params.length; i++) {
@@ -527,7 +534,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
   // future operator role transfers
   function changeStakingPoolFactoryOperator(address _operator) external onlyInternal {
-    ICompleteStakingPoolFactory(stakingPoolFactory).changeOperator(_operator);
+    stakingPoolFactory.changeOperator(_operator);
   }
 
   function setPoolMetadata(
@@ -536,20 +543,6 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   ) external override onlyManager(poolId) {
     require(bytes(ipfsHash).length > 0, IpfsHashRequired());
     poolMetadata[poolId] = ipfsHash;
-  }
-
-  // temporary migration function
-
-  function setInitialMetadata(string[] calldata ipfsHashes) external onlyAdvisoryBoard {
-
-    uint poolCount = IStakingPoolFactory(stakingPoolFactory).stakingPoolCount();
-    require(ipfsHashes.length == poolCount, "StakingProducts: Metadata length mismatch");
-    require(bytes(poolMetadata[1]).length == 0, "StakingProducts: Metadata already set");
-
-    for (uint i = 0; i < poolCount; i++) {
-      if (bytes(poolMetadata[i + 1]).length != 0) continue;
-      poolMetadata[i + 1] = ipfsHashes[i];
-    }
   }
 
   /* dependencies */

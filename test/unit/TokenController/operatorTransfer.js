@@ -1,7 +1,9 @@
+const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { parseEther } = require('ethers/lib/utils');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
+
+const { parseEther } = ethers;
 
 describe('operatorTransfer', function () {
   it('reverts if caller is not an internal contract', async function () {
@@ -12,44 +14,50 @@ describe('operatorTransfer', function () {
     const amount = parseEther('10');
     await expect(
       tokenController.connect(member1).operatorTransfer(member1.address, member2.address, amount),
-    ).to.be.revertedWith('Caller is not an internal contract');
+    ).to.be.revertedWithCustomError(tokenController, 'Unauthorized');
   });
 
   it('transfer nxm from source address to destination address', async function () {
     const fixture = await loadFixture(setup);
     const { tokenController, nxm } = fixture.contracts;
-    const [internalContract] = fixture.accounts.internalContracts;
+    const [cover] = fixture.accounts.cover;
     const [member1, member2] = fixture.accounts.members;
+
+    const amount = parseEther('10');
+    await nxm.mint(member1.address, amount);
+    await nxm.connect(member1).approve(tokenController, amount);
 
     const initialBalanceMember1 = await nxm.balanceOf(member1.address);
     const initialBalanceMember2 = await nxm.balanceOf(member2.address);
 
-    const amount = parseEther('10');
-    await tokenController.connect(internalContract).operatorTransfer(member1.address, member2.address, amount);
+    await tokenController.connect(cover).operatorTransfer(member1.address, member2.address, amount);
 
     const balanceMember1 = await nxm.balanceOf(member1.address);
     const balanceMember2 = await nxm.balanceOf(member2.address);
 
-    expect(balanceMember1).to.equal(initialBalanceMember1.sub(amount));
-    expect(balanceMember2).to.equal(initialBalanceMember2.add(amount));
+    expect(balanceMember1).to.equal(initialBalanceMember1 - amount);
+    expect(balanceMember2).to.equal(initialBalanceMember2 + amount);
   });
 
   it('transfer nxm from source address to token controller', async function () {
     const fixture = await loadFixture(setup);
     const { tokenController, nxm } = fixture.contracts;
-    const [internalContract] = fixture.accounts.internalContracts;
+    const [cover] = fixture.accounts.cover;
     const [member2] = fixture.accounts.members;
 
-    const initialBalanceTC = await nxm.balanceOf(tokenController.address);
+    const amount = parseEther('10');
+    await nxm.mint(member2.address, amount);
+    await nxm.connect(member2).approve(tokenController, amount);
+
+    const initialBalanceTC = await nxm.balanceOf(tokenController.target);
     const initialBalanceMember2 = await nxm.balanceOf(member2.address);
 
-    const amount = parseEther('10');
-    await tokenController.connect(internalContract).operatorTransfer(member2.address, tokenController.address, amount);
+    await tokenController.connect(cover).operatorTransfer(member2.address, tokenController, amount);
 
-    const balanceTC = await nxm.balanceOf(tokenController.address);
+    const balanceTC = await nxm.balanceOf(tokenController.target);
     const balanceMember2 = await nxm.balanceOf(member2.address);
 
-    expect(balanceTC).to.equal(initialBalanceTC.add(amount));
-    expect(balanceMember2).to.equal(initialBalanceMember2.sub(amount));
+    expect(balanceTC).to.equal(initialBalanceTC + amount);
+    expect(balanceMember2).to.equal(initialBalanceMember2 - amount);
   });
 });

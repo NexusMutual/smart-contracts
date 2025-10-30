@@ -33,10 +33,6 @@ contract SwapOperatorGeneric is ISwapOperator {
     revert("Unsupported");
   }
 
-  function master() external pure returns (INXMMaster) {
-    revert("Unsupported");
-  }
-
   function swapController() external pure returns (address) {
     revert("Unsupported");
   }
@@ -83,7 +79,15 @@ contract SwapOperatorGeneric is ISwapOperator {
     revert("Unsupported");
   }
 
-  function requestAsset(address, uint) external virtual {
+  function setSafeTransferAssetAllowed(address, bool) external virtual {
+    revert("Unsupported");
+  }
+
+  function requestAssetSwap(SwapRequest calldata) external virtual {
+    revert("Unsupported");
+  }
+
+  function requestAssetTransfer(address, uint) external virtual {
     revert("Unsupported");
   }
 

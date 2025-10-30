@@ -1,73 +1,72 @@
-const { ethers } = require('hardhat');
-const { Role } = require('../../../lib/constants');
-const { getAccounts } = require('../../utils/accounts');
-const { hex } = require('../utils').helpers;
+const { ethers, nexus } = require('hardhat');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { parseEther } = ethers;
 
-const { parseEther } = ethers.utils;
+const { init } = require('../../init');
+
+const { ContractIndexes } = nexus.constants;
+
+const assignRoles = accounts => ({
+  defaultSender: accounts[0],
+  nonMembers: accounts.slice(1, 5),
+  members: accounts.slice(5, 10),
+  advisoryBoardMembers: accounts.slice(10, 15),
+  stakingPoolManagers: accounts.slice(15, 25),
+  emergencyAdmins: accounts.slice(25, 30),
+  generalPurpose: accounts.slice(30, 35),
+  governor: accounts.slice(35, 36),
+  cover: accounts.slice(36, 37),
+  stakingProducts: accounts.slice(37, 38),
+  ramm: accounts.slice(38, 39),
+});
 
 async function setup() {
-  const accounts = await getAccounts();
-  const { internalContracts, members } = accounts;
-  const internal = internalContracts[0];
+  await loadFixture(init);
 
+  const accounts = assignRoles(await ethers.getSigners());
+  const [governor] = accounts.governor;
+  const [cover] = accounts.cover;
+  const [stakingProducts] = accounts.stakingProducts;
+  const [ramm] = accounts.ramm;
+
+  const registry = await ethers.deployContract('TCMockRegistry', []);
   const stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [accounts.defaultSender.address]);
-  const stakingNFT = await ethers.deployContract('TCMockStakingNFT');
-
   const nxm = await ethers.deployContract('NXMTokenMock');
-  const tokenController = await ethers.deployContract('TokenController', [
-    stakingPoolFactory.address,
-    nxm.address,
-    stakingNFT.address,
+  const stakingNFT = await ethers.deployContract('TCMockStakingNFT', []);
+  const pool = await ethers.deployContract('TCMockPool');
+
+  await Promise.all([
+    registry.addContract(ContractIndexes.C_GOVERNOR, governor, false),
+    registry.addContract(ContractIndexes.C_REGISTRY, registry, false),
+    registry.addContract(ContractIndexes.C_TOKEN, nxm, false),
+    registry.addContract(ContractIndexes.C_STAKING_NFT, stakingNFT, false),
+    registry.addContract(ContractIndexes.C_POOL, pool, false),
+    registry.addContract(ContractIndexes.C_COVER, cover, false),
+    registry.addContract(ContractIndexes.C_STAKING_PRODUCTS, stakingProducts, false),
+    registry.addContract(ContractIndexes.C_RAMM, ramm, false),
+    registry.addContract(ContractIndexes.C_STAKING_POOL_FACTORY, stakingPoolFactory, false),
   ]);
 
-  await nxm.addToWhiteList(tokenController.address);
+  const tokenController = await ethers.deployContract('TokenController', [registry]);
 
-  const master = await ethers.deployContract('MasterMock');
-  await master.enrollGovernance(accounts.governanceContracts[0].address);
-  await master.enrollInternal(internal.address);
-  await master.setTokenAddress(nxm.address);
-  await master.setLatestAddress(hex('GV'), accounts.governanceContracts[0].address);
+  const amount = parseEther('100');
+  await nxm.setOperator(tokenController);
 
-  const governance = await ethers.deployContract('TCMockGovernance');
-  const assessment = await ethers.deployContract('TCMockAssessment');
-
-  await tokenController.changeMasterAddress(master.address);
-  await tokenController.changeDependentContractAddress();
-
-  const mintAmount = parseEther('10000');
-
-  await nxm.mint(tokenController.address, mintAmount);
-
-  nxm.setOperator(tokenController.address);
-
-  for (const member of members) {
-    await master.enrollMember(member.address, Role.Member);
-    await tokenController.connect(internal).addToWhitelist(member.address);
-    await nxm.mint(member.address, mintAmount);
-    await nxm.connect(member).approve(tokenController.address, mintAmount);
+  for (const member of accounts.members) {
+    await nxm.mint(member.address, amount);
+    await nxm.addToWhiteList(member.address);
   }
 
-  await tokenController.connect(accounts.governanceContracts[0]).changeOperator(tokenController.address);
-
-  const masterInitTxs = await Promise.all([
-    master.setTokenAddress(nxm.address),
-    master.setLatestAddress(hex('GV'), governance.address),
-    master.setLatestAddress(hex('AS'), assessment.address),
-  ]);
-  await Promise.all(masterInitTxs.map(x => x.wait()));
-
-  await tokenController.changeDependentContractAddress();
-
   return {
-    accounts,
     contracts: {
       nxm,
-      master,
-      governance,
-      tokenController,
-      assessment,
+      pool,
+      registry,
       stakingPoolFactory,
+      stakingNFT,
+      tokenController,
     },
+    accounts,
   };
 }
 

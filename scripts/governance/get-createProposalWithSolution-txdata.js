@@ -1,40 +1,15 @@
-require('dotenv').config();
+const fs = require('node:fs');
 const path = require('node:path');
 
-const { ethers } = require('hardhat');
+const { ethers, network } = require('hardhat');
 const ipfsClient = require('ipfs-http-client');
 
-const { simulateTransaction, constants } = require('./helpers');
-const fs = require('fs');
-const { GOVERNANCE_ADDRESS, IPFS_API_URL, CATEGORY_PARAM_TYPES } = constants;
+const { constants } = require('./helpers');
+
+const { AbiCoder, JsonRpcSigner, JsonRpcProvider } = ethers;
+const { AB_MEMBER, GOVERNANCE_ADDRESS, IPFS_API_URL, CATEGORY_PARAM_TYPES } = constants;
 
 const ipfs = ipfsClient({ url: IPFS_API_URL });
-
-const verifyDecodedTxInputs = (inputs, decodedTxInputs) => {
-  if (decodedTxInputs[0] !== inputs[0]) {
-    throw new Error(`Title mismatch: ${decodedTxInputs[0]} !== ${inputs[0]}`);
-  }
-
-  if (decodedTxInputs[1] !== inputs[1]) {
-    throw new Error(`Short description mismatch: ${decodedTxInputs[1]} !== ${inputs[1]}`);
-  }
-
-  if (decodedTxInputs[2] !== inputs[2]) {
-    throw new Error(`Ipfs hash mismatch: ${decodedTxInputs[2]} !== ${inputs[2]}`);
-  }
-
-  if (decodedTxInputs[3] !== inputs[3]) {
-    throw new Error(`Category mismatch: ${decodedTxInputs[3]} !== ${inputs[3]}`);
-  }
-
-  if (decodedTxInputs[4] !== inputs[4]) {
-    throw new Error(`Solution Hash mismatch: ${decodedTxInputs[4]} !== ${inputs[4]}`);
-  }
-
-  if (decodedTxInputs[5] !== inputs[5]) {
-    throw new Error(`Action mismatch: ${decodedTxInputs[5]} !== ${inputs[5]}`);
-  }
-};
 
 /**
  *
@@ -82,7 +57,8 @@ const main = async (proposalFilePath, categoryId, actionParamsRaw, solutionHash 
     );
   }
 
-  const encodedActionParams = ethers.utils.defaultAbiCoder.encode(CATEGORY_PARAM_TYPES[categoryId], actionParams);
+  const abiCoder = new AbiCoder();
+  const encodedActionParams = abiCoder.encode(CATEGORY_PARAM_TYPES[categoryId], actionParams);
 
   // upload proposal file to IPFS
   const file = await ipfs.add(fs.readFileSync(proposalFilePath));
@@ -91,17 +67,10 @@ const main = async (proposalFilePath, categoryId, actionParamsRaw, solutionHash 
   // group the inputs for the createProposalWithSolution transaction
   const inputs = [proposal.title, proposal.shortDescription, file.path, categoryId, solutionHash, encodedActionParams];
 
-  // create the transaction data for createProposalwithSolution
-  const createProposalTransaction = await governance.populateTransaction.createProposalwithSolution(...inputs);
-  console.log(`Tx data:\n${createProposalTransaction.data}`);
-
-  // simulate the transaction
-  const decodedTxInputs = await simulateTransaction(createProposalTransaction.data);
-
-  // verify the decoded inputs match the inputs
-  verifyDecodedTxInputs(inputs, decodedTxInputs);
-
-  return createProposalTransaction;
+  const signer = new JsonRpcSigner(new JsonRpcProvider(network.config.url), AB_MEMBER);
+  const tx = await governance.connect(signer).createProposalwithSolution(...inputs);
+  console.log(`Tx hash: ${tx.hash}`);
+  console.log(`Tx data: ${tx.data}`);
 };
 
 if (require.main === module) {

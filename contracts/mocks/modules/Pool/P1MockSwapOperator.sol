@@ -9,4 +9,6 @@ contract P1MockSwapOperator is SwapOperatorGeneric {
   function orderInProgress() external override pure returns (bool) {
     return false;
   }
+
+  receive() external payable {}
 }

@@ -4,6 +4,7 @@ pragma solidity ^0.8.18;
 
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverNFT.sol";
+import "../../interfaces/ICoverProducts.sol";
 
 contract CoverGeneric is ICover {
 
@@ -50,6 +51,18 @@ contract CoverGeneric is ICover {
     revert("Unsupported");
   }
 
+  function getCoverRi(uint) external virtual view returns (Ri memory) {
+    revert("Unsupported");
+  }
+
+  function getCoverDataWithRi(uint) external virtual view returns (CoverData memory, Ri memory) {
+    revert("Unsupported");
+  }
+
+  function getCoverMetadata(uint) external virtual view returns (string memory) {
+    revert("Unsupported");
+  }
+
   function getPoolAllocations(uint) external virtual view returns (PoolAllocation[] memory) {
     revert("Unsupported");
   }
@@ -84,8 +97,16 @@ contract CoverGeneric is ICover {
 
   function executeCoverBuy(
     BuyCoverParams calldata /* params */,
-    PoolAllocationRequest[] calldata, /* coverChunkRequests */
+    PoolAllocationRequest[] calldata /* coverChunkRequests */,
     address /*buyer*/
+  ) external virtual payable returns (uint) {
+    revert("Unsupported");
+  }
+
+  function buyCoverWithRi(
+    BuyCoverParams calldata /* params */,
+    PoolAllocationRequest[] calldata /* coverChunkRequests */,
+    RiRequest calldata /* riRequest */
   ) external virtual payable returns (uint) {
     revert("Unsupported");
   }
@@ -93,7 +114,7 @@ contract CoverGeneric is ICover {
   function burnStake(
     uint /* coverId */,
     uint /* amount */
-  ) external virtual returns (address /* coverOwner */) {
+  ) external virtual {
     revert("Unsupported");
   }
 
@@ -113,7 +134,15 @@ contract CoverGeneric is ICover {
     revert("Unsupported");
   }
 
-  function stakingPoolFactory() external virtual view returns (ICompleteStakingPoolFactory) {
+  function stakingPoolFactory() external virtual view returns (address) {
+    revert("Unsupported");
+  }
+
+  function stakingPoolImplementation() external virtual view returns (address) {
+    revert("Unsupported");
+  }
+
+  function coverProducts() external virtual view returns (ICoverProducts) {
     revert("Unsupported");
   }
 }

@@ -9,8 +9,9 @@ const assignRoles = accounts => ({
   nonInternalContracts: accounts.slice(20, 25),
   governanceContracts: accounts.slice(25, 30),
   stakingPoolManagers: accounts.slice(30, 40),
-  emergencyAdmin: accounts[40],
-  generalPurpose: accounts.slice(41),
+  assessors: accounts.slice(40, 45),
+  emergencyAdmins: accounts.slice(45, 50),
+  generalPurpose: accounts.slice(50),
 });
 
 const getAccounts = async () => {

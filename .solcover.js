@@ -48,6 +48,7 @@ async function onCompileComplete() {
 }
 
 module.exports = {
+  mocha: { parallel: false },
   onCompileComplete,
   skipFiles: [
     'abstract/',
@@ -55,8 +56,6 @@ module.exports = {
     'interfaces/',
     'libraries/',
     'mocks/',
-    'modules/assessment/AssessmentViewer.sol',
-    'modules/viewer/NexusViewer.sol',
     'modules/cover/CoverViewer.sol',
     'modules/governance/external',
     'modules/legacy',
@@ -65,6 +64,6 @@ module.exports = {
     'utils/',
   ],
   providerOptions: {
-    default_balance_ether: 100000000,
+    default_balance_ether: 1000000000,
   },
 };

@@ -43,8 +43,6 @@ interface ITokenController {
 
   function token() external view returns (INXMToken);
 
-  function getLockReasons(address _of) external view returns (bytes32[] memory reasons);
-
   function totalSupply() external view returns (uint);
 
   function totalBalanceOf(address _of) external view returns (uint amount);
@@ -52,10 +50,6 @@ interface ITokenController {
   function totalBalanceOfWithoutDelegations(address _of) external view returns (uint amount);
 
   function getTokenPrice() external view returns (uint tokenPrice);
-
-  function getPendingRewards(address member) external view returns (uint);
-
-  function tokensLocked(address _of, bytes32 _reason) external view returns (uint256 amount);
 
   function getStakingPoolManager(uint poolId) external view returns (address manager);
 
@@ -79,13 +73,11 @@ interface ITokenController {
 
   function removeFromWhitelist(address _member) external;
 
+  function switchMembership(address from, address to, bool includeNxmTokens) external;
+
   function mint(address _member, uint _amount) external;
 
   function lockForMemberVote(address _of, uint _days) external;
-
-  function withdrawClaimAssessmentTokens(address[] calldata users) external;
-
-  function transferStakingPoolsOwnership(address from, address to) external;
 
   function assignStakingPoolManager(uint poolId, address manager) external;
 

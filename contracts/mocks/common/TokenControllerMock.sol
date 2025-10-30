@@ -1,19 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.28;
 
-import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/INXMToken.sol";
 import "../generic/TokenControllerGeneric.sol";
 
-interface ICover {
-  function stakingPool(uint poolId) external view returns (address);
-}
+contract TokenControllerMock is TokenControllerGeneric {
 
-contract TokenControllerMock is TokenControllerGeneric, MasterAwareV2 {
-
-  address public addToWhitelistLastCalledWtih;
-  address public removeFromWhitelistLastCalledWtih;
+  address public addToWhitelistLastCalledWith;
+  address public removeFromWhitelistLastCalledWith;
 
   mapping(uint => StakingPoolNXMBalances) public _stakingPoolNXMBalances;
 
@@ -29,37 +24,25 @@ contract TokenControllerMock is TokenControllerGeneric, MasterAwareV2 {
     token = INXMToken(_tokenAddress);
   }
 
-  function mint(address _member, uint256 _amount) public override onlyInternal {
+  function mint(address _member, uint256 _amount) public override {
     token.mint(_member, _amount);
   }
 
-  function burnFrom(address _of, uint amount) public override onlyInternal returns (bool) {
+  function burnFrom(address _of, uint amount) public override returns (bool) {
     return token.burnFrom(_of, amount);
   }
 
-  function addToWhitelist(address _member) public override onlyInternal {
-    addToWhitelistLastCalledWtih = _member;
+  function addToWhitelist(address _member) public override {
+    addToWhitelistLastCalledWith = _member;
   }
 
-  function removeFromWhitelist(address _member) public override onlyInternal {
-    removeFromWhitelistLastCalledWtih = _member;
+  function removeFromWhitelist(address _member) public override {
+    removeFromWhitelistLastCalledWith = _member;
   }
 
   /* ========== DEPENDENCIES ========== */
 
-  function cover() internal view returns (ICover) {
-    return ICover(internalContracts[uint(ID.CO)]);
-  }
-
-  function changeDependentContractAddress() public {
-    internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
-  }
-
-  function operatorTransfer(address _from, address _to, uint _value) onlyInternal external override returns (bool) {
-    require(
-      msg.sender == master.getLatestAddress("PS") || msg.sender == master.getLatestAddress("CO"),
-      "Call is only allowed from PooledStaking or Cover address"
-    );
+  function operatorTransfer(address _from, address _to, uint _value) external override returns (bool) {
     require(token.operatorTransfer(_from, _value), "Operator transfer failed");
     require(token.transfer(_to, _value), "Internal transfer failed");
     return true;
@@ -89,11 +72,6 @@ contract TokenControllerMock is TokenControllerGeneric, MasterAwareV2 {
   function burnStakedNXM(uint amount, uint poolId) external override {
     _stakingPoolNXMBalances[poolId].deposits -= uint128(amount);
     token.burn(amount);
-  }
-
-  function setContractAddresses(address payable coverAddr, address payable tokenAddr) public {
-    internalContracts[uint(ID.CO)] = coverAddr;
-    token = INXMToken(tokenAddr);
   }
 
   function setStakingPoolManager(uint poolId, address manager) external {
@@ -143,14 +121,4 @@ contract TokenControllerMock is TokenControllerGeneric, MasterAwareV2 {
     return _isStakingPoolManager[manager];
   }
 
-  /* unused functions */
-
-  modifier unused {
-    require(false, "Unexpected TokenControllerMock call");
-    _;
-  }
-
-  function burnLockedTokens(address, bytes32, uint256) unused external {}
-
-  function releaseLockedTokens(address _of, bytes32 _reason, uint256 _amount) unused external {}
 }

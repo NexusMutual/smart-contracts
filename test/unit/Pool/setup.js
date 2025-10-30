@@ -1,155 +1,119 @@
-const { ethers } = require('hardhat');
+const { ethers, nexus } = require('hardhat');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
-const { getAccounts } = require('../utils').accounts;
-const { Role, Assets, AggregatorType } = require('../utils').constants;
-const { toBytes2 } = require('../utils').helpers;
+const { init } = require('../../init');
 
-const { BigNumber } = ethers;
-const { parseEther, parseUnits } = ethers.utils;
-const { AddressZero, WeiPerEther } = ethers.constants;
+const { parseEther } = ethers;
+const { ContractIndexes } = nexus.constants;
+const { ETH } = nexus.constants.Assets;
+
+const assignRoles = accounts => ({
+  defaultSender: accounts[0],
+  nonMembers: accounts.slice(1, 5),
+  members: accounts.slice(5, 10),
+  advisoryBoardMembers: accounts.slice(10, 15),
+  stakingPoolManagers: accounts.slice(15, 25),
+  emergencyAdmins: accounts.slice(25, 30),
+  generalPurpose: accounts.slice(30, 35),
+  governor: accounts.slice(35, 36),
+  claims: accounts.slice(36, 37),
+});
 
 async function setup() {
-  const accounts = await getAccounts();
-  // rewrite above artifact imports using ethers.js
-  const MasterMock = await ethers.getContractFactory('MasterMock');
-  const TokenController = await ethers.getContractFactory('TokenControllerMock');
-  const TokenMock = await ethers.getContractFactory('NXMTokenMock');
-  const LegacyPool = await ethers.getContractFactory('LegacyPool');
-  const Pool = await ethers.getContractFactory('Pool');
-  const MCR = await ethers.getContractFactory('P1MockMCR');
-  const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
-  const ERC20BlacklistableMock = await ethers.getContractFactory('ERC20BlacklistableMock');
-  const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
-  const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
-  const P1MockSwapOperator = await ethers.getContractFactory('P1MockSwapOperator');
-  const MemberRolesMock = await ethers.getContractFactory('MemberRolesMock');
-  const RammMock = await ethers.getContractFactory('RammMock');
+  await loadFixture(init);
+  const accounts = assignRoles(await ethers.getSigners());
+  const [governor] = accounts.governor;
+  const [claims] = accounts.claims;
+  const registry = await ethers.deployContract('P1MockRegistry', []);
+  const cover = await ethers.deployContract('P1MockCover', []);
+  const ramm = await ethers.deployContract('P1MockRamm', []);
+  const swapOperator = await ethers.deployContract('P1MockSwapOperator', []);
+  const oldPool = await ethers.deployContract('P1MockOldPool', []);
+  const oldMCR = await ethers.deployContract('P1MockMCR', []);
+  const oldPriceFeedOracle = await ethers.deployContract('P1MockPriceFeedOracle', []);
 
-  const master = await MasterMock.deploy();
-  const dai = await ERC20Mock.deploy();
-  const stETH = await ERC20BlacklistableMock.deploy();
-  const enzymeVault = await ERC20Mock.deploy();
-  const otherAsset = await ERC20Mock.deploy();
-  const st = await ERC20Mock.deploy();
-  const memberRoles = await MemberRolesMock.deploy();
-  const ramm = await RammMock.deploy();
+  await oldPool.setPriceFeedOracle(oldPriceFeedOracle);
 
-  const ethToUsdRate = parseUnits('2500', 8);
-  const ethToDaiRate = parseEther('394.59');
-  const daiToEthRate = BigNumber.from(10).pow(36).div(ethToDaiRate);
+  const usdcDecimals = 6;
+  const usdc = await ethers.deployContract('ERC20Mock');
+  await usdc.setMetadata('MockUsdc', 'USDC', usdcDecimals);
 
-  const chainlinkDAI = await ChainlinkAggregatorMock.deploy();
-  await chainlinkDAI.setLatestAnswer(daiToEthRate);
+  const cbBTCDecimals = 8;
+  const cbBTC = await ethers.deployContract('ERC20Mock');
+  await cbBTC.setMetadata('MockcbBTC', 'cbBTC', cbBTCDecimals);
 
-  const chainlinkSteth = await ChainlinkAggregatorMock.deploy();
-  await chainlinkSteth.setLatestAnswer(WeiPerEther);
+  const ethAggregator = await ethers.deployContract('ChainlinkAggregatorMock');
+  await ethAggregator.setLatestAnswer(parseEther('1'));
 
-  const chainlinkEnzymeVault = await ChainlinkAggregatorMock.deploy();
-  await chainlinkEnzymeVault.setLatestAnswer(WeiPerEther);
+  const usdcAggregator = await ethers.deployContract('ChainlinkAggregatorMock');
+  await usdcAggregator.setLatestAnswer(parseEther('1'));
 
-  const chainlinkOtherAsset = await ChainlinkAggregatorMock.deploy();
-  await chainlinkOtherAsset.setLatestAnswer(WeiPerEther);
+  const cbBTCAggregator = await ethers.deployContract('ChainlinkAggregatorMock');
+  await cbBTCAggregator.setLatestAnswer(parseEther('1'));
+  await cbBTCAggregator.setDecimals(8);
 
-  const chainlinkEthUsdAsset = await ChainlinkAggregatorMock.deploy();
-  await chainlinkEthUsdAsset.setLatestAnswer(ethToUsdRate);
-  await chainlinkEthUsdAsset.setDecimals(8);
+  await oldPool.addAsset(ETH, true);
+  await oldPriceFeedOracle.setAssetAggregator(ETH, ethAggregator, 0);
 
-  const priceFeedOracle = await PriceFeedOracle.deploy(
-    [dai, stETH, enzymeVault, otherAsset, { address: Assets.ETH }].map(c => c.address),
-    [chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault, chainlinkOtherAsset, chainlinkEthUsdAsset].map(c => c.address),
-    [AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH, AggregatorType.USD],
-    [18, 18, 18, 18, 18],
-    st.address,
+  await oldPool.addAsset(usdc, true);
+  await oldPriceFeedOracle.setAssetAggregator(usdc, usdcAggregator, 0);
+
+  await oldPool.addAsset(cbBTC, true);
+  await oldPriceFeedOracle.setAssetAggregator(cbBTC, cbBTCAggregator, 1);
+
+  await registry.addContract(
+    ContractIndexes.C_GOVERNOR,
+    governor,
+    false, // registry does not track itself as a proxy
   );
 
-  const swapOperator = await P1MockSwapOperator.deploy();
+  await registry.addContract(ContractIndexes.C_REGISTRY, registry, false);
+  await registry.addContract(ContractIndexes.C_COVER, cover, false);
+  await registry.addContract(ContractIndexes.C_RAMM, ramm, false);
+  await registry.addContract(ContractIndexes.C_SWAP_OPERATOR, swapOperator, false);
+  await registry.addContract(ContractIndexes.C_CLAIMS, claims, false);
 
-  const mcr = await MCR.deploy();
-  const token = await TokenMock.deploy();
-  const tokenController = await TokenController.deploy(token.address);
+  const pool = await ethers.deployContract('Pool', [registry]);
 
-  await token.setOperator(tokenController.address);
-  await token.mint(accounts.defaultSender.address, parseEther('10000'));
+  // TODO: this needs to be done using DisposablePool to initialize the values
+  //       then we can use a proxy and upgrade to the actual contract
+  //       or override contract code directly using setCode
 
-  const legacyPool = await LegacyPool.deploy(
-    AddressZero, // master: it is changed a few lines below
-    priceFeedOracle.address,
-    swapOperator.address,
-    dai.address,
-    stETH.address,
-    enzymeVault.address,
-    token.address,
-  );
+  // mocking master address
+  await cover.setCoverProducts(oldMCR);
+  await oldMCR.setMaster(governor); // oldMcr is used as coverProducts during Pool migration
+  await pool.connect(governor).migrate(oldPool, oldMCR);
 
-  const pool = await Pool.deploy(
-    AddressZero, // master: it is changed a few lines below
-    priceFeedOracle.address,
-    swapOperator.address,
-    token.address,
-    legacyPool.address,
-  );
-
-  // set contract addresses
-  await master.setTokenAddress(token.address);
-  await master.setLatestAddress(toBytes2('P1'), pool.address);
-  await master.setLatestAddress(toBytes2('MC'), mcr.address);
-  await master.setLatestAddress(toBytes2('TC'), tokenController.address);
-  await master.setLatestAddress(toBytes2('MR'), memberRoles.address);
-  await master.setLatestAddress(toBytes2('RA'), ramm.address);
-
-  const contractsToUpdate = [mcr, pool, tokenController];
-
-  for (const contract of contractsToUpdate) {
-    await contract.changeMasterAddress(master.address);
-    await contract.changeDependentContractAddress();
-  }
-
-  // required to be able to mint
-  await master.enrollInternal(pool.address);
-
-  for (const member of accounts.members) {
-    await master.enrollMember(member.address, Role.Member);
-    await memberRoles.setRole(member.address, Role.Member);
-  }
-
-  for (const advisoryBoardMember of accounts.advisoryBoardMembers) {
-    await master.enrollMember(advisoryBoardMember.address, Role.AdvisoryBoard);
-    await memberRoles.setRole(advisoryBoardMember.address, Role.AdvisoryBoard);
-  }
-
-  for (const internalContract of accounts.internalContracts) {
-    await master.enrollInternal(internalContract.address);
-  }
-
-  // there is only one in reality, but it doesn't matter
-  for (const governanceContract of accounts.governanceContracts) {
-    await master.enrollGovernance(governanceContract.address);
-  }
+  const MCR_RATIO_DECIMALS = await pool.MCR_RATIO_DECIMALS();
+  const MAX_MCR_ADJUSTMENT = await pool.MAX_MCR_ADJUSTMENT();
+  const MAX_MCR_INCREMENT = await pool.MAX_MCR_INCREMENT();
+  const BASIS_PRECISION = await pool.BASIS_PRECISION();
+  const GEARING_FACTOR = await pool.GEARING_FACTOR();
+  const MIN_UPDATE_TIME = await pool.MIN_UPDATE_TIME();
+  const MAX_SLIPPAGE_DENOMINATOR = await pool.MAX_SLIPPAGE_DENOMINATOR();
 
   return {
     accounts,
-    master,
-    token,
+    governor,
+    registry,
     pool,
-    mcr,
-    tokenController,
-    memberRoles,
-    swapOperator,
-    priceFeedOracle,
+    cover,
+    claims,
     ramm,
-
-    // tokens
-    dai,
-    stETH,
-    enzymeVault,
-    otherAsset,
-    st, // safeTracker
-
-    // oracles
-    chainlinkDAI,
-    chainlinkSteth,
-    chainlinkEnzymeVault,
-    chainlinkEthUsdAsset,
+    swapOperator,
+    usdc,
+    usdcAggregator,
+    cbBTC,
+    cbBTCAggregator,
+    constants: {
+      MCR_RATIO_DECIMALS,
+      MAX_MCR_ADJUSTMENT,
+      MAX_MCR_INCREMENT,
+      BASIS_PRECISION,
+      GEARING_FACTOR,
+      MIN_UPDATE_TIME,
+      MAX_SLIPPAGE_DENOMINATOR,
+    },
   };
 }
 

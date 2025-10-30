@@ -1,0 +1,2311 @@
+{
+  "Claims": [
+    {
+      "label": "_claims",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_struct(Claim)672_storage)",
+      "size": 32
+    },
+    {
+      "label": "lastClaimSubmissionOnCover",
+      "slot": 1,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_uint256)",
+      "size": 32
+    },
+    {
+      "label": "_nextClaimId",
+      "slot": 2,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    }
+  ],
+  "Context": [],
+  "Cover": [
+    {
+      "label": "master",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_contract(INXMMaster)8280",
+      "size": 20
+    },
+    {
+      "label": "internalContracts",
+      "slot": 1,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_address_payable)",
+      "size": 32
+    },
+    {
+      "label": "_status",
+      "slot": 2,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "__unused_0",
+      "slot": 3,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "__unused_1",
+      "slot": 4,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "_legacyCoverData",
+      "slot": 5,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_struct(LegacyCoverData)5342_storage)",
+      "size": 32
+    },
+    {
+      "label": "_legacyCoverSegmentAllocations",
+      "slot": 6,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_array(t_struct(PoolAllocation)5335_storage)dyn_storage))",
+      "size": 32
+    },
+    {
+      "label": "__unused_4",
+      "slot": 7,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "_legacyCoverSegments",
+      "slot": 8,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_array(t_struct(LegacyCoverSegment)5355_storage)dyn_storage)",
+      "size": 32
+    },
+    {
+      "label": "activeCover",
+      "slot": 9,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_struct(ActiveCover)5391_storage)",
+      "size": 32
+    },
+    {
+      "label": "activeCoverExpirationBuckets",
+      "slot": 10,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_uint256))",
+      "size": 32
+    },
+    {
+      "label": "__unused_8",
+      "slot": 11,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "__unused_9",
+      "slot": 12,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "_coverData",
+      "slot": 13,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_struct(CoverData)5372_storage)",
+      "size": 32
+    },
+    {
+      "label": "_poolAllocations",
+      "slot": 14,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_array(t_struct(PoolAllocation)5335_storage)dyn_storage)",
+      "size": 32
+    },
+    {
+      "label": "_coverReference",
+      "slot": 15,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_struct(CoverReference)5377_storage)",
+      "size": 32
+    }
+  ],
+  "CoverMigrator": [
+    {
+      "label": "master",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_contract(INXMMaster)8188",
+      "size": 20
+    },
+    {
+      "label": "internalContracts",
+      "slot": 1,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_address_payable)",
+      "size": 32
+    }
+  ],
+  "CoverNFT": [
+    {
+      "label": "name",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_string_storage",
+      "size": 32
+    },
+    {
+      "label": "symbol",
+      "slot": 1,
+      "offset": 0,
+      "type": "t_string_storage",
+      "size": 32
+    },
+    {
+      "label": "_ownerOf",
+      "slot": 2,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_address)",
+      "size": 32
+    },
+    {
+      "label": "_balanceOf",
+      "slot": 3,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_uint256)",
+      "size": 32
+    },
+    {
+      "label": "getApproved",
+      "slot": 4,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_address)",
+      "size": 32
+    },
+    {
+      "label": "isApprovedForAll",
+      "slot": 5,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_mapping(t_address,t_bool))",
+      "size": 32
+    },
+    {
+      "label": "_totalSupply",
+      "slot": 6,
+      "offset": 0,
+      "type": "t_uint96",
+      "size": 12
+    },
+    {
+      "label": "operator",
+      "slot": 6,
+      "offset": 12,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "nftDescriptor",
+      "slot": 7,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    }
+  ],
+  "CoverNFTDescriptor": [],
+  "CoverProducts": [
+    {
+      "label": "master",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_contract(INXMMaster)8280",
+      "size": 20
+    },
+    {
+      "label": "internalContracts",
+      "slot": 1,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_address_payable)",
+      "size": 32
+    },
+    {
+      "label": "_products",
+      "slot": 2,
+      "offset": 0,
+      "type": "t_array(t_struct(Product)5768_storage)dyn_storage",
+      "size": 32
+    },
+    {
+      "label": "_productTypes",
+      "slot": 3,
+      "offset": 0,
+      "type": "t_array(t_struct(ProductType)5774_storage)dyn_storage",
+      "size": 32
+    },
+    {
+      "label": "productNames",
+      "slot": 4,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_string_storage)",
+      "size": 32
+    },
+    {
+      "label": "productTypeNames",
+      "slot": 5,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_string_storage)",
+      "size": 32
+    },
+    {
+      "label": "allowedPools",
+      "slot": 6,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_array(t_uint256)dyn_storage)",
+      "size": 32
+    },
+    {
+      "label": "productMetadata",
+      "slot": 7,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_array(t_struct(Metadata)5779_storage)dyn_storage)",
+      "size": 32
+    },
+    {
+      "label": "productTypeMetadata",
+      "slot": 8,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_array(t_struct(Metadata)5779_storage)dyn_storage)",
+      "size": 32
+    }
+  ],
+  "CoverViewer": [],
+  "ERC20": [
+    {
+      "label": "_balances",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_uint256)",
+      "size": 32
+    },
+    {
+      "label": "_allowances",
+      "slot": 1,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_mapping(t_address,t_uint256))",
+      "size": 32
+    },
+    {
+      "label": "_totalSupply",
+      "slot": 2,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    }
+  ],
+  "ERC721TokenReceiver": [],
+  "Governance": [
+    {
+      "label": "ms",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_contract(INXMMaster)1644",
+      "size": 20
+    },
+    {
+      "label": "nxMasterAddress",
+      "slot": 1,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "allVotes",
+      "slot": 2,
+      "offset": 0,
+      "type": "t_array(t_struct(ProposalVote)3901_storage)dyn_storage",
+      "size": 32
+    },
+    {
+      "label": "allDelegation",
+      "slot": 3,
+      "offset": 0,
+      "type": "t_array(t_struct(DelegateVote)567_storage)dyn_storage",
+      "size": 32
+    },
+    {
+      "label": "allProposalData",
+      "slot": 4,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_struct(ProposalData)3894_storage)",
+      "size": 32
+    },
+    {
+      "label": "allProposalSolutions",
+      "slot": 5,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_array(t_bytes_storage)dyn_storage)",
+      "size": 32
+    },
+    {
+      "label": "allVotesByMember",
+      "slot": 6,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_array(t_uint256)dyn_storage)",
+      "size": 32
+    },
+    {
+      "label": "rewardClaimed",
+      "slot": 7,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_mapping(t_address,t_bool))",
+      "size": 32
+    },
+    {
+      "label": "memberProposalVote",
+      "slot": 8,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_mapping(t_uint256,t_uint256))",
+      "size": 32
+    },
+    {
+      "label": "followerDelegation",
+      "slot": 9,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_uint256)",
+      "size": 32
+    },
+    {
+      "label": "followerCount",
+      "slot": 10,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_uint256)",
+      "size": 32
+    },
+    {
+      "label": "leaderDelegation",
+      "slot": 11,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_array(t_uint256)dyn_storage)",
+      "size": 32
+    },
+    {
+      "label": "proposalVoteTally",
+      "slot": 12,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_struct(VoteTally)3912_storage)",
+      "size": 32
+    },
+    {
+      "label": "isOpenForDelegation",
+      "slot": 13,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_bool)",
+      "size": 32
+    },
+    {
+      "label": "lastRewardClaimed",
+      "slot": 14,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_uint256)",
+      "size": 32
+    },
+    {
+      "label": "constructorCheck",
+      "slot": 15,
+      "offset": 0,
+      "type": "t_bool",
+      "size": 1
+    },
+    {
+      "label": "tokenHoldingTime",
+      "slot": 16,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "roleIdAllowedToCatgorize",
+      "slot": 17,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "maxVoteWeigthPer",
+      "slot": 18,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "specialResolutionMajPerc",
+      "slot": 19,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "maxFollowers",
+      "slot": 20,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "totalProposals",
+      "slot": 21,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "maxDraftTime",
+      "slot": 22,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "memberRole",
+      "slot": 23,
+      "offset": 0,
+      "type": "t_contract(IMemberRoles)1547",
+      "size": 20
+    },
+    {
+      "label": "proposalCategory",
+      "slot": 24,
+      "offset": 0,
+      "type": "t_contract(IProposalCategory)1935",
+      "size": 20
+    },
+    {
+      "label": "tokenInstance",
+      "slot": 25,
+      "offset": 0,
+      "type": "t_contract(ITokenController)2188",
+      "size": 20
+    },
+    {
+      "label": "proposalActionStatus",
+      "slot": 26,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_uint256)",
+      "size": 32
+    },
+    {
+      "label": "proposalExecutionTime",
+      "slot": 27,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_uint256)",
+      "size": 32
+    },
+    {
+      "label": "proposalRejectedByAB",
+      "slot": 28,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_mapping(t_address,t_bool))",
+      "size": 32
+    },
+    {
+      "label": "actionRejectedCount",
+      "slot": 29,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_uint256)",
+      "size": 32
+    },
+    {
+      "label": "actionParamsInitialised",
+      "slot": 30,
+      "offset": 0,
+      "type": "t_bool",
+      "size": 1
+    },
+    {
+      "label": "actionWaitingTime",
+      "slot": 31,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    }
+  ],
+  "Governed": [
+    {
+      "label": "masterAddress",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    }
+  ],
+  "IMaster": [],
+  "IndividualClaims": [
+    {
+      "label": "master",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_contract(INXMMaster)8280",
+      "size": 20
+    },
+    {
+      "label": "internalContracts",
+      "slot": 1,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_address_payable)",
+      "size": 32
+    },
+    {
+      "label": "__unused_0",
+      "slot": 2,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "claims",
+      "slot": 3,
+      "offset": 0,
+      "type": "t_array(t_struct(Claim)6578_storage)dyn_storage",
+      "size": 32
+    },
+    {
+      "label": "lastClaimSubmissionOnCover",
+      "slot": 4,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_struct(ClaimSubmission)6583_storage)",
+      "size": 32
+    }
+  ],
+  "LegacyClaimProofs": [],
+  "LegacyClaimsData": [
+    {
+      "label": "ms",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_contract(INXMMaster)1644",
+      "size": 20
+    },
+    {
+      "label": "nxMasterAddress",
+      "slot": 1,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "rewardStatus",
+      "slot": 2,
+      "offset": 0,
+      "type": "t_array(t_struct(ClaimRewardStatus)7746_storage)dyn_storage",
+      "size": 32
+    },
+    {
+      "label": "allClaims",
+      "slot": 3,
+      "offset": 0,
+      "type": "t_array(t_struct(Claim)7699_storage)dyn_storage",
+      "size": 32
+    },
+    {
+      "label": "allvotes",
+      "slot": 4,
+      "offset": 0,
+      "type": "t_array(t_struct(Vote)7710_storage)dyn_storage",
+      "size": 32
+    },
+    {
+      "label": "claimPause",
+      "slot": 5,
+      "offset": 0,
+      "type": "t_array(t_struct(ClaimsPause)7717_storage)dyn_storage",
+      "size": 32
+    },
+    {
+      "label": "claimPauseVotingEP",
+      "slot": 6,
+      "offset": 0,
+      "type": "t_array(t_struct(ClaimPauseVoting)7724_storage)dyn_storage",
+      "size": 32
+    },
+    {
+      "label": "voterVoteRewardReceived",
+      "slot": 7,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_struct(RewardDistributed)7729_storage)",
+      "size": 32
+    },
+    {
+      "label": "claimRewardDetail",
+      "slot": 8,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_struct(ClaimRewardDetails)7736_storage)",
+      "size": 32
+    },
+    {
+      "label": "claimTokensCA",
+      "slot": 9,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_struct(ClaimTotalTokens)7741_storage)",
+      "size": 32
+    },
+    {
+      "label": "claimTokensMV",
+      "slot": 10,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_struct(ClaimTotalTokens)7741_storage)",
+      "size": 32
+    },
+    {
+      "label": "claimVote",
+      "slot": 11,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_int8)",
+      "size": 32
+    },
+    {
+      "label": "claimsStatus",
+      "slot": 12,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_uint256)",
+      "size": 32
+    },
+    {
+      "label": "claimState12Count",
+      "slot": 13,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_uint256)",
+      "size": 32
+    },
+    {
+      "label": "claimVoteCA",
+      "slot": 14,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_array(t_uint256)dyn_storage)",
+      "size": 32
+    },
+    {
+      "label": "claimVoteMember",
+      "slot": 15,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_array(t_uint256)dyn_storage)",
+      "size": 32
+    },
+    {
+      "label": "voteAddressCA",
+      "slot": 16,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_array(t_uint256)dyn_storage)",
+      "size": 32
+    },
+    {
+      "label": "voteAddressMember",
+      "slot": 17,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_array(t_uint256)dyn_storage)",
+      "size": 32
+    },
+    {
+      "label": "allClaimsByAddress",
+      "slot": 18,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_array(t_uint256)dyn_storage)",
+      "size": 32
+    },
+    {
+      "label": "userClaimVoteCA",
+      "slot": 19,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_mapping(t_uint256,t_uint256))",
+      "size": 32
+    },
+    {
+      "label": "userClaimVoteMember",
+      "slot": 20,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_mapping(t_uint256,t_uint256))",
+      "size": 32
+    },
+    {
+      "label": "userClaimVotePausedOn",
+      "slot": 21,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_uint256)",
+      "size": 32
+    },
+    {
+      "label": "claimPauseLastsubmit",
+      "slot": 22,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "claimStartVotingFirstIndex",
+      "slot": 23,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "pendingClaimStart",
+      "slot": 24,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "claimDepositTime",
+      "slot": 25,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "maxVotingTime",
+      "slot": 26,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "minVotingTime",
+      "slot": 27,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "payoutRetryTime",
+      "slot": 28,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "claimRewardPerc",
+      "slot": 29,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "minVoteThreshold",
+      "slot": 30,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "maxVoteThreshold",
+      "slot": 31,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "majorityConsensus",
+      "slot": 32,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "pauseDaysCA",
+      "slot": 33,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    }
+  ],
+  "LegacyClaimsReward": [
+    {
+      "label": "ms",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_contract(INXMMaster)8188",
+      "size": 20
+    },
+    {
+      "label": "nxMasterAddress",
+      "slot": 1,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "tk",
+      "slot": 2,
+      "offset": 0,
+      "type": "t_contract(INXMToken)8339",
+      "size": 20
+    },
+    {
+      "label": "tc",
+      "slot": 3,
+      "offset": 0,
+      "type": "t_contract(ITokenController)10706",
+      "size": 20
+    },
+    {
+      "label": "td",
+      "slot": 4,
+      "offset": 0,
+      "type": "t_contract(ITokenData)10714",
+      "size": 20
+    },
+    {
+      "label": "qd",
+      "slot": 5,
+      "offset": 0,
+      "type": "t_contract(IQuotationData)9229",
+      "size": 20
+    },
+    {
+      "label": "c1",
+      "slot": 6,
+      "offset": 0,
+      "type": "t_contract(ILegacyClaims)6843",
+      "size": 20
+    },
+    {
+      "label": "pool",
+      "slot": 7,
+      "offset": 0,
+      "type": "t_contract(IPool)8473",
+      "size": 20
+    },
+    {
+      "label": "gv",
+      "slot": 8,
+      "offset": 0,
+      "type": "t_contract(IGovernance)6618",
+      "size": 20
+    },
+    {
+      "label": "unused",
+      "slot": 9,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "memberRoles",
+      "slot": 10,
+      "offset": 0,
+      "type": "t_contract(IMemberRoles)8091",
+      "size": 20
+    },
+    {
+      "label": "mcr",
+      "slot": 11,
+      "offset": 0,
+      "type": "t_contract(IMCR)7895",
+      "size": 20
+    },
+    {
+      "label": "DAI",
+      "slot": 12,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    }
+  ],
+  "LegacyGateway": [
+    {
+      "label": "master",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_contract(INXMMaster)8188",
+      "size": 20
+    },
+    {
+      "label": "internalContracts",
+      "slot": 1,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_address_payable)",
+      "size": 32
+    },
+    {
+      "label": "_unused_nxmToken",
+      "slot": 2,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "_unused_tokenController",
+      "slot": 3,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "_unused_quotationData",
+      "slot": 4,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "_unused_claimsData",
+      "slot": 5,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "_unused_claims",
+      "slot": 6,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "_unused_pool",
+      "slot": 7,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "_unused_memberRoles",
+      "slot": 8,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "DAI",
+      "slot": 9,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "_unused_incidents",
+      "slot": 10,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "_unused_coverMigrator",
+      "slot": 11,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    }
+  ],
+  "LegacyPool": [
+    {
+      "label": "master",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_contract(INXMMaster)8280",
+      "size": 20
+    },
+    {
+      "label": "internalContracts",
+      "slot": 1,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_address_payable)",
+      "size": 32
+    },
+    {
+      "label": "_status",
+      "slot": 2,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "assets",
+      "slot": 3,
+      "offset": 0,
+      "type": "t_array(t_struct(Asset)7637_storage)dyn_storage",
+      "size": 32
+    },
+    {
+      "label": "swapDetails",
+      "slot": 4,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_struct(SwapDetails)7630_storage)",
+      "size": 32
+    },
+    {
+      "label": "priceFeedOracle",
+      "slot": 5,
+      "offset": 0,
+      "type": "t_contract(IPriceFeedOracle)8761",
+      "size": 20
+    },
+    {
+      "label": "swapOperator",
+      "slot": 6,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "swapValue",
+      "slot": 6,
+      "offset": 20,
+      "type": "t_uint96",
+      "size": 12
+    }
+  ],
+  "LegacyPooledStaking": [
+    {
+      "label": "master",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_contract(INXMMaster)8188",
+      "size": 20
+    },
+    {
+      "label": "internalContracts",
+      "slot": 1,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_address_payable)",
+      "size": 32
+    },
+    {
+      "label": "_unused0",
+      "slot": 2,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "MIN_STAKE",
+      "slot": 3,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "MAX_EXPOSURE",
+      "slot": 4,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "MIN_UNSTAKE",
+      "slot": 5,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "UNSTAKE_LOCK_TIME",
+      "slot": 6,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "stakers",
+      "slot": 7,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_struct(Staker)8495_storage)",
+      "size": 32
+    },
+    {
+      "label": "contractStaked",
+      "slot": 8,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "contractBurned",
+      "slot": 9,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "contractRewarded",
+      "slot": 10,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "contractStakers",
+      "slot": 11,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_array(t_address)dyn_storage)",
+      "size": 32
+    },
+    {
+      "label": "burn",
+      "slot": 12,
+      "offset": 0,
+      "type": "t_struct(Burn)8502_storage",
+      "size": 96
+    },
+    {
+      "label": "rewards",
+      "slot": 15,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_struct(Reward)8509_storage)",
+      "size": 32
+    },
+    {
+      "label": "firstReward",
+      "slot": 16,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "lastRewardId",
+      "slot": 17,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "unstakeRequests",
+      "slot": 18,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_struct(UnstakeRequest)8520_storage)",
+      "size": 32
+    },
+    {
+      "label": "lastUnstakeRequestId",
+      "slot": 19,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "processedToStakerIndex",
+      "slot": 20,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "isContractStakeCalculated",
+      "slot": 21,
+      "offset": 0,
+      "type": "t_bool",
+      "size": 1
+    },
+    {
+      "label": "accumulatedRewards",
+      "slot": 22,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_struct(ContractReward)8525_storage)",
+      "size": 32
+    },
+    {
+      "label": "REWARD_ROUND_DURATION",
+      "slot": 23,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "REWARD_ROUNDS_START",
+      "slot": 24,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    }
+  ],
+  "LimitOrders": [
+    {
+      "label": "master",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_contract(INXMMaster)8280",
+      "size": 20
+    },
+    {
+      "label": "internalContracts",
+      "slot": 1,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_address_payable)",
+      "size": 32
+    },
+    {
+      "label": "orderStatus",
+      "slot": 2,
+      "offset": 0,
+      "type": "t_mapping(t_bytes32,t_struct(OrderStatus)7834_storage)",
+      "size": 32
+    }
+  ],
+  "LockHandler": [
+    {
+      "label": "lockReason",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_array(t_bytes32)dyn_storage)",
+      "size": 32
+    },
+    {
+      "label": "locked",
+      "slot": 1,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_mapping(t_bytes32,t_struct(LockToken)58748_storage))",
+      "size": 32
+    }
+  ],
+  "MCR": [
+    {
+      "label": "master",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_contract(INXMMaster)8280",
+      "size": 20
+    },
+    {
+      "label": "internalContracts",
+      "slot": 1,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_address_payable)",
+      "size": 32
+    },
+    {
+      "label": "maxMCRIncrement",
+      "slot": 2,
+      "offset": 0,
+      "type": "t_uint16",
+      "size": 2
+    },
+    {
+      "label": "gearingFactor",
+      "slot": 2,
+      "offset": 2,
+      "type": "t_uint24",
+      "size": 3
+    },
+    {
+      "label": "minUpdateTime",
+      "slot": 2,
+      "offset": 5,
+      "type": "t_uint16",
+      "size": 2
+    },
+    {
+      "label": "mcr",
+      "slot": 2,
+      "offset": 7,
+      "type": "t_uint80",
+      "size": 10
+    },
+    {
+      "label": "desiredMCR",
+      "slot": 2,
+      "offset": 17,
+      "type": "t_uint80",
+      "size": 10
+    },
+    {
+      "label": "lastUpdateTime",
+      "slot": 2,
+      "offset": 27,
+      "type": "t_uint32",
+      "size": 4
+    },
+    {
+      "label": "previousMCR",
+      "slot": 3,
+      "offset": 0,
+      "type": "t_contract(IMCR)7948",
+      "size": 20
+    }
+  ],
+  "MemberRoles": [
+    {
+      "label": "masterAddress",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "master",
+      "slot": 1,
+      "offset": 0,
+      "type": "t_contract(INXMMaster)8280",
+      "size": 20
+    },
+    {
+      "label": "internalContracts",
+      "slot": 2,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_address_payable)",
+      "size": 32
+    },
+    {
+      "label": "_unused5",
+      "slot": 3,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "_unused6",
+      "slot": 4,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "kycAuthAddress",
+      "slot": 5,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "_unused7",
+      "slot": 6,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "_unused0",
+      "slot": 7,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "_unused1",
+      "slot": 8,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "_unused8",
+      "slot": 9,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "memberRoleData",
+      "slot": 10,
+      "offset": 0,
+      "type": "t_array(t_struct(MemberRoleDetails)43444_storage)dyn_storage",
+      "size": 32
+    },
+    {
+      "label": "_unused2",
+      "slot": 11,
+      "offset": 0,
+      "type": "t_bool",
+      "size": 1
+    },
+    {
+      "label": "maxABCount",
+      "slot": 12,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "launched",
+      "slot": 13,
+      "offset": 0,
+      "type": "t_bool",
+      "size": 1
+    },
+    {
+      "label": "launchedOn",
+      "slot": 14,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "_unused3",
+      "slot": 15,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_address)",
+      "size": 32
+    },
+    {
+      "label": "_unused4",
+      "slot": 16,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_bool)",
+      "size": 32
+    },
+    {
+      "label": "usedMessageHashes",
+      "slot": 17,
+      "offset": 0,
+      "type": "t_mapping(t_bytes32,t_bool)",
+      "size": 32
+    }
+  ],
+  "MinimalBeaconProxy": [],
+  "NexusViewer": [],
+  "NXMaster": [
+    {
+      "label": "_unusedM",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "_unused0",
+      "slot": 1,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "contractCodes",
+      "slot": 2,
+      "offset": 0,
+      "type": "t_array(t_bytes2)dyn_storage",
+      "size": 32
+    },
+    {
+      "label": "contractsActive",
+      "slot": 3,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_bool)",
+      "size": 32
+    },
+    {
+      "label": "contractAddresses",
+      "slot": 4,
+      "offset": 0,
+      "type": "t_mapping(t_bytes2,t_address_payable)",
+      "size": 32
+    },
+    {
+      "label": "isProxy",
+      "slot": 5,
+      "offset": 0,
+      "type": "t_mapping(t_bytes2,t_bool)",
+      "size": 32
+    },
+    {
+      "label": "isReplaceable",
+      "slot": 6,
+      "offset": 0,
+      "type": "t_mapping(t_bytes2,t_bool)",
+      "size": 32
+    },
+    {
+      "label": "tokenAddress",
+      "slot": 7,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "reentrancyLock",
+      "slot": 7,
+      "offset": 20,
+      "type": "t_bool",
+      "size": 1
+    },
+    {
+      "label": "masterInitialized",
+      "slot": 7,
+      "offset": 21,
+      "type": "t_bool",
+      "size": 1
+    },
+    {
+      "label": "owner",
+      "slot": 8,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "_unused1",
+      "slot": 9,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "emergencyAdmin",
+      "slot": 10,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "paused",
+      "slot": 10,
+      "offset": 20,
+      "type": "t_bool",
+      "size": 1
+    }
+  ],
+  "NXMToken": [
+    {
+      "label": "_balances",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_uint256)",
+      "size": 32
+    },
+    {
+      "label": "_allowed",
+      "slot": 1,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_mapping(t_address,t_uint256))",
+      "size": 32
+    },
+    {
+      "label": "whiteListed",
+      "slot": 2,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_bool)",
+      "size": 32
+    },
+    {
+      "label": "isLockedForMV",
+      "slot": 3,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_uint256)",
+      "size": 32
+    },
+    {
+      "label": "_totalSupply",
+      "slot": 4,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "name",
+      "slot": 5,
+      "offset": 0,
+      "type": "t_string_storage",
+      "size": 32
+    },
+    {
+      "label": "symbol",
+      "slot": 6,
+      "offset": 0,
+      "type": "t_string_storage",
+      "size": 32
+    },
+    {
+      "label": "decimals",
+      "slot": 7,
+      "offset": 0,
+      "type": "t_uint8",
+      "size": 1
+    },
+    {
+      "label": "operator",
+      "slot": 7,
+      "offset": 1,
+      "type": "t_address",
+      "size": 20
+    }
+  ],
+  "OwnedUpgradeabilityProxy": [],
+  "OZIERC20": [],
+  "OZSafeMath": [],
+  "Pool": [
+    {
+      "label": "master",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_contract(INXMMaster)8280",
+      "size": 20
+    },
+    {
+      "label": "internalContracts",
+      "slot": 1,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_address_payable)",
+      "size": 32
+    },
+    {
+      "label": "_status",
+      "slot": 2,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "assets",
+      "slot": 3,
+      "offset": 0,
+      "type": "t_array(t_struct(Asset)8503_storage)dyn_storage",
+      "size": 32
+    },
+    {
+      "label": "swapDetails",
+      "slot": 4,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_struct(SwapDetails)8496_storage)",
+      "size": 32
+    },
+    {
+      "label": "priceFeedOracle",
+      "slot": 5,
+      "offset": 0,
+      "type": "t_contract(IPriceFeedOracle)8761",
+      "size": 20
+    },
+    {
+      "label": "swapOperator",
+      "slot": 6,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "assetsInSwapOperatorBitmap",
+      "slot": 6,
+      "offset": 20,
+      "type": "t_uint32",
+      "size": 4
+    },
+    {
+      "label": "assetInSwapOperator",
+      "slot": 7,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    }
+  ],
+  "PriceFeedOracle": [
+    {
+      "label": "assetsMap",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_struct(AssetInfo)8655_storage)",
+      "size": 32
+    }
+  ],
+  "PricesV1": [],
+  "ProductsV1": [],
+  "ProposalCategory": [
+    {
+      "label": "masterAddress",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "ms",
+      "slot": 1,
+      "offset": 0,
+      "type": "t_contract(INXMMaster)1644",
+      "size": 20
+    },
+    {
+      "label": "nxMasterAddress",
+      "slot": 2,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "constructorCheck",
+      "slot": 2,
+      "offset": 20,
+      "type": "t_bool",
+      "size": 1
+    },
+    {
+      "label": "mr",
+      "slot": 3,
+      "offset": 0,
+      "type": "t_contract(IMemberRoles)1547",
+      "size": 20
+    },
+    {
+      "label": "allCategory",
+      "slot": 4,
+      "offset": 0,
+      "type": "t_array(t_struct(CategoryStruct)6850_storage)dyn_storage",
+      "size": 32
+    },
+    {
+      "label": "categoryActionData",
+      "slot": 5,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_struct(CategoryAction)6857_storage)",
+      "size": 32
+    },
+    {
+      "label": "categoryABReq",
+      "slot": 6,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_uint256)",
+      "size": 32
+    },
+    {
+      "label": "isSpecialResolution",
+      "slot": 7,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_uint256)",
+      "size": 32
+    },
+    {
+      "label": "categoryActionHashes",
+      "slot": 8,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_bytes_storage)",
+      "size": 32
+    },
+    {
+      "label": "categoryActionHashUpdated",
+      "slot": 9,
+      "offset": 0,
+      "type": "t_bool",
+      "size": 1
+    }
+  ],
+  "Proxy": [],
+  "Ramm": [
+    {
+      "label": "master",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_contract(INXMMaster)8280",
+      "size": 20
+    },
+    {
+      "label": "internalContracts",
+      "slot": 1,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_address_payable)",
+      "size": 32
+    },
+    {
+      "label": "_status",
+      "slot": 2,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "slot0",
+      "slot": 3,
+      "offset": 0,
+      "type": "t_struct(Slot0)9331_storage",
+      "size": 32
+    },
+    {
+      "label": "slot1",
+      "slot": 4,
+      "offset": 0,
+      "type": "t_struct(Slot1)9340_storage",
+      "size": 32
+    },
+    {
+      "label": "observations",
+      "slot": 5,
+      "offset": 0,
+      "type": "t_array(t_struct(Observation)9347_storage)3_storage",
+      "size": 96
+    },
+    {
+      "label": "ethReleased",
+      "slot": 8,
+      "offset": 0,
+      "type": "t_uint96",
+      "size": 12
+    },
+    {
+      "label": "ethLimit",
+      "slot": 8,
+      "offset": 12,
+      "type": "t_uint32",
+      "size": 4
+    },
+    {
+      "label": "nxmReleased",
+      "slot": 8,
+      "offset": 16,
+      "type": "t_uint96",
+      "size": 12
+    },
+    {
+      "label": "nxmLimit",
+      "slot": 8,
+      "offset": 28,
+      "type": "t_uint32",
+      "size": 4
+    }
+  ],
+  "SafeTracker": [
+    {
+      "label": "master",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_contract(INXMMaster)8280",
+      "size": 20
+    },
+    {
+      "label": "internalContracts",
+      "slot": 1,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_address_payable)",
+      "size": 32
+    },
+    {
+      "label": "coverReInvestmentUSDC",
+      "slot": 2,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    }
+  ],
+  "StakingNFT": [
+    {
+      "label": "name",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_string_storage",
+      "size": 32
+    },
+    {
+      "label": "symbol",
+      "slot": 1,
+      "offset": 0,
+      "type": "t_string_storage",
+      "size": 32
+    },
+    {
+      "label": "_tokenInfo",
+      "slot": 2,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_struct(TokenInfo)48168_storage)",
+      "size": 32
+    },
+    {
+      "label": "_balanceOf",
+      "slot": 3,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_uint256)",
+      "size": 32
+    },
+    {
+      "label": "getApproved",
+      "slot": 4,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_address)",
+      "size": 32
+    },
+    {
+      "label": "isApprovedForAll",
+      "slot": 5,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_mapping(t_address,t_bool))",
+      "size": 32
+    },
+    {
+      "label": "_totalSupply",
+      "slot": 6,
+      "offset": 0,
+      "type": "t_uint96",
+      "size": 12
+    },
+    {
+      "label": "operator",
+      "slot": 6,
+      "offset": 12,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "nftDescriptor",
+      "slot": 7,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    }
+  ],
+  "StakingNFTDescriptor": [],
+  "StakingPool": [
+    {
+      "label": "stakeSharesSupply",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_uint128",
+      "size": 16
+    },
+    {
+      "label": "rewardsSharesSupply",
+      "slot": 0,
+      "offset": 16,
+      "type": "t_uint128",
+      "size": 16
+    },
+    {
+      "label": "accNxmPerRewardsShare",
+      "slot": 1,
+      "offset": 0,
+      "type": "t_uint96",
+      "size": 12
+    },
+    {
+      "label": "activeStake",
+      "slot": 1,
+      "offset": 12,
+      "type": "t_uint96",
+      "size": 12
+    },
+    {
+      "label": "firstActiveTrancheId",
+      "slot": 1,
+      "offset": 24,
+      "type": "t_uint32",
+      "size": 4
+    },
+    {
+      "label": "firstActiveBucketId",
+      "slot": 1,
+      "offset": 28,
+      "type": "t_uint32",
+      "size": 4
+    },
+    {
+      "label": "lastAccNxmUpdate",
+      "slot": 2,
+      "offset": 0,
+      "type": "t_uint32",
+      "size": 4
+    },
+    {
+      "label": "rewardPerSecond",
+      "slot": 2,
+      "offset": 4,
+      "type": "t_uint96",
+      "size": 12
+    },
+    {
+      "label": "poolId",
+      "slot": 2,
+      "offset": 16,
+      "type": "t_uint40",
+      "size": 5
+    },
+    {
+      "label": "lastAllocationId",
+      "slot": 2,
+      "offset": 21,
+      "type": "t_uint24",
+      "size": 3
+    },
+    {
+      "label": "isPrivatePool",
+      "slot": 2,
+      "offset": 24,
+      "type": "t_bool",
+      "size": 1
+    },
+    {
+      "label": "isHalted",
+      "slot": 2,
+      "offset": 25,
+      "type": "t_bool",
+      "size": 1
+    },
+    {
+      "label": "poolFee",
+      "slot": 2,
+      "offset": 26,
+      "type": "t_uint8",
+      "size": 1
+    },
+    {
+      "label": "maxPoolFee",
+      "slot": 2,
+      "offset": 27,
+      "type": "t_uint8",
+      "size": 1
+    },
+    {
+      "label": "tranches",
+      "slot": 3,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_struct(Tranche)9704_storage)",
+      "size": 32
+    },
+    {
+      "label": "expiredTranches",
+      "slot": 4,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_struct(ExpiredTranche)9711_storage)",
+      "size": 32
+    },
+    {
+      "label": "rewardPerSecondCut",
+      "slot": 5,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_uint256)",
+      "size": 32
+    },
+    {
+      "label": "trancheAllocationGroups",
+      "slot": 6,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_userDefinedValueType(TrancheAllocationGroup)55523))",
+      "size": 32
+    },
+    {
+      "label": "expiringCoverBuckets",
+      "slot": 7,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_mapping(t_uint256,t_userDefinedValueType(TrancheGroupBucket)55525)))",
+      "size": 32
+    },
+    {
+      "label": "coverTrancheAllocations",
+      "slot": 8,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_uint256)",
+      "size": 32
+    },
+    {
+      "label": "deposits",
+      "slot": 9,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_struct(Deposit)9720_storage))",
+      "size": 32
+    }
+  ],
+  "StakingPoolFactory": [
+    {
+      "label": "operator",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "_stakingPoolCount",
+      "slot": 0,
+      "offset": 20,
+      "type": "t_uint96",
+      "size": 12
+    },
+    {
+      "label": "beacon",
+      "slot": 1,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    }
+  ],
+  "StakingProducts": [
+    {
+      "label": "master",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_contract(INXMMaster)8280",
+      "size": 20
+    },
+    {
+      "label": "internalContracts",
+      "slot": 1,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_address_payable)",
+      "size": 32
+    },
+    {
+      "label": "_products",
+      "slot": 2,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_struct(StakedProduct)10150_storage))",
+      "size": 32
+    },
+    {
+      "label": "weights",
+      "slot": 3,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_struct(Weights)10139_storage)",
+      "size": 32
+    },
+    {
+      "label": "poolMetadata",
+      "slot": 4,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_string_storage)",
+      "size": 32
+    }
+  ],
+  "StakingTypesLib": [],
+  "StakingViewer": [],
+  "SwapOperator": [
+    {
+      "label": "currentOrderUID",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_bytes_storage",
+      "size": 32
+    },
+    {
+      "label": "safe",
+      "slot": 1,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "transferRequest",
+      "slot": 2,
+      "offset": 0,
+      "type": "t_struct(Request)35393_storage",
+      "size": 64
+    },
+    {
+      "label": "allowedSafeTransferAssets",
+      "slot": 4,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_bool)",
+      "size": 32
+    }
+  ],
+  "TokenController": [
+    {
+      "label": "lockReason",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_array(t_bytes32)dyn_storage)",
+      "size": 32
+    },
+    {
+      "label": "locked",
+      "slot": 1,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_mapping(t_bytes32,t_struct(LockToken)58748_storage))",
+      "size": 32
+    },
+    {
+      "label": "master",
+      "slot": 2,
+      "offset": 0,
+      "type": "t_contract(INXMMaster)8280",
+      "size": 20
+    },
+    {
+      "label": "internalContracts",
+      "slot": 3,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_address_payable)",
+      "size": 32
+    },
+    {
+      "label": "_unused_token",
+      "slot": 4,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "_unused_pooledStaking",
+      "slot": 5,
+      "offset": 0,
+      "type": "t_address",
+      "size": 20
+    },
+    {
+      "label": "_unused_minCALockTime",
+      "slot": 6,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "_unused_claimSubmissionGracePeriod",
+      "slot": 7,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "_unused_coverInfo",
+      "slot": 8,
+      "offset": 0,
+      "type": "t_uint256",
+      "size": 32
+    },
+    {
+      "label": "stakingPoolNXMBalances",
+      "slot": 9,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_struct(StakingPoolNXMBalances)10867_storage)",
+      "size": 32
+    },
+    {
+      "label": "stakingPoolManagers",
+      "slot": 10,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_address)",
+      "size": 32
+    },
+    {
+      "label": "stakingPoolOwnershipOffers",
+      "slot": 11,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_struct(StakingPoolOwnershipOffer)10872_storage)",
+      "size": 32
+    },
+    {
+      "label": "managerStakingPools",
+      "slot": 12,
+      "offset": 0,
+      "type": "t_mapping(t_address,t_array(t_uint256)dyn_storage)",
+      "size": 32
+    }
+  ],
+  "UpgradeabilityProxy": [],
+  "VotePower": [],
+  "YieldTokenIncidents": [
+    {
+      "label": "master",
+      "slot": 0,
+      "offset": 0,
+      "type": "t_contract(INXMMaster)8188",
+      "size": 20
+    },
+    {
+      "label": "internalContracts",
+      "slot": 1,
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_address_payable)",
+      "size": 32
+    },
+    {
+      "label": "config",
+      "slot": 2,
+      "offset": 0,
+      "type": "t_struct(Configuration)10772_storage",
+      "size": 32
+    },
+    {
+      "label": "incidents",
+      "slot": 3,
+      "offset": 0,
+      "type": "t_array(t_struct(Incident)10781_storage)dyn_storage",
+      "size": 32
+    }
+  ]
+}

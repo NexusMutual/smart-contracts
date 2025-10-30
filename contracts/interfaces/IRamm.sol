@@ -2,8 +2,8 @@
 
 pragma solidity >=0.5.0;
 
-import "./IPool.sol";
 import "./INXMToken.sol";
+import "./IPool.sol";
 import "./ITokenController.sol";
 
 interface IRamm {
@@ -19,7 +19,7 @@ interface IRamm {
     uint128 ethReserve;
     uint88 budget;
     uint32 updatedAt;
-    bool swapPaused; // emergency pause
+    bool _unusedPause; // replaced with registry level pause
   }
 
   struct Observation {
@@ -90,8 +90,6 @@ interface IRamm {
   function swap(uint nxmIn, uint minAmountOut, uint deadline) external payable returns (uint amountOut);
 
   function removeBudget() external;
-
-  function setEmergencySwapPause(bool _swapPaused) external;
 
   /* ========== EVENTS AND ERRORS ========== */
 

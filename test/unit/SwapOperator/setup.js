@@ -1,190 +1,72 @@
-const { ethers } = require('hardhat');
-const { getAccounts } = require('../../utils/accounts');
-const { parseUnits } = require('ethers/lib/utils');
-const { hex } = require('../utils').helpers;
-const { AggregatorType, Assets } = require('../utils').constants;
+const { ethers, nexus } = require('hardhat');
+const { loadFixture, setBalance } = require('@nomicfoundation/hardhat-network-helpers');
 
-const {
-  utils: { parseEther },
-} = ethers;
+const { init } = require('../../init');
+
+const { parseEther } = ethers;
+const { Assets, ContractIndexes } = nexus.constants;
+
+const deployERC20Mock = async (name, symbol, decimals) => {
+  const erc20 = await ethers.deployContract('ERC20Mock');
+  await erc20.setMetadata(name, symbol, decimals);
+  return erc20;
+};
 
 async function setup() {
-  const accounts = await getAccounts();
-  const [owner, governance] = await ethers.getSigners();
+  await loadFixture(init);
+  const [defaultSender, governor, alice, bob, mallory, swapController /*, safe */] = await ethers.getSigners();
 
-  const MasterMock = await ethers.getContractFactory('MasterMock');
-  const TokenController = await ethers.getContractFactory('TokenControllerMock');
-  const TokenMock = await ethers.getContractFactory('NXMTokenMock');
-  const LegacyPool = await ethers.getContractFactory('LegacyPool');
-  const Pool = await ethers.getContractFactory('Pool');
-  const MCR = await ethers.getContractFactory('MCR');
-  const SwapOperator = await ethers.getContractFactory('SwapOperator');
-  const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
-  const ERC20CustomDecimalsMock = await ethers.getContractFactory('ERC20CustomDecimalsMock');
-  const SOMockWeth = await ethers.getContractFactory('SOMockWeth');
-  const SOMockSettlement = await ethers.getContractFactory('SOMockSettlement');
-  const SOMockVaultRelayer = await ethers.getContractFactory('SOMockVaultRelayer');
-  const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
-  const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
-  const SOMockEnzymeV4Comptroller = await ethers.getContractFactory('SOMockEnzymeV4Comptroller');
-  const SOMockEnzymeFundValueCalculatorRouter = await ethers.getContractFactory(
-    'SOMockEnzymeFundValueCalculatorRouter',
-  );
-  const SOMockEnzymeV4Vault = await ethers.getContractFactory('SOMockEnzymeV4Vault');
+  // deploy weth and erc20 mocks
+  const weth = await ethers.deployContract('WETH9');
+  const dai = await deployERC20Mock('MockDai', 'DAI', 18);
+  const usdc = await deployERC20Mock('MockUsdc', 'USDC', 6);
+  const stEth = await deployERC20Mock('stETH', 'stETH', 18);
+  const safeTracker = await deployERC20Mock('SafeTracker', 'ST', 18);
 
-  // Deploy WETH + ERC20 test tokens
-  const weth = await SOMockWeth.deploy();
-  const dai = await ERC20Mock.deploy();
-  const usdc = await ERC20CustomDecimalsMock.deploy(6);
-  const stEth = await ERC20Mock.deploy();
-  const st = await ERC20Mock.deploy();
+  // deploy cow protocol mocks
+  const cowVaultRelayer = await ethers.deployContract('SOMockVaultRelayer');
+  const cowSettlement = await ethers.deployContract('SOMockSettlement', [cowVaultRelayer]);
 
-  // Deploy CoW Protocol mocks
-  const cowVaultRelayer = await SOMockVaultRelayer.deploy();
-  const cowSettlement = await SOMockSettlement.deploy(cowVaultRelayer.address);
+  // deploy enzyme mocks
+  const enzymeV4Vault = await ethers.deployContract('SOMockEnzymeV4Vault', []);
+  const enzymeV4Comptroller = await ethers.deployContract('SOMockEnzymeV4Comptroller', [weth, enzymeV4Vault]);
+  await enzymeV4Vault.setAccessor(enzymeV4Comptroller);
 
-  // Deploy Master, MCR, TC, NXMToken
-  const master = await MasterMock.deploy();
-  const mcr = await MCR.deploy(master.address, 0);
+  // deposit weth to Enzyme Vault
+  const comptrollerWethReserves = parseEther('10000');
+  await weth.deposit({ value: comptrollerWethReserves });
+  await weth.transfer(enzymeV4Vault, comptrollerWethReserves);
 
-  const nxmToken = await TokenMock.deploy();
-  const tokenController = await TokenController.deploy(nxmToken.address);
+  const assetDetails = [
+    { assetAddress: Assets.ETH, isCoverAsset: true, isAbandoned: false },
+    { assetAddress: dai, isCoverAsset: true, isAbandoned: false },
+    { assetAddress: usdc, isCoverAsset: true, isAbandoned: false },
+    { assetAddress: stEth, isCoverAsset: false, isAbandoned: false },
+    { assetAddress: enzymeV4Vault, isCoverAsset: false, isAbandoned: false },
+  ];
 
-  await nxmToken.setOperator(tokenController.address);
+  const pool = await ethers.deployContract('SOMockPool', [assetDetails]);
 
-  // Deploy price aggregators
-  const daiAggregator = await ChainlinkAggregatorMock.deploy();
-  await daiAggregator.setLatestAnswer(0.0002 * 1e18); // 1 dai = 0.0002 eth, 1 eth = 5000 dai
-  const stethAggregator = await ChainlinkAggregatorMock.deploy();
-  await stethAggregator.setLatestAnswer(parseEther('1')); // 1 steth = 1 eth
-  const usdcAggregator = await ChainlinkAggregatorMock.deploy();
-  await usdcAggregator.setLatestAnswer(0.0002 * 1e18); // 1 usdc = 0.0002 eth, 1 eth = 5000 dai
+  const registry = await ethers.deployContract('SOMockRegistry');
+  await registry.setContractAddress(ContractIndexes.C_GOVERNOR, governor);
+  await registry.setContractAddress(ContractIndexes.C_POOL, pool);
 
-  const enzymeV4VaultAggregator = await ChainlinkAggregatorMock.deploy();
-  await enzymeV4VaultAggregator.setLatestAnswer(parseEther('1')); // 1 ETH = 1 share
+  const swapOperator = await ethers.deployContract('SwapOperator', [registry, cowSettlement, enzymeV4Vault, weth]);
+  await swapOperator.connect(governor).setSwapController(swapController);
+  await pool.setSwapOperator(swapOperator);
 
-  const chainlinkEthUsdAsset = await ChainlinkAggregatorMock.deploy();
-  await chainlinkEthUsdAsset.setLatestAnswer(parseUnits('2500', 8));
-  await chainlinkEthUsdAsset.setDecimals(8);
+  await setBalance(pool.target, parseEther('1000'));
+  await dai.mint(pool.target, parseEther('20000000')); // 20M DAI
+  await usdc.mint(pool.target, parseEther('20000000')); // 20M USDC
+  await stEth.mint(pool.target, parseEther('1000')); // 1000 stETH
 
-  /* deploy enzyme mocks */
-  const enzymeV4Comptroller = await SOMockEnzymeV4Comptroller.deploy(weth.address);
-
-  /* move weth to Comptroller */
-
-  const comtrollerWethReserves = parseEther('10000');
-  await weth.deposit({
-    value: comtrollerWethReserves,
-  });
-  await weth.transfer(enzymeV4Comptroller.address, comtrollerWethReserves);
-
-  const enzymeV4Vault = await SOMockEnzymeV4Vault.deploy(
-    enzymeV4Comptroller.address,
-    'Enzyme V4 Vault Share ETH',
-    'EVSE',
-    18,
-  );
-
-  await enzymeV4Comptroller.setVault(enzymeV4Vault.address);
-
-  const enzymeFundValueCalculatorRouter = await SOMockEnzymeFundValueCalculatorRouter.deploy(weth.address);
-
-  // Deploy PriceFeedOracle
-  const priceFeedOracle = await PriceFeedOracle.deploy(
-    [dai.address, stEth.address, usdc.address, enzymeV4Vault.address, Assets.ETH],
-    [
-      daiAggregator.address,
-      stethAggregator.address,
-      usdcAggregator.address,
-      enzymeV4VaultAggregator.address,
-      chainlinkEthUsdAsset.address,
-    ],
-    [AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH, AggregatorType.USD],
-    [18, 18, 6, 18, 18],
-    st.address,
-  );
-
-  // Deploy SwapOperator
-  const swapOperator = await SwapOperator.deploy(
-    cowSettlement.address,
-    await owner.getAddress(),
-    master.address,
-    weth.address,
-    enzymeV4Vault.address,
-    await owner.getAddress(), // _safe
-    dai.address,
-    usdc.address,
-    enzymeFundValueCalculatorRouter.address,
-    parseEther('1'),
-  );
-
-  // Deploy Pool
-  const legacyPool = await LegacyPool.deploy(
-    master.address,
-    priceFeedOracle.address, // price feed oracle, add to setup if needed
-    swapOperator.address, // swap operator
-    dai.address,
-    stEth.address,
-    enzymeV4Vault.address,
-    nxmToken.address,
-  );
-
-  const pool = await Pool.deploy(
-    master.address,
-    priceFeedOracle.address, // price feed oracle, add to setup if needed
-    swapOperator.address, // swap operator
-    nxmToken.address,
-    legacyPool.address,
-  );
-
-  // Setup master, token, token controller, pool and mcr connections
-  await master.enrollGovernance(governance.address);
-  await master.setTokenAddress(nxmToken.address);
-  await master.setLatestAddress(hex('TC'), tokenController.address);
-  await master.setLatestAddress(hex('MC'), mcr.address);
-  await master.setLatestAddress(hex('P1'), pool.address);
-
-  await pool.changeDependentContractAddress();
-  await mcr.changeDependentContractAddress();
-
-  await pool.connect(governance).addAsset(usdc.address, true, 0, parseEther('1000'), 0);
-
-  // Setup pool's swap operator
-  await pool.connect(governance).updateAddressParameters(hex('SWP_OP'.padEnd(8, '\0')), swapOperator.address);
+  const enzymeContracts = { enzymeV4Vault, enzymeV4Comptroller };
+  const cowContracts = { cowVaultRelayer, cowSettlement };
+  const tokens = { weth, dai, usdc, stEth };
 
   return {
-    accounts: {
-      ...accounts,
-      governanceAccounts: [governance],
-    },
-    contracts: {
-      dai,
-      weth,
-      stEth,
-      usdc,
-      st,
-      master,
-      pool,
-      mcr,
-      swapOperator,
-      priceFeedOracle,
-      daiAggregator,
-      cowSettlement,
-      cowVaultRelayer,
-      enzymeV4Vault,
-      enzymeV4Comptroller,
-      enzymeFundValueCalculatorRouter,
-      nxmToken,
-    },
-    constants: {
-      ETH_ADDRESS: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
-      DAI_ADDRESS: dai.address,
-    },
-    poolAssetAddressIdMapping: {
-      [dai.address]: 1,
-      [stEth.address]: 2,
-      [usdc.address]: 6,
-    },
+    accounts: { defaultSender, governor, alice, bob, mallory, swapController },
+    contracts: { pool, registry, swapOperator, safeTracker, ...tokens, ...enzymeContracts, ...cowContracts },
   };
 }
 

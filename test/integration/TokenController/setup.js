@@ -1,18 +1,13 @@
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
-const { ethers } = require('hardhat');
+const { loadFixture, setBalance, time, impersonateAccount } = require('@nomicfoundation/hardhat-network-helpers');
+const { ethers, nexus } = require('hardhat');
 
 const setup = require('../setup');
-const { setEtherBalance, setNextBlockTime, impersonateAccount } = require('../utils').evm;
-const { calculatePremium } = require('../utils/cover');
-const { calculateFirstTrancheId } = require('../utils/staking');
-const { daysToSeconds } = require('../../../lib/helpers');
-const { getInternalPrice } = require('../../utils/rammCalculations');
+const { calculatePremium, calculateFirstTrancheId } = nexus.protocol;
 
-const { parseEther } = ethers.utils;
-const { AddressZero, MaxUint256, Zero } = ethers.constants;
+const { parseEther, ZeroAddress, MaxUint256 } = ethers;
 
 const stakedProductParamTemplate = {
-  productId: 1,
+  productId: 0,
   recalculateEffectiveWeight: true,
   setTargetWeight: true,
   targetWeight: 100,
@@ -20,34 +15,34 @@ const stakedProductParamTemplate = {
   targetPrice: 100,
 };
 const buyCoverFixture = {
-  coverId: 0,
-  owner: AddressZero,
+  coverId: 0n,
+  owner: ZeroAddress,
   productId: stakedProductParamTemplate.productId,
   coverAsset: 0b0,
   amount: parseEther('1'),
-  period: daysToSeconds(30),
+  period: 30n * 24n * 60n * 60n,
   maxPremiumInAsset: MaxUint256,
   paymentAsset: 0b0,
-  commissionRatio: 0,
-  commissionDestination: AddressZero,
+  commissionRatio: 0n,
+  commissionDestination: ZeroAddress,
   ipfsData: 'ipfs data',
 };
 
 async function stakingPoolSetup(fixture) {
-  const { stakingPool1, stakingPool2, stakingPool3, stakingProducts, tc: tokenController, tk: nxm } = fixture.contracts;
+  const { stakingPool1, stakingPool2, stakingPool3, stakingProducts, tokenController, token } = fixture.contracts;
   const [manager1, manager2, manager3] = fixture.accounts.stakingPoolManagers;
 
-  const operatorAddress = await nxm.operator();
+  const operatorAddress = await token.operator();
   await impersonateAccount(operatorAddress);
   const operator = await ethers.provider.getSigner(operatorAddress);
 
-  await setEtherBalance(manager1.address, parseEther('10000'));
-  await setEtherBalance(operatorAddress, parseEther('10000'));
+  await setBalance(manager1.address, parseEther('10000'));
+  await setBalance(operatorAddress, parseEther('10000'));
 
   // mint and set allowance
-  await nxm.connect(operator).mint(manager1.address, parseEther('10000000'));
-  await nxm.connect(operator).mint(manager2.address, parseEther('10000000'));
-  await nxm.connect(manager1).approve(tokenController.address, ethers.constants.MaxUint256);
+  await token.connect(operator).mint(manager1.address, parseEther('10000000'));
+  await token.connect(operator).mint(manager2.address, parseEther('10000000'));
+  await token.connect(manager1).approve(tokenController, MaxUint256);
 
   // set products
   await stakingProducts.connect(manager1).setProducts(1, [stakedProductParamTemplate]);
@@ -57,13 +52,13 @@ async function stakingPoolSetup(fixture) {
   // stake
   const stakeAmount = parseEther('900000');
   const latestBlock = await ethers.provider.getBlock('latest');
-  const firstActiveTrancheId = calculateFirstTrancheId(latestBlock, buyCoverFixture.period, 0);
+  const firstActiveTrancheId = calculateFirstTrancheId(latestBlock, buyCoverFixture.period, 0n);
 
   const trancheId = firstActiveTrancheId + 5;
   const depositParams = [stakeAmount, trancheId, 0, manager1.address];
-  const tokenId1 = await stakingPool1.connect(manager1).callStatic.depositTo(...depositParams);
-  const tokenId2 = await stakingPool2.connect(manager1).callStatic.depositTo(...depositParams);
-  const tokenId3 = await stakingPool3.connect(manager1).callStatic.depositTo(...depositParams);
+  const tokenId1 = await stakingPool1.connect(manager1).depositTo.staticCall(...depositParams);
+  const tokenId2 = await stakingPool2.connect(manager1).depositTo.staticCall(...depositParams);
+  const tokenId3 = await stakingPool3.connect(manager1).depositTo.staticCall(...depositParams);
 
   await stakingPool1.connect(manager1).depositTo(...depositParams);
   await stakingPool2.connect(manager1).depositTo(...depositParams);
@@ -76,7 +71,7 @@ async function stakingPoolSetup(fixture) {
 }
 
 async function generateStakeRewards(fixture) {
-  const { stakingProducts, tc: tokenController, p1: pool, ra: ramm, mcr, cover } = fixture.contracts;
+  const { stakingProducts, pool, cover } = fixture.contracts;
 
   const [coverBuyer, coverReceiver] = fixture.accounts.members;
   const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
@@ -84,23 +79,22 @@ async function generateStakeRewards(fixture) {
 
   const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
   const nextBlockTimestamp = currentTimestamp + 10;
-  const nxmPrice = await getInternalPrice(ramm, pool, tokenController, mcr, nextBlockTimestamp);
-
+  const nxmPrice = await pool.getInternalTokenPriceInAsset(buyCoverFixture.paymentAsset);
   const product = await stakingProducts.getProduct(1, productId);
   const coverAmountAllocationsPerPool = [
-    amount.div(3), // a third
-    amount.div(3), // second third
-    amount.sub(amount.div(3).mul(2)), // whatever's left
+    amount / 3n, // a third
+    amount / 3n, // second third
+    amount - (amount / 3n) * 2n, // whatever's left
   ];
 
   const premiumInNxmPerPool = coverAmountAllocationsPerPool.map(
     amount => calculatePremium(amount, nxmPrice, period, product.bumpedPrice, NXM_PER_ALLOCATION_UNIT).premiumInNxm,
   );
 
-  const premiumInNxm = premiumInNxmPerPool.reduce((total, premiumInNxm) => total.add(premiumInNxm), Zero);
-  const premiumInAsset = premiumInNxm.mul(nxmPrice).div(parseEther('1'));
+  const premiumInNxm = premiumInNxmPerPool.reduce((total, premiumInNxm) => total + premiumInNxm, 0n);
+  const premiumInAsset = (premiumInNxm * nxmPrice) / parseEther('1');
 
-  await setNextBlockTime(nextBlockTimestamp);
+  await time.increaseTo(nextBlockTimestamp);
   await cover.connect(coverBuyer).buyCover(
     { ...buyCoverFixture, owner: coverReceiver.address, maxPremiumInAsset: premiumInAsset },
     [
@@ -112,30 +106,12 @@ async function generateStakeRewards(fixture) {
   );
 }
 
-async function generateAssessmentRewards(fixture) {
-  const { ci: individualClaims, as: assessment } = fixture.contracts;
-  const [manager1, manager2] = fixture.accounts.stakingPoolManagers;
-  const coverReceiver = fixture.accounts.members[1];
-
-  // stake
-  await assessment.connect(manager1).stake(fixture.stakeAmount);
-  await assessment.connect(manager2).stake(fixture.stakeAmount);
-
-  // claim
-  await individualClaims.connect(coverReceiver).submitClaim(1, parseEther('1'), '', { value: parseEther('1') });
-
-  // vote
-  await assessment.connect(manager1).castVotes([0], [true], ['Assessment data hash'], 0);
-  await assessment.connect(manager2).castVotes([0], [true], ['Assessment data hash'], 0);
-}
-
 async function withdrawNXMSetup() {
   const fixture = await loadFixture(setup);
 
   // do not change the order
   await stakingPoolSetup(fixture);
   await generateStakeRewards(fixture);
-  await generateAssessmentRewards(fixture);
 
   // StakingPool1 deposit params
   const stakingPoolDeposits = [];

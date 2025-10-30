@@ -10,13 +10,13 @@
     "eslint:recommended",
     "plugin:prettier/recommended"
   ],
-  "plugins": ["mocha"],
+  "plugins": ["mocha", "chai-friendly"],
   "globals" : {
     "artifacts": true,
     "assert": true,
     "contract": true
   },
-  "ignorePatterns": ["node_modules/", "artifacts", "coverage", "!.solcover.js", "deployments/dist"],
+  "ignorePatterns": ["node_modules/", "artifacts", "coverage", "!.solcover.js", "deployments/dist", "**/*.ts"],
   "parserOptions": {
     "ecmaVersion": 2020
   },
@@ -27,7 +27,9 @@
     "mocha/no-async-describe": "error",
     "mocha/no-exclusive-tests": "error",
     "no-nested-ternary": "error",
-    "no-unused-vars": ["warn", { "varsIgnorePattern": "^_unused" }],
-    "padded-blocks": "off"
+    "no-unused-vars": ["warn", { "varsIgnorePattern": "^_(unused|$)" }],
+    "padded-blocks": "off",
+    "no-unused-expressions": "off",
+    "chai-friendly/no-unused-expressions": ["error", { "allowShortCircuit": true }]
   }
 }

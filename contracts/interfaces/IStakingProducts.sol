@@ -102,8 +102,6 @@ interface IStakingProducts {
 
   function getPoolMetadata(uint poolId) external view returns (string memory ipfsHash);
 
-  function setInitialMetadata(string[] calldata ipfsHashes) external;
-
   /* ============= EVENTS ============= */
 
   event ProductUpdated(uint productId, uint8 targetWeight, uint96 targetPrice);

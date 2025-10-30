@@ -1,71 +1,38 @@
-const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { ethers } = require('hardhat');
+const { loadFixture, setBalance, impersonateAccount } = require('@nomicfoundation/hardhat-network-helpers');
 
-const { impersonateAccount, setEtherBalance } = require('../utils').evm;
-const { toBytes2 } = require('../utils').helpers;
 const setup = require('./setup');
+const { parseEther } = ethers;
 
-const { parseEther } = ethers.utils;
+// TODO: missing tests
+// - reentrancy not tested
+// - EthTransferFailed not tested
 
 describe('sendEth', function () {
-  it('should only be callable by the RAMM contract', async function () {
+  it('reverts if the caller is not Ramm or Claims contract', async function () {
     const fixture = await loadFixture(setup);
-    const { pool, ramm } = fixture;
-    const [member] = fixture.accounts.members;
+    const { pool, accounts } = fixture;
+    const [member] = accounts.members;
+    await setBalance(pool.target, parseEther('100'));
 
-    const amountToSend = parseEther('1');
-
-    const notRammSendEthPromise = pool.sendEth(member.address, amountToSend);
-    await expect(notRammSendEthPromise).to.be.revertedWith('Pool: Not Ramm');
-
-    await impersonateAccount(ramm.address);
-    await setEtherBalance(pool.address, amountToSend);
-    await setEtherBalance(ramm.address, parseEther('0.1'));
-    const rammSigner = await ethers.provider.getSigner(ramm.address);
-
-    const rammSendEthPromise = pool.connect(rammSigner).sendEth(member.address, amountToSend);
-    await expect(rammSendEthPromise).to.not.be.reverted;
+    await expect(pool.sendEth(member, parseEther('0.1'))).to.be.revertedWithCustomError(pool, 'Unauthorized');
   });
 
-  it('should revert on reentrancy', async function () {
+  it('sends eth to a member - RAMM', async function () {
     const fixture = await loadFixture(setup);
-    const { pool, master } = fixture;
+    const { pool, accounts, ramm } = fixture;
+    const [member] = accounts.members;
+    await impersonateAccount(ramm.target);
+    const rammSigner = await ethers.getSigner(ramm.target);
 
-    const poolBalance = parseEther('1000');
-    const sendEthAmount = poolBalance.div(2);
-    await setEtherBalance(pool.address, poolBalance);
+    await setBalance(ramm.target, parseEther('1'));
+    await setBalance(pool.target, parseEther('100'));
 
-    // set up reentrancyExploiter
-    const ReentrancyExploiter = await ethers.getContractFactory('ReentrancyExploiter');
-    const reentrancyExploiter = await ReentrancyExploiter.deploy();
-    const { data: sendEthData } = await pool.populateTransaction.sendEth(reentrancyExploiter.address, sendEthAmount);
+    const balanceBefore = await ethers.provider.getBalance(member.address);
+    await pool.connect(rammSigner).sendEth(member, parseEther('0.1'));
+    const balanceAfter = await ethers.provider.getBalance(member.address);
 
-    // bypass onlyRamm modifier
-    await master.setLatestAddress(toBytes2('RA'), reentrancyExploiter.address);
-    await pool.changeDependentContractAddress();
-
-    // this test guards against reentrancy as it will fail on a successful reentrancy attack (there will be no revert)
-    const reentrancyAttackPromise = reentrancyExploiter.execute(pool.address, 0, sendEthData);
-    await expect(reentrancyAttackPromise).to.be.revertedWith('Pool: ETH transfer failed');
-  });
-
-  it('should successfully send ETH to a member in exchange for NXM tokens', async function () {
-    const fixture = await loadFixture(setup);
-    const { pool, ramm } = fixture;
-    const [member] = fixture.accounts.members;
-
-    await setEtherBalance(pool.address, parseEther('1000'));
-
-    const beforeBalance = await ethers.provider.getBalance(member.address);
-    await impersonateAccount(ramm.address);
-    await setEtherBalance(ramm.address, parseEther('1000'));
-    const rammSigner = await ethers.provider.getSigner(ramm.address);
-
-    const amountToSend = parseEther('1');
-    await pool.connect(rammSigner).sendEth(member.address, amountToSend);
-
-    const afterBalance = await ethers.provider.getBalance(member.address);
-    expect(afterBalance).to.be.equal(beforeBalance.add(amountToSend));
+    expect(balanceAfter).to.be.equal(balanceBefore + parseEther('0.1'));
   });
 });

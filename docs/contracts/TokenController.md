@@ -13,9 +13,9 @@ This contract enables:
 
 **Designed for Internal Use Only**
 
-- 🚫 TokenController is NOT meant for direct integration by users or external contracts.
-- ✅ Only protocol-approved contracts (e.g., Governance, StakingPool, Assessment, Pool) can interact with it.
-- ✅ Functions are restricted using access control mechanisms such as onlyInternal and onlyGovernance.
+- NOT meant for direct integration by users or external contracts.
+- Only protocol-approved contracts (e.g., Governance, StakingPool, Assessment, Pool) can interact with it.
+- Functions are restricted using access control mechanisms such as onlyInternal and onlyGovernance.
 
 This design ensures that all NXM token movements remain securely controlled within the protocol.
 
@@ -61,7 +61,7 @@ Tokens can be locked for various reasons, restricting transfers until the condit
 | **Claim Assessment Lock** | Ensures assessors cannot withdraw NXM mid-vote. | Unlocks after the claim is resolved.      |
 | **Staking Lock**          | Ensures liquidity remains available for covers. | Unlocks after the staking period expires. |
 
-**Important:**  
+**Important:**
 If NXM is locked for **multiple reasons**, **all** unlock conditions must be met before withdrawal is allowed.
 
 ---

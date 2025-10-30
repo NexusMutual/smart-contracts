@@ -1,22 +1,20 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { setEtherBalance } = require('../../utils/evm');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, setBalance } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
-const { AddressZero } = ethers.constants;
-const { parseEther } = ethers.utils;
+const { parseEther, ZeroAddress } = ethers;
 
 async function burnStakingPoolNXMRewardsSetup() {
   const fixture = await loadFixture(setup);
   const { stakingPoolFactory, tokenController } = fixture.contracts;
 
-  const createPoolTx = await stakingPoolFactory.create(AddressZero);
-  const { events } = await createPoolTx.wait();
-  const { poolId, stakingPoolAddress } = events[0].args;
+  const createPoolTx = await stakingPoolFactory.create(ZeroAddress);
+  const { logs } = await createPoolTx.wait();
+  const { poolId, stakingPoolAddress } = logs[0].args;
 
   const poolSigner = await ethers.getImpersonatedSigner(stakingPoolAddress);
-  await setEtherBalance(stakingPoolAddress, parseEther('1'));
+  await setBalance(stakingPoolAddress, parseEther('1'));
 
   const amount = parseEther('100');
   await tokenController.connect(poolSigner).mintStakingPoolNXMRewards(amount, poolId);
@@ -50,7 +48,7 @@ describe('burnStakingPoolNXMRewards', function () {
     await tokenController.connect(fixture.poolSigner).burnStakingPoolNXMRewards(amount, fixture.poolId);
 
     const stakingPoolNXMBalances = await tokenController.stakingPoolNXMBalances(fixture.poolId);
-    expect(stakingPoolNXMBalances.rewards).to.equal(initialStakingPoolNXMBalances.rewards.sub(amount));
+    expect(stakingPoolNXMBalances.rewards).to.equal(initialStakingPoolNXMBalances.rewards - amount);
     expect(stakingPoolNXMBalances.deposits).to.equal(initialStakingPoolNXMBalances.deposits);
   });
 
@@ -58,16 +56,16 @@ describe('burnStakingPoolNXMRewards', function () {
     const fixture = await loadFixture(burnStakingPoolNXMRewardsSetup);
     const { tokenController, nxm } = fixture.contracts;
 
-    const initialTcBalance = await nxm.balanceOf(tokenController.address);
+    const initialTcBalance = await nxm.balanceOf(tokenController);
     const initialTotalSupply = await nxm.totalSupply();
 
     const amount = parseEther('10');
     await tokenController.connect(fixture.poolSigner).burnStakingPoolNXMRewards(amount, fixture.poolId);
 
-    const tcBalance = await nxm.balanceOf(tokenController.address);
+    const tcBalance = await nxm.balanceOf(tokenController);
     const totalSupply = await nxm.totalSupply();
 
-    expect(tcBalance).to.equal(initialTcBalance.sub(amount));
-    expect(totalSupply).to.equal(initialTotalSupply.sub(amount));
+    expect(tcBalance).to.equal(initialTcBalance - amount);
+    expect(totalSupply).to.equal(initialTotalSupply - amount);
   });
 });

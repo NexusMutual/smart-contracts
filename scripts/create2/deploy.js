@@ -1,16 +1,14 @@
-const { artifacts, ethers, run } = require('hardhat');
+const { artifacts, ethers, nexus, run } = require('hardhat');
 const { keccak256 } = require('ethereum-cryptography/keccak');
 const { bytesToHex, hexToBytes } = require('ethereum-cryptography/utils');
 const linker = require('solc/linker');
-
-const { getSigner, SIGNER_TYPE } = require('./get-signer');
 
 const ADDRESS_REGEX = /^0x[a-f0-9]{40}$/i;
 
 const usage = () => {
   console.log(`
     Usage:
-      create2-deploy [OPTION] CONTRACT_NAME
+      create2-deploy [OPTIONS] CONTRACT_NAME
 
       CONTRACT_NAME is the contract you want to deploy.
 
@@ -31,31 +29,30 @@ const usage = () => {
         Gas limit for the tx.
       --kms, -k
         Use AWS KMS to sign the transaction.
-      --help, -h
-        Print this help message.
       --library, -l CONTRACT_NAME:ADDRESS
         Link an external library.
+      --help, -h
+        Print this help message.
   `);
 };
 
 const parseArgs = async args => {
   const opts = {
     constructorArgs: [],
-    priorityFee: '2',
     kms: false,
     libraries: {},
+    priorityFee: '2',
   };
 
-  const argsArray = args.slice(2);
   const positionalArgs = [];
 
-  if (argsArray.length === 0) {
+  if (args.length === 0) {
     usage();
     process.exit(1);
   }
 
-  while (argsArray.length) {
-    const arg = argsArray.shift();
+  while (args.length) {
+    const arg = args.shift();
 
     if (['--help', '-h'].includes(arg)) {
       usage();
@@ -68,7 +65,7 @@ const parseArgs = async args => {
     }
 
     if (['--address', '-a'].includes(arg)) {
-      opts.address = argsArray.shift();
+      opts.address = args.shift();
       if (!opts.address.match(ADDRESS_REGEX)) {
         throw new Error(`Invalid address: ${opts.address}`);
       }
@@ -76,7 +73,7 @@ const parseArgs = async args => {
     }
 
     if (['--factory-address', '-f'].includes(arg)) {
-      opts.factory = argsArray.shift();
+      opts.factory = args.shift();
       if (!(opts.factory || '').match(ADDRESS_REGEX)) {
         throw new Error(`Invalid factory address: ${opts.factory}`);
       }
@@ -84,33 +81,33 @@ const parseArgs = async args => {
     }
 
     if (['--constructor-args', '-c'].includes(arg)) {
-      const value = argsArray.shift();
+      const value = args.shift();
       opts.constructorArgs = value.match(/^\[/) ? JSON.parse(value) : [value];
       continue;
     }
 
     if (['--salt', '-s'].includes(arg)) {
-      opts.salt = parseInt(argsArray.shift(), 10);
+      opts.salt = parseInt(args.shift(), 10);
       continue;
     }
 
     if (['--base-fee', '-b'].includes(arg)) {
-      opts.baseFee = argsArray.shift();
+      opts.baseFee = args.shift();
       continue;
     }
 
     if (['--priority-fee', '-p'].includes(arg)) {
-      opts.priorityFee = argsArray.shift();
+      opts.priorityFee = args.shift();
       continue;
     }
 
     if (['--gas-limit', '-g'].includes(arg)) {
-      opts.gasLimit = parseInt(argsArray.shift(), 10);
+      opts.gasLimit = parseInt(args.shift(), 10);
       continue;
     }
 
     if (['--library', '-l'].includes(arg)) {
-      const libArg = argsArray.shift();
+      const libArg = args.shift();
 
       const [contractName, address] = libArg.split(':');
       if (!contractName || !address || !address.match(ADDRESS_REGEX)) {
@@ -175,13 +172,14 @@ const getDeploymentBytecode = async options => {
     );
   }
 
-  const constructorArgs = ethers.utils.defaultAbiCoder.encode(constructorAbi.inputs, options.constructorArgs);
+  const abiCoder = ethers.AbiCoder.defaultAbiCoder();
+  const constructorArgs = abiCoder.encode(constructorAbi.inputs, options.constructorArgs);
 
   return `${bytecode}${constructorArgs.replace(/^0x/i, '')}`;
 };
 
 async function main() {
-  const opts = await parseArgs(process.argv).catch(err => {
+  const opts = await parseArgs(process.argv.slice(2)).catch(err => {
     console.error(`Error: ${err.message}`);
     process.exit(1);
   });
@@ -209,11 +207,11 @@ async function main() {
     throw new Error(`Expected address to be ${opts.address} but got ${address}`);
   }
 
-  const baseFee = ethers.utils.parseUnits(opts.baseFee, 'gwei');
-  const maxPriorityFeePerGas = ethers.utils.parseUnits(opts.priorityFee, 'gwei');
-  const maxFeePerGas = baseFee.add(maxPriorityFeePerGas);
+  const baseFee = ethers.parseUnits(opts.baseFee, 'gwei');
+  const maxPriorityFeePerGas = ethers.parseUnits(opts.priorityFee, 'gwei');
+  const maxFeePerGas = baseFee + maxPriorityFeePerGas;
 
-  const signer = await getSigner(opts.kms ? SIGNER_TYPE.AWS_KMS : SIGNER_TYPE.LOCAL);
+  const [signer] = opts.kms ? [nexus.awsKms.getSigner(ethers.provider)] : await ethers.getSigners();
   const deployer = await ethers.getContractAt('Deployer', opts.factory, signer);
   const deployTx = await deployer.deployAt(bytecode, opts.salt, opts.address, {
     maxFeePerGas,

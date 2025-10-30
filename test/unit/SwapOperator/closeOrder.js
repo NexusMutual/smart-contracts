@@ -1,469 +1,763 @@
-const {
-  makeWrongValue,
-  makeContractOrder,
-  lastBlockTimestamp,
-  daiMaxAmount,
-  daiMinAmount,
-  makeOrderTuple,
-  lodashValues,
-} = require('./helpers');
-const { ethers } = require('hardhat');
+const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
-const { domain: makeDomain, computeOrderUid } = require('@cowprotocol/contracts');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, setCode, time } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
-const utils = require('../utils');
 
-const { setEtherBalance, setNextBlockTime, revertToSnapshot, takeSnapshot, increaseTime, mineNextBlock } = utils.evm;
-
-const {
-  utils: { parseEther, hexZeroPad },
-  constants: { MaxUint256 },
-} = ethers;
-
-async function closeOrderSetup() {
-  const fixture = await loadFixture(setup);
-  const [controller, governance] = await ethers.getSigners();
-
-  // Assign contracts (destructuring isn't working)
-  const dai = fixture.contracts.dai;
-  const weth = fixture.contracts.weth;
-  const pool = fixture.contracts.pool;
-  const swapOperator = fixture.contracts.swapOperator;
-  const cowSettlement = fixture.contracts.cowSettlement;
-  const cowVaultRelayer = fixture.contracts.cowVaultRelayer;
-
-  // Read constants
-  const MIN_TIME_BETWEEN_ORDERS = (await swapOperator.MIN_TIME_BETWEEN_ORDERS()).toNumber();
-
-  // Build order struct, domain separator and calculate UID
-  const order = {
-    sellToken: weth.address,
-    buyToken: dai.address,
-    sellAmount: parseEther('0.999'),
-    buyAmount: parseEther('4995'),
-    validTo: (await lastBlockTimestamp()) + 650,
-    appData: hexZeroPad(0, 32),
-    feeAmount: parseEther('0.001'),
-    kind: 'sell',
-    receiver: swapOperator.address,
-    partiallyFillable: false,
-    sellTokenBalance: 'erc20',
-    buyTokenBalance: 'erc20',
-  };
-
-  const contractOrder = makeContractOrder(order);
-
-  const { chainId } = await ethers.provider.getNetwork();
-  const domain = makeDomain(chainId, cowSettlement.address);
-  const orderUID = computeOrderUid(domain, order, order.receiver);
-
-  // Fund the contracts
-  await setEtherBalance(pool.address, parseEther('1000000'));
-  await setEtherBalance(weth.address, parseEther('1000000'));
-  await dai.mint(cowVaultRelayer.address, parseEther('1000000'));
-
-  // Set asset details for DAI
-  await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 100);
-
-  // place order
-  await swapOperator.placeOrder(contractOrder, orderUID);
-
-  return {
-    ...fixture,
-    controller,
-    governance,
-    order,
-    contractOrder,
-    domain,
-    orderUID,
-    dai,
-    weth,
-    swapOperator,
-    cowSettlement,
-    cowVaultRelayer,
-    MIN_TIME_BETWEEN_ORDERS,
-  };
-}
+const { SwapKind, Assets, PauseTypes } = nexus.constants;
+const { parseEther } = ethers;
 
 describe('closeOrder', function () {
-  const setupSellDaiForEth = async (overrides = {}, { dai, pool, order, weth, domain }) => {
-    // Set DAI balance above asset max, so we can sell it
-    await dai.setBalance(pool.address, parseEther('25000'));
+  it('reverts if caller is not the swap controller', async function () {
+    const fixture = await loadFixture(setup);
+    const { swapOperator, weth, dai } = fixture.contracts;
+    const { alice, governor, swapController } = fixture.accounts;
+    const timestamp = await time.latest();
 
-    // Set reasonable amounts for DAI so selling doesnt bring balance below min
-    const newOrder = {
-      ...order,
-      sellToken: dai.address,
-      buyToken: weth.address,
-      sellAmount: parseEther('9999'),
-      feeAmount: parseEther('1'),
-      buyAmount: parseEther('2'),
-      ...overrides,
+    await swapOperator.connect(governor).requestAssetSwap({
+      fromAsset: Assets.ETH,
+      toAsset: dai,
+      fromAmount: parseEther('1'),
+      toAmount: parseEther('2000'),
+      deadline: timestamp + 1000,
+      swapKind: SwapKind.ExactInput,
+    });
+
+    const order = {
+      sellToken: weth,
+      buyToken: dai,
+      receiver: swapOperator,
+      sellAmount: parseEther('1'),
+      buyAmount: parseEther('2000'),
+      validTo: timestamp + 3600, // 1 hour from now
+      appData: ethers.ZeroHash,
+      feeAmount: 0,
+      kind: ethers.keccak256(ethers.toUtf8Bytes('sell')),
+      partiallyFillable: false,
+      sellTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+      buyTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
     };
-    const newContractOrder = makeContractOrder(newOrder);
-    const newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);
-    return { newOrder, newContractOrder, newOrderUID };
-  };
 
-  it('before deadline, its callable only by controller', async function () {
-    const {
-      contracts: { swapOperator },
-      order,
-      governance,
-      contractOrder,
-      controller,
-    } = await loadFixture(closeOrderSetup);
-    const deadline = order.validTo;
-    const snapshot = await takeSnapshot();
+    const orderUID = await swapOperator.getUID(order);
 
-    // Executing as non-controller should fail
-    await setNextBlockTime(deadline);
-    const closeOrder = swapOperator.connect(governance).closeOrder(contractOrder);
-    await expect(closeOrder).to.be.revertedWithCustomError(swapOperator, 'OnlyController');
-    // Executing as controller should succeed
-    await revertToSnapshot(snapshot);
-    await setNextBlockTime(deadline);
-    await swapOperator.connect(controller).closeOrder(contractOrder);
+    await swapOperator.connect(swapController).placeOrder(order, orderUID);
+
+    await expect(swapOperator.connect(alice).closeOrder(order)) //
+      .to.be.revertedWithCustomError(swapOperator, 'OnlyController');
   });
 
-  it('after deadline, its callable by anyone', async function () {
-    const {
-      contracts: { swapOperator },
-      order,
-      contractOrder,
-      controller,
-    } = await loadFixture(closeOrderSetup);
-    const deadline = order.validTo;
-    const snapshot = await takeSnapshot();
-    const { 36: generalPurposeAddress } = await ethers.getSigners();
+  it('reverts when swaps are paused (PAUSE_SWAPS) or paused globally (PAUSE_GLOBAL)', async function () {
+    const fixture = await loadFixture(setup);
+    const { swapOperator, weth, dai, registry } = fixture.contracts;
+    const { governor, swapController } = fixture.accounts;
+    const timestamp = await time.latest();
 
-    // Executing as non-controller should succeed
-    await setNextBlockTime(deadline + 1);
-    await swapOperator.connect(generalPurposeAddress).closeOrder(contractOrder);
+    await swapOperator.connect(governor).requestAssetSwap({
+      fromAsset: Assets.ETH,
+      toAsset: dai,
+      fromAmount: parseEther('1'),
+      toAmount: parseEther('2000'),
+      deadline: timestamp + 1000,
+      swapKind: SwapKind.ExactInput,
+    });
 
-    // Executing as controller should succeed
-    await revertToSnapshot(snapshot);
-    await setNextBlockTime(deadline + 1);
-    await swapOperator.connect(controller).closeOrder(contractOrder);
+    const order = {
+      sellToken: weth,
+      buyToken: dai,
+      receiver: swapOperator,
+      sellAmount: parseEther('1'),
+      buyAmount: parseEther('2000'),
+      validTo: timestamp + 3600,
+      appData: ethers.ZeroHash,
+      feeAmount: 0,
+      kind: ethers.keccak256(ethers.toUtf8Bytes('sell')),
+      partiallyFillable: false,
+      sellTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+      buyTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+    };
+
+    const orderUID = await swapOperator.getUID(order);
+    await swapOperator.connect(swapController).placeOrder(order, orderUID);
+
+    await registry.setPauseConfig(PauseTypes.PAUSE_SWAPS);
+    await expect(swapOperator.connect(swapController).closeOrder(order))
+      .to.be.revertedWithCustomError(swapOperator, 'Paused')
+      .withArgs(PauseTypes.PAUSE_SWAPS, PauseTypes.PAUSE_SWAPS);
+
+    await registry.setPauseConfig(PauseTypes.PAUSE_GLOBAL);
+    await expect(swapOperator.connect(swapController).closeOrder(order))
+      .to.be.revertedWithCustomError(swapOperator, 'Paused')
+      .withArgs(PauseTypes.PAUSE_GLOBAL, PauseTypes.PAUSE_SWAPS);
   });
 
-  it('computes order UID on-chain and validates against placed order UID', async function () {
-    const {
-      contracts: { swapOperator },
-      contractOrder,
-      order,
-      orderUID,
-      domain,
-    } = await loadFixture(closeOrderSetup);
-    // the contract's currentOrderUID is the one for the placed order in beforeEach step
-    // we call with multiple invalid orders, with each individual field modified. it should fail
-    for (const [key, value] of Object.entries(order)) {
-      const wrongOrder = { ...order, [key]: makeWrongValue(value) };
-      const wrongOrderUID = computeOrderUid(domain, wrongOrder, wrongOrder.receiver);
-      const wrongContractOrder = makeContractOrder(wrongOrder);
+  it('reverts with NoOrderToClose when currentOrderUID is empty', async function () {
+    const fixture = await loadFixture(setup);
+    const { swapOperator, weth, dai } = fixture.contracts;
+    const { swapController } = fixture.accounts;
+    const timestamp = await time.latest();
 
-      await expect(swapOperator.closeOrder(wrongContractOrder))
-        .to.revertedWithCustomError(swapOperator, 'OrderUidMismatch')
-        .withArgs(orderUID, wrongOrderUID);
-    }
+    const order = {
+      sellToken: weth,
+      buyToken: dai,
+      receiver: swapOperator,
+      sellAmount: parseEther('1'),
+      buyAmount: parseEther('2000'),
+      validTo: timestamp + 3600,
+      appData: ethers.ZeroHash,
+      feeAmount: 0,
+      kind: ethers.keccak256(ethers.toUtf8Bytes('sell')),
+      partiallyFillable: false,
+      sellTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+      buyTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+    };
 
-    // call with an order that matches currentOrderUID, should succeed
-    await expect(swapOperator.closeOrder(contractOrder)).to.not.be.reverted;
+    expect(await swapOperator.currentOrderUID()).to.equal('0x');
+    expect(await swapOperator.orderInProgress()).to.equal(false);
+
+    await expect(swapOperator.connect(swapController).closeOrder(order)) //
+      .to.be.revertedWithCustomError(swapOperator, 'NoOrderToClose');
   });
 
-  it('validates that theres an order in place', async function () {
-    const {
-      contracts: { swapOperator },
-      contractOrder,
-    } = await loadFixture(closeOrderSetup);
-    // cancel the current order, leaving no order in place
-    await expect(swapOperator.closeOrder(contractOrder)).to.not.be.reverted;
+  it('reverts with OrderUidMismatch when order fields do not match', async function () {
+    const fixture = await loadFixture(setup);
+    const { swapOperator, weth, dai } = fixture.contracts;
+    const { governor, swapController } = fixture.accounts;
+    const timestamp = await time.latest();
 
-    await expect(swapOperator.closeOrder(contractOrder)).to.be.revertedWithCustomError(swapOperator, 'NoOrderInPlace');
+    await swapOperator.connect(governor).requestAssetSwap({
+      fromAsset: Assets.ETH,
+      toAsset: dai,
+      fromAmount: parseEther('1'),
+      toAmount: parseEther('2000'),
+      deadline: timestamp + 1000,
+      swapKind: SwapKind.ExactInput,
+    });
+
+    const order = {
+      sellToken: weth,
+      buyToken: dai,
+      receiver: swapOperator,
+      sellAmount: parseEther('1'),
+      buyAmount: parseEther('2000'),
+      validTo: timestamp + 3600,
+      appData: ethers.ZeroHash,
+      feeAmount: 0,
+      kind: ethers.keccak256(ethers.toUtf8Bytes('sell')),
+      partiallyFillable: false,
+      sellTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+      buyTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+    };
+
+    const orderUID = await swapOperator.getUID(order);
+    await swapOperator.connect(swapController).placeOrder(order, orderUID);
+
+    const wrongSellTokenOrder = { ...order, sellToken: dai };
+    const wrongUID = await swapOperator.getUID(wrongSellTokenOrder);
+
+    await expect(swapOperator.connect(swapController).closeOrder(wrongSellTokenOrder))
+      .to.be.revertedWithCustomError(swapOperator, 'OrderUidMismatch')
+      .withArgs(orderUID, wrongUID);
   });
 
-  it('cancels order and removes signature and allowance when order was not filled at all', async function () {
-    const {
-      contracts: { swapOperator, cowSettlement, weth, cowVaultRelayer },
-      contractOrder,
-      orderUID,
-      order,
-    } = await loadFixture(closeOrderSetup);
+  it('reverts with NoOrderToClose on second call after successful close', async function () {
+    const fixture = await loadFixture(setup);
+    const { swapOperator, weth, dai } = fixture.contracts;
+    const { governor, swapController } = fixture.accounts;
+    const timestamp = await time.latest();
+
+    await swapOperator.connect(governor).requestAssetSwap({
+      fromAsset: Assets.ETH,
+      toAsset: dai,
+      fromAmount: parseEther('1'),
+      toAmount: parseEther('2000'),
+      deadline: timestamp + 1000,
+      swapKind: SwapKind.ExactInput,
+    });
+
+    const order = {
+      sellToken: weth,
+      buyToken: dai,
+      receiver: swapOperator,
+      sellAmount: parseEther('1'),
+      buyAmount: parseEther('2000'),
+      validTo: timestamp + 3600,
+      appData: ethers.ZeroHash,
+      feeAmount: 0,
+      kind: ethers.keccak256(ethers.toUtf8Bytes('sell')),
+      partiallyFillable: false,
+      sellTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+      buyTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+    };
+
+    const orderUID = await swapOperator.getUID(order);
+    await swapOperator.connect(swapController).placeOrder(order, orderUID);
+
+    await expect(swapOperator.connect(swapController).closeOrder(order)).to.not.be.reverted;
+    expect(await swapOperator.currentOrderUID()).to.equal('0x');
+    expect(await swapOperator.orderInProgress()).to.equal(false);
+
+    await expect(swapOperator.connect(swapController).closeOrder(order)) // second close should fail
+      .to.be.revertedWithCustomError(swapOperator, 'NoOrderToClose');
+  });
+
+  it('sets presignature to false on closeOrder', async function () {
+    const fixture = await loadFixture(setup);
+    const { swapOperator, weth, dai, cowSettlement } = fixture.contracts;
+    const { governor, swapController } = fixture.accounts;
+    const timestamp = await time.latest();
+
+    await swapOperator.connect(governor).requestAssetSwap({
+      fromAsset: Assets.ETH,
+      toAsset: dai,
+      fromAmount: parseEther('1'),
+      toAmount: parseEther('2000'),
+      deadline: timestamp + 1000,
+      swapKind: SwapKind.ExactInput,
+    });
+
+    const order = {
+      sellToken: weth,
+      buyToken: dai,
+      receiver: swapOperator,
+      sellAmount: parseEther('1'),
+      buyAmount: parseEther('2000'),
+      validTo: timestamp + 3600,
+      appData: ethers.ZeroHash,
+      feeAmount: 0,
+      kind: ethers.keccak256(ethers.toUtf8Bytes('sell')),
+      partiallyFillable: false,
+      sellTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+      buyTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+    };
+
+    const orderUID = await swapOperator.getUID(order);
+    await swapOperator.connect(swapController).placeOrder(order, orderUID);
     expect(await cowSettlement.presignatures(orderUID)).to.equal(true);
-    expect(await cowSettlement.filledAmount(orderUID)).to.equal(0);
-    expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(
-      order.sellAmount.add(order.feeAmount),
-    );
 
-    await swapOperator.closeOrder(contractOrder);
-
-    // order is cancelled when filledAmount is set to MaxUint256
-    expect(await cowSettlement.filledAmount(orderUID)).to.equal(MaxUint256);
-    // removes signature and allowance
+    await swapOperator.connect(swapController).closeOrder(order);
     expect(await cowSettlement.presignatures(orderUID)).to.equal(false);
-    expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(0);
   });
 
-  it('cancels order and removes signature and allowance when the order is partially filled', async function () {
-    const {
-      contracts: { swapOperator, cowSettlement, weth, dai, cowVaultRelayer },
-      contractOrder,
-      orderUID,
-      order,
-    } = await loadFixture(closeOrderSetup);
-    // initially there is some sellToken, no buyToken
-    expect(await dai.balanceOf(swapOperator.address)).to.eq(0);
-    expect(await weth.balanceOf(swapOperator.address)).to.gt(0);
+  it('calls invalidateOrder on cowSettlement', async function () {
+    const fixture = await loadFixture(setup);
+    const { swapOperator, weth, dai, cowSettlement } = fixture.contracts;
+    const { governor, swapController } = fixture.accounts;
+    const timestamp = await time.latest();
 
-    // Fill 50% of order
-    await cowSettlement.fill(
-      contractOrder,
-      orderUID,
-      order.sellAmount.div(2),
-      order.feeAmount.div(2),
-      order.buyAmount.div(2),
-    );
+    await swapOperator.connect(governor).requestAssetSwap({
+      fromAsset: Assets.ETH,
+      toAsset: dai,
+      fromAmount: parseEther('1'),
+      toAmount: parseEther('2000'),
+      deadline: timestamp + 1000,
+      swapKind: SwapKind.ExactInput,
+    });
 
-    // now there is some sellToken and buyToken
-    expect(await dai.balanceOf(swapOperator.address)).to.gt(0);
-    expect(await weth.balanceOf(swapOperator.address)).to.gt(0);
+    const order = {
+      sellToken: weth,
+      buyToken: dai,
+      receiver: swapOperator,
+      sellAmount: parseEther('1'),
+      buyAmount: parseEther('2000'),
+      validTo: timestamp + 3600,
+      appData: ethers.ZeroHash,
+      feeAmount: 0,
+      kind: ethers.keccak256(ethers.toUtf8Bytes('sell')),
+      partiallyFillable: false,
+      sellTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+      buyTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+    };
 
-    // presignature still exists, order not cancelled and allowance was decreased
-    expect(await cowSettlement.presignatures(orderUID)).to.equal(true);
-    expect(await cowSettlement.filledAmount(orderUID)).to.equal(order.sellAmount.div(2));
-    expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(
-      order.sellAmount.div(2).add(order.feeAmount.div(2)),
-    );
+    const orderUID = await swapOperator.getUID(order);
+    await swapOperator.connect(swapController).placeOrder(order, orderUID);
 
-    await swapOperator.closeOrder(contractOrder);
-
-    // order is cancelled when filledAmount is set to MaxUint256 / 0 allowance
-    expect(await cowSettlement.filledAmount(orderUID)).to.equal(MaxUint256);
-    // removes signature and allowance
-    expect(await cowSettlement.presignatures(orderUID)).to.equal(false);
-    expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(0);
+    await expect(swapOperator.connect(swapController).closeOrder(order))
+      .to.emit(cowSettlement, 'InvalidateOrderCalledWith')
+      .withArgs(orderUID);
   });
 
-  it('cancels order and removes signature and allowance when the order is fully filled', async function () {
-    const {
-      contracts: { swapOperator, weth, dai, cowSettlement, cowVaultRelayer },
-      contractOrder,
-      orderUID,
-      order,
-    } = await loadFixture(closeOrderSetup);
-    expect(await cowSettlement.presignatures(orderUID)).to.equal(true);
-    expect(await cowSettlement.filledAmount(orderUID)).to.equal(0);
-    expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(
-      order.sellAmount.add(order.feeAmount),
-    );
-    expect(await dai.balanceOf(swapOperator.address)).to.eq(0);
-    expect(await weth.balanceOf(swapOperator.address)).to.gt(0);
+  it('zeroes allowance on sellToken to VaultRelayer', async function () {
+    const fixture = await loadFixture(setup);
+    const { swapOperator, weth, dai, cowVaultRelayer } = fixture.contracts;
+    const { governor, swapController } = fixture.accounts;
+    const timestamp = await time.latest();
 
-    // fill 100% of the order
-    await cowSettlement.fill(contractOrder, orderUID, order.sellAmount, order.feeAmount, order.buyAmount);
+    await swapOperator.connect(governor).requestAssetSwap({
+      fromAsset: Assets.ETH,
+      toAsset: dai,
+      fromAmount: parseEther('1'),
+      toAmount: parseEther('2000'),
+      deadline: timestamp + 1000,
+      swapKind: SwapKind.ExactInput,
+    });
 
-    // after filling, there's only buyToken balance
-    expect(await dai.balanceOf(swapOperator.address)).to.be.gt(0);
-    expect(await weth.balanceOf(swapOperator.address)).to.eq(0);
+    const order = {
+      sellToken: weth,
+      buyToken: dai,
+      receiver: swapOperator,
+      sellAmount: parseEther('1'),
+      buyAmount: parseEther('2000'),
+      validTo: timestamp + 3600,
+      appData: ethers.ZeroHash,
+      feeAmount: 0,
+      kind: ethers.keccak256(ethers.toUtf8Bytes('sell')),
+      partiallyFillable: false,
+      sellTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+      buyTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+    };
 
-    await swapOperator.closeOrder(contractOrder);
+    const orderUID = await swapOperator.getUID(order);
 
-    // order is cancelled when filledAmount is set to MaxUint256 / 0 allowance
-    expect(await cowSettlement.filledAmount(orderUID)).to.equal(MaxUint256);
-    // removes signature and allowance
-    expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(0);
+    await swapOperator.connect(swapController).placeOrder(order, orderUID);
+    expect(await weth.allowance(swapOperator, cowVaultRelayer)).to.equal(order.sellAmount);
+    expect(await dai.allowance(swapOperator, cowVaultRelayer)).to.equal(0);
+
+    await swapOperator.connect(swapController).closeOrder(order);
+    expect(await weth.allowance(swapOperator, cowVaultRelayer)).to.equal(0);
+    expect(await dai.allowance(swapOperator, cowVaultRelayer)).to.equal(0);
   });
 
-  it('clears the currentOrderUID variable', async function () {
-    const {
-      contracts: { swapOperator },
-      contractOrder,
-      orderUID,
-    } = await loadFixture(closeOrderSetup);
-    expect(await swapOperator.currentOrderUID()).to.eq(orderUID);
+  it('clears currentOrderUID to empty bytes', async function () {
+    const fixture = await loadFixture(setup);
+    const { swapOperator, weth, dai } = fixture.contracts;
+    const { governor, swapController } = fixture.accounts;
+    const timestamp = await time.latest();
 
-    await swapOperator.closeOrder(contractOrder);
+    await swapOperator.connect(governor).requestAssetSwap({
+      fromAsset: Assets.ETH,
+      toAsset: dai,
+      fromAmount: parseEther('1'),
+      toAmount: parseEther('2000'),
+      deadline: timestamp + 1000,
+      swapKind: SwapKind.ExactInput,
+    });
 
-    expect(await swapOperator.currentOrderUID()).to.eq('0x');
+    const order = {
+      sellToken: weth,
+      buyToken: dai,
+      receiver: swapOperator,
+      sellAmount: parseEther('1'),
+      buyAmount: parseEther('2000'),
+      validTo: timestamp + 3600,
+      appData: ethers.ZeroHash,
+      feeAmount: 0,
+      kind: ethers.keccak256(ethers.toUtf8Bytes('sell')),
+      partiallyFillable: false,
+      sellTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+      buyTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+    };
+
+    const orderUID = await swapOperator.getUID(order);
+
+    await swapOperator.connect(swapController).placeOrder(order, orderUID);
+    expect(await swapOperator.currentOrderUID()).to.equal(orderUID);
+    expect(await swapOperator.orderInProgress()).to.equal(true);
+
+    await swapOperator.connect(swapController).closeOrder(order);
+    expect(await swapOperator.currentOrderUID()).to.equal('0x');
+    expect(await swapOperator.orderInProgress()).to.equal(false);
   });
 
-  it('withdraws buyToken to pool and unwraps ether if buyToken is weth', async function () {
-    const {
-      contracts: { pool, swapOperator, cowSettlement, weth, dai, cowVaultRelayer },
-      order,
-      domain,
-      contractOrder,
-      MIN_TIME_BETWEEN_ORDERS,
-    } = await loadFixture(closeOrderSetup);
-    // Cancel current order
-    await swapOperator.closeOrder(contractOrder);
+  it('clears pool.assetInSwapOperator state for ETH to ERC20 swaps', async function () {
+    const fixture = await loadFixture(setup);
+    const { swapOperator, weth, dai, pool } = fixture.contracts;
+    const { governor, swapController } = fixture.accounts;
+    const timestamp = await time.latest();
 
-    // Advance time to enable swapping again
-    await increaseTime(MIN_TIME_BETWEEN_ORDERS);
-    await mineNextBlock();
+    await swapOperator.connect(governor).requestAssetSwap({
+      fromAsset: Assets.ETH,
+      toAsset: dai,
+      fromAmount: parseEther('1'),
+      toAmount: parseEther('2000'),
+      deadline: timestamp + 1000,
+      swapKind: SwapKind.ExactInput,
+    });
 
-    // Place new order that is selling dai for weth
-    const { newContractOrder, newOrderUID } = await setupSellDaiForEth(
-      {
-        validTo: (await lastBlockTimestamp()) + 650,
-      },
-      { dai, pool, order, weth, domain },
-    );
+    const order = {
+      sellToken: weth,
+      buyToken: dai,
+      receiver: swapOperator,
+      sellAmount: parseEther('1'),
+      buyAmount: parseEther('2000'),
+      validTo: timestamp + 3600,
+      appData: ethers.ZeroHash,
+      feeAmount: 0,
+      kind: ethers.keccak256(ethers.toUtf8Bytes('sell')),
+      partiallyFillable: false,
+      sellTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+      buyTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+    };
 
-    await dai.mint(pool.address, order.sellAmount.add(order.feeAmount));
-    await weth.mint(cowVaultRelayer.address, order.buyAmount);
-    await swapOperator.placeOrder(newContractOrder, newOrderUID);
+    const orderUID = await swapOperator.getUID(order);
+    await swapOperator.connect(swapController).placeOrder(order, orderUID);
 
-    const initialPoolEth = await ethers.provider.getBalance(pool.address);
-
-    await cowSettlement.fill(newContractOrder, newOrderUID, order.sellAmount, order.feeAmount, order.buyAmount);
-
-    expect(await weth.balanceOf(swapOperator.address)).to.eq(order.buyAmount);
-    expect(await ethers.provider.getBalance(pool.address)).to.eq(initialPoolEth);
-
-    await swapOperator.closeOrder(newContractOrder);
-
-    expect(await weth.balanceOf(swapOperator.address)).to.eq(0);
-    expect(await ethers.provider.getBalance(pool.address)).to.eq(initialPoolEth.add(order.buyAmount));
+    await expect(swapOperator.connect(swapController).closeOrder(order))
+      .to.emit(pool, 'ClearSwapAssetAmountCalled')
+      .withArgs(Assets.ETH);
   });
 
-  it('withdraws buyToken to pool when buyToken is an erc20 token', async function () {
-    const {
-      contracts: { dai, swapOperator, pool, cowSettlement },
-      contractOrder,
-      orderUID,
-      order,
-    } = await loadFixture(closeOrderSetup);
-    expect(await dai.balanceOf(swapOperator.address)).to.eq(0);
-    expect(await dai.balanceOf(pool.address)).to.eq(0);
+  it('clears pool.assetInSwapOperator state for ERC20 to ETH swaps', async function () {
+    const fixture = await loadFixture(setup);
+    const { swapOperator, weth, dai, pool } = fixture.contracts;
+    const { governor, swapController } = fixture.accounts;
+    const timestamp = await time.latest();
 
-    // Fill the order
-    await cowSettlement.fill(contractOrder, orderUID, order.sellAmount, order.feeAmount, order.buyAmount);
+    await swapOperator.connect(governor).requestAssetSwap({
+      fromAsset: dai,
+      toAsset: Assets.ETH,
+      fromAmount: parseEther('1'),
+      toAmount: parseEther('2000'),
+      deadline: timestamp + 1000,
+      swapKind: SwapKind.ExactInput,
+    });
 
-    // Mint extra buyToken, simulating a token rebase
-    const extraAmount = parseEther('1');
-    await dai.mint(swapOperator.address, extraAmount);
+    const order = {
+      sellToken: dai,
+      buyToken: weth,
+      receiver: swapOperator,
+      sellAmount: parseEther('1'),
+      buyAmount: parseEther('2000'),
+      validTo: timestamp + 3600,
+      appData: ethers.ZeroHash,
+      feeAmount: 0,
+      kind: ethers.keccak256(ethers.toUtf8Bytes('sell')),
+      partiallyFillable: false,
+      sellTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+      buyTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+    };
 
-    expect(await dai.balanceOf(swapOperator.address)).to.eq(order.buyAmount.add(extraAmount));
+    const orderUID = await swapOperator.getUID(order);
+    await swapOperator.connect(swapController).placeOrder(order, orderUID);
 
-    await swapOperator.closeOrder(contractOrder);
-
-    expect(await dai.balanceOf(swapOperator.address)).to.eq(0);
-    expect(await dai.balanceOf(pool.address)).to.eq(order.buyAmount.add(extraAmount));
+    await expect(swapOperator.connect(swapController).closeOrder(order))
+      .to.emit(pool, 'ClearSwapAssetAmountCalled')
+      .withArgs(dai);
   });
 
-  it('returns sellToken to pool and unwraps ether if sellToken is weth', async function () {
-    const {
-      contracts: { weth, swapOperator, pool },
-      contractOrder,
-    } = await loadFixture(closeOrderSetup);
-    const initialPoolEth = await ethers.provider.getBalance(pool.address);
-    const initialOperatorWeth = await weth.balanceOf(swapOperator.address);
+  it('withdraws WETH balance to ETH and sends to Pool when the order is not filled', async function () {
+    const fixture = await loadFixture(setup);
+    const { swapOperator, weth, dai, pool } = fixture.contracts;
+    const { governor, swapController } = fixture.accounts;
+    const timestamp = await time.latest();
 
-    expect(initialPoolEth).to.be.gt(0);
-    expect(initialOperatorWeth).to.be.gt(0);
+    await swapOperator.connect(governor).requestAssetSwap({
+      fromAsset: Assets.ETH,
+      toAsset: dai,
+      fromAmount: parseEther('1'),
+      toAmount: parseEther('2000'),
+      deadline: timestamp + 1000,
+      swapKind: SwapKind.ExactInput,
+    });
 
-    await swapOperator.closeOrder(contractOrder);
+    const order = {
+      sellToken: weth,
+      buyToken: dai,
+      receiver: swapOperator,
+      sellAmount: parseEther('1'),
+      buyAmount: parseEther('2000'),
+      validTo: timestamp + 3600,
+      appData: ethers.ZeroHash,
+      feeAmount: 0,
+      kind: ethers.keccak256(ethers.toUtf8Bytes('sell')),
+      partiallyFillable: false,
+      sellTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+      buyTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+    };
 
-    expect(await ethers.provider.getBalance(pool.address)).to.eq(initialPoolEth.add(initialOperatorWeth));
-    expect(await weth.balanceOf(swapOperator.address)).to.eq(0);
+    const orderUID = await swapOperator.getUID(order);
+    await swapOperator.connect(swapController).placeOrder(order, orderUID);
+
+    // initial balances
+    const poolEthBefore = await ethers.provider.getBalance(pool);
+    const operatorWethBefore = await weth.balanceOf(swapOperator);
+    expect(operatorWethBefore).to.equal(order.sellAmount);
+
+    await swapOperator.connect(swapController).closeOrder(order);
+
+    // final balances
+    const poolEthAfter = await ethers.provider.getBalance(pool);
+    const operatorWethAfter = await weth.balanceOf(swapOperator);
+
+    expect(operatorWethAfter).to.equal(0);
+    expect(poolEthAfter).to.equal(poolEthBefore + order.sellAmount);
   });
 
-  it('returns sellToken to pool when sellToken is an erc20 token', async function () {
-    const {
-      contracts: { weth, dai, swapOperator, pool, cowVaultRelayer },
-      contractOrder,
-      order,
-      MIN_TIME_BETWEEN_ORDERS,
-      domain,
-    } = await loadFixture(closeOrderSetup);
-    // Cancel current order
-    await swapOperator.closeOrder(contractOrder);
+  it('returns remaining assets to Pool when the order is partially filled', async function () {
+    const fixture = await loadFixture(setup);
+    const { swapOperator, weth, dai, pool, cowSettlement, cowVaultRelayer } = fixture.contracts;
+    const { governor, swapController } = fixture.accounts;
+    const timestamp = await time.latest();
 
-    // Advance time to enable swapping again
-    await increaseTime(MIN_TIME_BETWEEN_ORDERS);
-    await mineNextBlock();
+    await swapOperator.connect(governor).requestAssetSwap({
+      fromAsset: Assets.ETH,
+      toAsset: dai,
+      fromAmount: parseEther('1'),
+      toAmount: parseEther('2000'),
+      deadline: timestamp + 1000,
+      swapKind: SwapKind.ExactInput,
+    });
 
-    // Place an order swapping DAI for ETH
-    const { newOrder, newContractOrder, newOrderUID } = await setupSellDaiForEth(
-      {
-        validTo: (await lastBlockTimestamp()) + 650,
-      },
-      { dai, pool, order, weth, domain },
-    );
-    await weth.mint(cowVaultRelayer.address, order.buyAmount);
-    await swapOperator.placeOrder(newContractOrder, newOrderUID);
+    const order = {
+      sellToken: weth,
+      buyToken: dai,
+      receiver: swapOperator,
+      sellAmount: parseEther('1'),
+      buyAmount: parseEther('2000'),
+      validTo: timestamp + 3600,
+      appData: ethers.ZeroHash,
+      feeAmount: 0,
+      kind: ethers.keccak256(ethers.toUtf8Bytes('sell')),
+      partiallyFillable: true,
+      sellTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+      buyTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+    };
 
-    const checkpointPoolDai = await dai.balanceOf(pool.address);
-    const checkpointOperatorDai = await dai.balanceOf(swapOperator.address);
-    expect(checkpointOperatorDai).to.eq(newOrder.sellAmount.add(newOrder.feeAmount));
+    const poolEthBefore = await ethers.provider.getBalance(pool);
+    const poolDaiBefore = await dai.balanceOf(pool);
+    const operatorEthBefore = await ethers.provider.getBalance(swapOperator);
+    const operatorWethBefore = await weth.balanceOf(swapOperator);
+    const operatorDaiBefore = await dai.balanceOf(swapOperator);
 
-    // Add some extra sellToken to the swap operator balance, simulating a token rebase
-    const extraAmount = parseEther('1');
-    await dai.mint(swapOperator.address, extraAmount);
+    expect(operatorWethBefore).to.equal(0);
+    expect(operatorDaiBefore).to.equal(0);
+    expect(operatorEthBefore).to.equal(0);
 
-    await swapOperator.closeOrder(newContractOrder);
+    const orderUID = await swapOperator.getUID(order);
+    await swapOperator.connect(swapController).placeOrder(order, orderUID);
 
-    expect(await dai.balanceOf(pool.address)).to.eq(checkpointPoolDai.add(checkpointOperatorDai).add(extraAmount));
-    expect(await dai.balanceOf(swapOperator.address)).to.eq(0);
+    // partially fill the order and close it
+    const soldAmount = parseEther('0.5');
+    const boughtAmount = parseEther('1000');
+    await dai.mint(cowVaultRelayer, boughtAmount);
+    await cowSettlement.fill(order, orderUID, soldAmount, 0 /* fee */, boughtAmount);
+    await swapOperator.connect(swapController).closeOrder(order);
+
+    const poolEthAfter = await ethers.provider.getBalance(pool);
+    const poolDaiAfter = await dai.balanceOf(pool);
+    const operatorEthAfter = await ethers.provider.getBalance(swapOperator);
+    const operatorWethAfter = await weth.balanceOf(swapOperator);
+    const operatorDaiAfter = await dai.balanceOf(swapOperator);
+
+    expect(poolEthAfter).to.equal(poolEthBefore - soldAmount);
+    expect(poolDaiAfter).to.equal(poolDaiBefore + boughtAmount);
+    expect(operatorWethAfter).to.equal(0);
+    expect(operatorDaiAfter).to.equal(0);
+    expect(operatorEthAfter).to.equal(0);
   });
 
-  it('emits OrderClosed event when order was not filled', async function () {
-    const {
-      contracts: { swapOperator },
-      contractOrder,
-    } = await loadFixture(closeOrderSetup);
-    await expect(swapOperator.closeOrder(contractOrder))
+  it('returns remaining assets to Pool when the order is completely filled', async function () {
+    const fixture = await loadFixture(setup);
+    const { swapOperator, weth, dai, pool, cowSettlement, cowVaultRelayer } = fixture.contracts;
+    const { governor, swapController } = fixture.accounts;
+    const timestamp = await time.latest();
+
+    await swapOperator.connect(governor).requestAssetSwap({
+      fromAsset: Assets.ETH,
+      toAsset: dai,
+      fromAmount: parseEther('1'),
+      toAmount: parseEther('2000'),
+      deadline: timestamp + 1000,
+      swapKind: SwapKind.ExactInput,
+    });
+
+    const order = {
+      sellToken: weth,
+      buyToken: dai,
+      receiver: swapOperator,
+      sellAmount: parseEther('1'),
+      buyAmount: parseEther('2000'),
+      validTo: timestamp + 3600,
+      appData: ethers.ZeroHash,
+      feeAmount: 0,
+      kind: ethers.keccak256(ethers.toUtf8Bytes('sell')),
+      partiallyFillable: false,
+      sellTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+      buyTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+    };
+
+    const orderUID = await swapOperator.getUID(order);
+
+    const poolEthBefore = await ethers.provider.getBalance(pool);
+    const poolDaiBefore = await dai.balanceOf(pool);
+    const operatorEthBefore = await ethers.provider.getBalance(swapOperator);
+    const operatorWethBefore = await weth.balanceOf(swapOperator);
+    const operatorDaiBefore = await dai.balanceOf(swapOperator);
+
+    expect(operatorEthBefore).to.equal(0);
+    expect(operatorWethBefore).to.equal(0);
+    expect(operatorDaiBefore).to.equal(0);
+
+    await swapOperator.connect(swapController).placeOrder(order, orderUID);
+
+    // completely fill the order and close it
+    const boughtAmount = order.buyAmount + parseEther('100'); // 100 extra dai
+    await dai.mint(cowVaultRelayer, boughtAmount);
+    await cowSettlement.fill(order, orderUID, order.sellAmount, 0 /* fee */, boughtAmount);
+    await swapOperator.connect(swapController).closeOrder(order);
+
+    const poolEthAfter = await ethers.provider.getBalance(pool);
+    const poolDaiAfter = await dai.balanceOf(pool);
+    const operatorEthAfter = await ethers.provider.getBalance(swapOperator);
+    const operatorWethAfter = await weth.balanceOf(swapOperator);
+    const operatorDaiAfter = await dai.balanceOf(swapOperator);
+
+    expect(poolEthAfter).to.equal(poolEthBefore - order.sellAmount);
+    expect(poolDaiAfter).to.equal(poolDaiBefore + boughtAmount);
+    expect(operatorEthAfter).to.equal(0);
+    expect(operatorWethAfter).to.equal(0);
+    expect(operatorDaiAfter).to.equal(0);
+  });
+
+  it('returns WETH balance to Pool as ETH including any dust', async function () {
+    const fixture = await loadFixture(setup);
+    const { swapOperator, weth, dai, pool } = fixture.contracts;
+    const { governor, swapController } = fixture.accounts;
+    const timestamp = await time.latest();
+
+    await swapOperator.connect(governor).requestAssetSwap({
+      fromAsset: Assets.ETH,
+      toAsset: dai,
+      fromAmount: parseEther('1'),
+      toAmount: parseEther('2000'),
+      deadline: timestamp + 1000,
+      swapKind: SwapKind.ExactInput,
+    });
+
+    const order = {
+      sellToken: weth,
+      buyToken: dai,
+      receiver: swapOperator,
+      sellAmount: parseEther('1'),
+      buyAmount: parseEther('2000'),
+      validTo: timestamp + 3600,
+      appData: ethers.ZeroHash,
+      feeAmount: 0,
+      kind: ethers.keccak256(ethers.toUtf8Bytes('sell')),
+      partiallyFillable: false,
+      sellTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+      buyTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+    };
+
+    const orderUID = await swapOperator.getUID(order);
+    await swapOperator.connect(swapController).placeOrder(order, orderUID);
+
+    // add some dust WETH to the swap operator
+    const dustAmount = parseEther('0.123');
+    await weth.deposit({ value: dustAmount });
+    await weth.transfer(swapOperator, dustAmount);
+
+    const poolEthBefore = await ethers.provider.getBalance(pool);
+    const operatorWethBefore = await weth.balanceOf(swapOperator);
+    expect(operatorWethBefore).to.equal(order.sellAmount + dustAmount);
+
+    await swapOperator.connect(swapController).closeOrder(order);
+
+    const poolEthAfter = await ethers.provider.getBalance(pool);
+    const operatorWethAfter = await weth.balanceOf(swapOperator);
+
+    expect(operatorWethAfter).to.equal(0);
+    expect(poolEthAfter).to.equal(poolEthBefore + order.sellAmount + dustAmount);
+  });
+
+  it('reverts if the pool rejects ETH', async function () {
+    const fixture = await loadFixture(setup);
+    const { swapOperator, weth, dai, pool } = fixture.contracts;
+    const { governor, swapController } = fixture.accounts;
+    const timestamp = await time.latest();
+
+    await swapOperator.connect(governor).requestAssetSwap({
+      fromAsset: Assets.ETH,
+      toAsset: dai,
+      fromAmount: parseEther('1'),
+      toAmount: parseEther('2000'),
+      deadline: timestamp + 1000,
+      swapKind: SwapKind.ExactInput,
+    });
+
+    const order = {
+      sellToken: weth,
+      buyToken: dai,
+      receiver: swapOperator,
+      sellAmount: parseEther('1'),
+      buyAmount: parseEther('2000'),
+      validTo: timestamp + 3600,
+      appData: ethers.ZeroHash,
+      feeAmount: 0,
+      kind: ethers.keccak256(ethers.toUtf8Bytes('sell')),
+      partiallyFillable: false,
+      sellTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+      buyTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+    };
+
+    const orderUID = await swapOperator.getUID(order);
+    await swapOperator.connect(swapController).placeOrder(order, orderUID);
+
+    // deploying with an empty array because we only care about the contract bytecode
+    const poolRejectingEth = await ethers.deployContract('SOMockPoolRejectingEth', [[]]);
+    const bytecode = await ethers.provider.getCode(poolRejectingEth);
+    await setCode(pool.target, bytecode);
+
+    await expect(swapOperator.connect(swapController).closeOrder(order))
+      .to.be.revertedWithCustomError(swapOperator, 'TransferFailed')
+      .withArgs(pool, order.sellAmount, Assets.ETH);
+  });
+
+  it('emits an event with the correct swapped amounts', async function () {
+    const fixture = await loadFixture(setup);
+    const { swapOperator, weth, dai, cowSettlement, cowVaultRelayer } = fixture.contracts;
+    const { governor, swapController } = fixture.accounts;
+    const timestamp = await time.latest();
+
+    await swapOperator.connect(governor).requestAssetSwap({
+      fromAsset: Assets.ETH,
+      toAsset: dai,
+      fromAmount: parseEther('1'),
+      toAmount: parseEther('2000'),
+      deadline: timestamp + 1000,
+      swapKind: SwapKind.ExactInput,
+    });
+
+    const order = {
+      sellToken: weth,
+      buyToken: dai,
+      receiver: swapOperator,
+      sellAmount: parseEther('1'),
+      buyAmount: parseEther('2000'),
+      validTo: timestamp + 3600,
+      appData: ethers.ZeroHash,
+      feeAmount: 0,
+      kind: ethers.keccak256(ethers.toUtf8Bytes('sell')),
+      partiallyFillable: true,
+      sellTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+      buyTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+    };
+
+    const orderUID = await swapOperator.getUID(order);
+    await swapOperator.connect(swapController).placeOrder(order, orderUID);
+
+    // partially fill the order and close it
+    const soldAmount = parseEther('0.5');
+    const boughtAmount = parseEther('1000');
+    await dai.mint(cowVaultRelayer, boughtAmount);
+    await cowSettlement.fill(order, orderUID, soldAmount, 0 /* fee */, boughtAmount);
+
+    const orderAsArray = [
+      order.sellToken,
+      order.buyToken,
+      order.receiver,
+      order.sellAmount,
+      order.buyAmount,
+      order.validTo,
+      order.appData,
+      order.feeAmount,
+      order.kind,
+      order.partiallyFillable,
+      order.sellTokenBalance,
+      order.buyTokenBalance,
+    ];
+
+    await expect(swapOperator.connect(swapController).closeOrder(order))
       .to.emit(swapOperator, 'OrderClosed')
-      .withArgs(makeOrderTuple(contractOrder), 0);
-  });
-
-  it('emits OrderClosed event when order was partially filled', async function () {
-    const {
-      contracts: { cowSettlement, swapOperator },
-      contractOrder,
-      order,
-      orderUID,
-    } = await loadFixture(closeOrderSetup);
-    await cowSettlement.fill(
-      contractOrder,
-      orderUID,
-      order.sellAmount.div(2),
-      order.feeAmount.div(2),
-      order.buyAmount.div(2),
-    );
-    await expect(swapOperator.closeOrder(contractOrder))
-      .to.emit(swapOperator, 'OrderClosed')
-      .withArgs(makeOrderTuple(contractOrder), order.sellAmount.div(2));
-  });
-
-  it('emits OrderClosed event when order was fully filled', async function () {
-    const {
-      contracts: { cowSettlement, swapOperator },
-      contractOrder,
-      order,
-      orderUID,
-    } = await loadFixture(closeOrderSetup);
-    await cowSettlement.fill(contractOrder, orderUID, order.sellAmount, order.feeAmount, order.buyAmount);
-
-    await expect(swapOperator.closeOrder(contractOrder))
-      .to.emit(swapOperator, 'OrderClosed')
-      .withArgs(lodashValues(makeOrderTuple(contractOrder)), order.sellAmount);
-  });
-
-  it('sets swapValue to 0 on the pool', async function () {
-    const {
-      contracts: { swapOperator, pool },
-      contractOrder,
-    } = await loadFixture(closeOrderSetup);
-    const oldSwapValue = await pool.assetInSwapOperator();
-    expect(oldSwapValue).to.be.gt(0);
-
-    await swapOperator.closeOrder(contractOrder);
-
-    const newSwapValue = await pool.assetInSwapOperator();
-    expect(newSwapValue).to.eq(0);
+      .withArgs(orderAsArray, soldAmount);
   });
 });

@@ -2,94 +2,81 @@
 
 pragma solidity ^0.8.18;
 
-import "../../../interfaces/INXMToken.sol";
-import "../../../interfaces/ITokenController.sol";
-import "../../../interfaces/IAssessment.sol";
-import "../../../abstract/MasterAwareV2.sol";
+import "../../../interfaces/IAssessments.sol";
 import "../../generic/AssessmentGeneric.sol";
 
 contract CLMockAssessment is AssessmentGeneric {
 
-  /* ========== STATE VARIABLES ========== */
+  mapping(uint claimId => uint) public _productTypeForClaimId;
+  mapping(uint claimId => Assessment) public _assessments;
 
-  bytes32[] internal fraudMerkleRoots;
-
-  mapping(uint => IAssessment.Poll) internal fraudSnapshot;
-
-  uint internal constant MIN_VOTING_PERIOD = 3 days;
-  uint internal constant PAYOUT_COOLDOWN = 1 days;
-
-  /* ========== VIEWS ========== */
-
-  function min(uint a, uint b) internal pure returns (uint) {
-    return a <= b ? a : b;
+  function startAssessment(uint claimId, uint productTypeId, uint cooldownPeriod) external override {
+    _productTypeForClaimId[claimId] = productTypeId;
+    _assessments[claimId] = Assessment({
+      assessingGroupId: 1,
+      start: uint32(block.timestamp),
+      votingEnd: uint32(block.timestamp + 3 days),
+      cooldownPeriod: uint32(cooldownPeriod),
+      acceptVotes: 0,
+      denyVotes: 0
+    });
   }
 
-  function getMinVotingPeriod() external pure override returns (uint) {
-    return MIN_VOTING_PERIOD;
+  function getAssessment(uint claimId) external view override returns (Assessment memory assessment) {
+    return _assessments[claimId];
   }
 
-  function getPayoutCooldown() external pure override returns (uint) {
-    return PAYOUT_COOLDOWN;
+  function setAssessment(uint claimId, Assessment memory assessment) external {
+    _assessments[claimId] = assessment;
   }
 
-  function getVoteCountOfAssessor(address assessor) external override view returns (uint) {
-    return votesOf[assessor].length;
-  }
+  function setAssessmentForOutcome(uint claimId, AssessmentOutcome desiredOutcome) external {
+    Assessment memory assessment;
 
-  function getAssessmentsCount() external override view returns (uint) {
-    return assessments.length;
-  }
+    // default values for all assessments
+    assessment.assessingGroupId = 1;
+    assessment.start = uint32(block.timestamp - 100);
+    assessment.votingEnd = uint32(block.timestamp - 1); // votingEnd passed
+    assessment.cooldownPeriod = 1; // cooldownPeriod passed
 
-  /* === MUTATIVE FUNCTIONS ==== */
-
-  function startAssessment(uint totalAssessmentReward, uint assessmentDeposit) external override
-  returns (uint) {
-    assessments.push(IAssessment.Assessment(
-      IAssessment.Poll(
-        0, // accepted
-        0, // denied
-        uint32(block.timestamp), // start
-        uint32(block.timestamp + MIN_VOTING_PERIOD) // end
-      ),
-      uint128(totalAssessmentReward),
-      uint128(assessmentDeposit)
-    ));
-    return assessments.length - 1;
-  }
-
-  function getPoll(uint assessmentId) external override view returns (IAssessment.Poll memory) {
-    return assessments[assessmentId].poll;
-  }
-
-
-  function castVote(uint assessmentId, bool isAcceptVote, uint96 stakeAmount) external {
-    IAssessment.Poll memory poll = assessments[assessmentId].poll;
-
-    if (isAcceptVote && poll.accepted == 0) {
-      // Reset the poll end when the first accepted vote
-      poll.end = uint32(block.timestamp + MIN_VOTING_PERIOD);
-    }
-
-    // Check if poll ends in less than 24 hours
-    if (poll.end - block.timestamp < 1 days) {
-      // Extend proportionally to the user's stake but up to 1 day maximum
-      poll.end += uint32(min(1 days, 1 days * stakeAmount / (poll.accepted + poll.denied)));
-    }
-
-    if (isAcceptVote) {
-      poll.accepted += stakeAmount;
+    if (desiredOutcome == AssessmentOutcome.ACCEPTED) {
+      assessment.acceptVotes = 3;
+      assessment.denyVotes = 2;
+    } else if (desiredOutcome == AssessmentOutcome.DENIED) {
+      assessment.acceptVotes = 2;
+      assessment.denyVotes = 3;
+    } else if (desiredOutcome == AssessmentOutcome.DRAW) {
+      assessment.acceptVotes = 2;
+      assessment.denyVotes = 2;
     } else {
-      poll.denied += stakeAmount;
+      // PENDING - set votingEnd to future or within cooldown
+      assessment.votingEnd = uint32(block.timestamp + 1000);
+      assessment.cooldownPeriod = 1000;
     }
 
-    assessments[assessmentId].poll = poll;
+    _assessments[claimId] = assessment;
+  }
 
-    votesOf[msg.sender].push(IAssessment.Vote(
-      uint80(assessmentId),
-      isAcceptVote,
-      uint32(block.timestamp),
-      stakeAmount
-    ));
+  function setAssessmentForStatus(uint claimId, AssessmentStatus desiredStatus) external {
+    Assessment memory assessment;
+
+    // default values for all assessments
+    assessment.assessingGroupId = 1;
+    assessment.start = uint32(block.timestamp - 12 hours);
+    assessment.acceptVotes = 3;
+    assessment.denyVotes = 2;
+    assessment.cooldownPeriod = 1 days;
+
+    if (desiredStatus == AssessmentStatus.VOTING) {
+      assessment.votingEnd = uint32(block.timestamp + 1 days);
+    } else if (desiredStatus == AssessmentStatus.COOLDOWN) {
+      assessment.votingEnd = uint32(block.timestamp - 100);
+      assessment.cooldownPeriod = 1 days; // still in cooldown
+    } else {
+      assessment.votingEnd = uint32(block.timestamp - 2 days);
+      assessment.cooldownPeriod = 1 days; // cooldown already passed
+    }
+
+    _assessments[claimId] = assessment;
   }
 }

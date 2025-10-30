@@ -5,8 +5,8 @@ const { build } = require('tsup');
 
 const rootPath = config.paths.root;
 const contractList = [
-  'Assessment',
-  'AssessmentViewer',
+  'Assessments',
+  'Claims',
   'Cover',
   'CoverBroker',
   'CoverNFTDescriptor',
@@ -16,19 +16,15 @@ const contractList = [
   ['Aggregator', 'EACAggregatorProxy'],
   ['@openzeppelin/contracts-v4/token/ERC20/ERC20.sol:ERC20', 'ERC20'],
   'Governance',
-  'IndividualClaims',
+  'Governor',
   'LegacyClaimsData',
   ['IQuotationData', 'LegacyQuotationData'],
   'LimitOrders',
-  'MCR',
-  'MemberRoles',
   'NXMaster',
   'NXMToken',
-  'NexusViewer',
   'Pool',
-  'PriceFeedOracle',
-  'ProposalCategory',
   'Ramm',
+  'Registry',
   'SafeTracker',
   'StakingNFTDescriptor',
   'StakingNFT',
@@ -38,6 +34,7 @@ const contractList = [
   'StakingViewer',
   'SwapOperator',
   'TokenController',
+  'VotePower',
   'wNXM',
 ];
 

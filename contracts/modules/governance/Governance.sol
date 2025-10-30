@@ -2,12 +2,12 @@
 
 pragma solidity ^0.5.0;
 
-import "../../libraries/external/SafeMath.sol";
 import "../../abstract/LegacyMasterAware.sol";
 import "../../interfaces/IGovernance.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IProposalCategory.sol";
 import "../../interfaces/ITokenController.sol";
+import "../../libraries/external/SafeMath.sol";
 
 contract Governance is IGovernance, LegacyMasterAware {
   using SafeMath for uint;

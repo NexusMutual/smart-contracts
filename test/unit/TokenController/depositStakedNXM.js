@@ -1,22 +1,20 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { setEtherBalance } = require('../../utils/evm');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, setBalance } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
-const { AddressZero } = ethers.constants;
-const { parseEther } = ethers.utils;
+const { parseEther, ZeroAddress } = ethers;
 
 async function loadDepositStakedNXM() {
   const fixture = await loadFixture(setup);
   const { stakingPoolFactory } = fixture.contracts;
 
-  const createPoolTx = await stakingPoolFactory.create(AddressZero);
-  const { events } = await createPoolTx.wait();
-  const { poolId, stakingPoolAddress } = events[0].args;
+  const createPoolTx = await stakingPoolFactory.create(ZeroAddress);
+  const { logs } = await createPoolTx.wait();
+  const { poolId, stakingPoolAddress } = logs[0].args;
 
   const poolSigner = await ethers.getImpersonatedSigner(stakingPoolAddress);
-  await setEtherBalance(stakingPoolAddress, parseEther('1'));
+  await setBalance(stakingPoolAddress, parseEther('1'));
 
   return {
     ...fixture,
@@ -39,16 +37,18 @@ describe('depositStakedNXM', function () {
 
   it('increases staking pool deposits', async function () {
     const fixture = await loadDepositStakedNXM();
-    const { tokenController } = fixture.contracts;
+    const { tokenController, nxm } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
     const initialStakingPoolNXMBalances = await tokenController.stakingPoolNXMBalances(fixture.poolId);
 
     const amount = parseEther('10');
+    await nxm.mint(member.address, amount);
+    await nxm.connect(member).approve(tokenController, amount);
     await tokenController.connect(fixture.poolSigner).depositStakedNXM(member.address, amount, fixture.poolId);
 
     const stakingPoolNXMBalances = await tokenController.stakingPoolNXMBalances(fixture.poolId);
-    expect(stakingPoolNXMBalances.deposits).to.equal(initialStakingPoolNXMBalances.deposits.add(amount));
+    expect(stakingPoolNXMBalances.deposits).to.equal(initialStakingPoolNXMBalances.deposits + amount);
     expect(stakingPoolNXMBalances.rewards).to.equal(initialStakingPoolNXMBalances.rewards);
   });
 
@@ -57,16 +57,19 @@ describe('depositStakedNXM', function () {
     const { tokenController, nxm } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
-    const initialTcBalance = await nxm.balanceOf(tokenController.address);
+    const amount = parseEther('10');
+    await nxm.mint(member.address, amount);
+    await nxm.connect(member).approve(tokenController, amount);
+
+    const initialTcBalance = await nxm.balanceOf(tokenController);
     const initialUserBalance = await nxm.balanceOf(member.address);
 
-    const amount = parseEther('10');
     await tokenController.connect(fixture.poolSigner).depositStakedNXM(member.address, amount, fixture.poolId);
 
-    const tcBalance = await nxm.balanceOf(tokenController.address);
+    const tcBalance = await nxm.balanceOf(tokenController);
     const userBalance = await nxm.balanceOf(member.address);
 
-    expect(tcBalance).to.equal(initialTcBalance.add(amount));
-    expect(userBalance).to.equal(initialUserBalance.sub(amount));
+    expect(tcBalance).to.equal(initialTcBalance + amount);
+    expect(userBalance).to.equal(initialUserBalance - amount);
   });
 });

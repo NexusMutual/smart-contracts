@@ -1,12 +1,11 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
-const { setNextBlockTime } = require('../../utils').evm;
-const { Two } = ethers.constants;
 
-const poolId = Two.pow(95); // overflows at uint96
-const maxDeadline = Two.pow(31);
+const poolId = 2n ** 95n; // overflows at uint96
+const maxDeadline = 2n ** 31n;
+
 describe('acceptStakingPoolOwnershipOffer', function () {
   it('should revert if the caller is not the proposed manager', async function () {
     const fixture = await loadFixture(setup);
@@ -23,11 +22,11 @@ describe('acceptStakingPoolOwnershipOffer', function () {
     const { tokenController } = fixture.contracts;
     const {
       members: [oldManager, newManager],
-      internalContracts: [internalContract],
+      stakingProducts: [stakingProducts],
     } = fixture.accounts;
 
     // Set old manager
-    await tokenController.connect(internalContract).assignStakingPoolManager(poolId, oldManager.address);
+    await tokenController.connect(stakingProducts).assignStakingPoolManager(poolId, oldManager.address);
 
     // Create offer
     await tokenController.connect(oldManager).createStakingPoolOwnershipOffer(poolId, newManager.address, maxDeadline);
@@ -45,17 +44,17 @@ describe('acceptStakingPoolOwnershipOffer', function () {
     const { tokenController } = fixture.contracts;
     const {
       members: [oldManager, newManager],
-      internalContracts: [internalContract],
+      stakingProducts: [stakingProducts],
     } = fixture.accounts;
 
     // Set old manager
-    await tokenController.connect(internalContract).assignStakingPoolManager(poolId, oldManager.address);
+    await tokenController.connect(stakingProducts).assignStakingPoolManager(poolId, oldManager.address);
 
     const { timestamp: deadline } = await ethers.provider.getBlock('latest');
     // Create offer
     await tokenController.connect(oldManager).createStakingPoolOwnershipOffer(poolId, newManager.address, deadline + 2);
 
-    await setNextBlockTime(deadline + 3);
+    await time.increaseTo(deadline + 3);
 
     await expect(
       tokenController.connect(newManager).acceptStakingPoolOwnershipOffer(poolId),
@@ -67,11 +66,11 @@ describe('acceptStakingPoolOwnershipOffer', function () {
     const { tokenController } = fixture.contracts;
     const {
       members: [oldManager, newManager],
-      internalContracts: [internalContract],
+      stakingProducts: [stakingProducts],
     } = fixture.accounts;
 
     // Set old manager
-    await tokenController.connect(internalContract).assignStakingPoolManager(poolId, oldManager.address);
+    await tokenController.connect(stakingProducts).assignStakingPoolManager(poolId, oldManager.address);
 
     // Create offer
     await tokenController.connect(oldManager).createStakingPoolOwnershipOffer(poolId, newManager.address, maxDeadline);
@@ -91,10 +90,7 @@ describe('acceptStakingPoolOwnershipOffer', function () {
     expect(!(await tokenController.isStakingPoolManager(oldManager.address))).to.be.eq(true);
 
     // Make sure the offer is removed
-    expect(await tokenController.getStakingPoolOwnershipOffer(poolId)).to.be.deep.equal([
-      ethers.constants.AddressZero,
-      0,
-    ]);
+    expect(await tokenController.getStakingPoolOwnershipOffer(poolId)).to.be.deep.equal([ethers.ZeroAddress, 0]);
   });
 
   it('should revert if current manager is locked for voting', async function () {
@@ -102,17 +98,17 @@ describe('acceptStakingPoolOwnershipOffer', function () {
     const { tokenController, nxm } = fixture.contracts;
     const {
       members: [oldManager, newManager],
-      internalContracts: [internalContract],
+      stakingProducts: [stakingProducts],
     } = fixture.accounts;
 
     // Set old manager
-    await tokenController.connect(internalContract).assignStakingPoolManager(poolId, oldManager.address);
+    await tokenController.connect(stakingProducts).assignStakingPoolManager(poolId, oldManager.address);
 
     // Create offer
     await tokenController.connect(oldManager).createStakingPoolOwnershipOffer(poolId, newManager.address, maxDeadline);
 
     // Lock old manager
-    await nxm.setLock(oldManager.address, Two.pow(30));
+    await nxm.setLock(oldManager.address, 2n ** 30n);
 
     await expect(
       tokenController.connect(newManager).acceptStakingPoolOwnershipOffer(poolId),

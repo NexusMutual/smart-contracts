@@ -2,15 +2,15 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
+const { parseEther } = require('ethers');
 
 describe('getTokenPrice', function () {
-  it('should return the current token price (NXM sell price)', async function () {
+  it('return token price from ramm', async function () {
     const fixture = await loadFixture(setup);
-    const { pool, ramm } = fixture;
+    const { pool } = fixture;
 
+    const expectedValue = parseEther('0.02444');
     const tokenPrice = await pool.getTokenPrice();
-    const spotPrices = await ramm.getSpotPrices();
-
-    expect(tokenPrice).to.be.equal(spotPrices[1]);
+    expect(tokenPrice).to.equal(expectedValue);
   });
 });

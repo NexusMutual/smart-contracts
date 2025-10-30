@@ -3,141 +3,109 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
-const { AggregatorType, Assets } = require('../utils').constants;
-const { toBytes8 } = require('../utils').helpers;
 
-const { AddressZero, WeiPerEther } = ethers.constants;
+const { ZeroAddress, parseEther } = ethers;
+
+async function addAssetSetup() {
+  const fixture = await loadFixture(setup);
+
+  const tokenOneDecimals = 6;
+  const tokenOne = await ethers.deployContract('ERC20Mock');
+  await tokenOne.setMetadata('MockUsdc', 'USDC', tokenOneDecimals);
+
+  const tokenOneAggregator = await ethers.deployContract('ChainlinkAggregatorMock');
+  await tokenOneAggregator.setLatestAnswer(parseEther('1'));
+
+  const tokenTwoDecimals = 8;
+  const tokenTwo = await ethers.deployContract('ERC20Mock');
+  await tokenTwo.setMetadata('MockUsdc', 'USDC', tokenTwoDecimals);
+
+  const tokenTwoAggregator = await ethers.deployContract('ChainlinkAggregatorMock');
+  await tokenTwoAggregator.setLatestAnswer(parseEther('1'));
+  await tokenTwoAggregator.setDecimals(8); // USD based aggregator
+
+  return {
+    ...fixture,
+    tokenOne,
+    tokenTwo,
+    tokenOneAggregator,
+    tokenTwoAggregator,
+  };
+}
 
 describe('addAsset', function () {
-  it('reverts when not called by goverance', async function () {
-    const fixture = await loadFixture(setup);
+  it('reverts when not called by governor', async function () {
+    const fixture = await loadFixture(addAssetSetup);
     const { pool } = fixture;
 
-    await expect(pool.addAsset(AddressZero, true, '0', '1', '0')).to.be.revertedWith(
-      'Caller is not authorized to govern',
-    );
-
-    await expect(pool.addAsset(AddressZero, false, '0', '1', '0')).to.be.revertedWith(
-      'Caller is not authorized to govern',
-    );
+    await expect(pool.addAsset(ZeroAddress, true, ZeroAddress, 0)).to.be.revertedWithCustomError(pool, 'Unauthorized');
   });
 
   it('reverts when asset address is zero address', async function () {
-    const fixture = await loadFixture(setup);
-    const { pool } = fixture;
-    const [governance] = fixture.accounts.governanceContracts;
+    const fixture = await loadFixture(addAssetSetup);
+    const { pool, governor } = fixture;
 
-    await expect(pool.connect(governance).addAsset(AddressZero, false, '0', '1', '0')).to.be.revertedWith(
-      'Pool: Asset is zero address',
+    await expect(pool.connect(governor).addAsset(ZeroAddress, false, ZeroAddress, 0)).to.be.revertedWithCustomError(
+      pool,
+      'AssetMustNotBeZeroAddress',
     );
   });
 
-  it('reverts when max < min', async function () {
-    const fixture = await loadFixture(setup);
-    const { pool, otherAsset } = fixture;
-    const [governance] = fixture.accounts.governanceContracts;
+  it('reverts when aggregator address is zero address', async function () {
+    const fixture = await loadFixture(addAssetSetup);
+    const { pool, governor, tokenOne } = fixture;
 
-    await expect(pool.connect(governance).addAsset(otherAsset.address, true, '1', '0', '0')).to.be.revertedWith(
-      'Pool: max < min',
+    await expect(pool.connect(governor).addAsset(tokenOne, false, ZeroAddress, 0)).to.be.revertedWithCustomError(
+      pool,
+      'AggregatorMustNotBeZeroAddress',
     );
   });
 
-  it('reverts when max slippage ratio > 1', async function () {
-    const fixture = await loadFixture(setup);
-    const { pool, otherAsset } = fixture;
-    const [governance] = fixture.accounts.governanceContracts;
-    await expect(
-      pool.connect(governance).addAsset(otherAsset.address, true, '0', '1', '10001' /* 100.01% */),
-    ).to.be.revertedWith('Pool: Max slippage ratio > 1');
+  it('reverts if incompatible aggregator decimals are used for ETH', async function () {
+    const fixture = await loadFixture(addAssetSetup);
+    const { pool, governor, tokenOne, tokenOneAggregator } = fixture;
 
-    // should work with slippage rate = 1
-    await pool.connect(governance).addAsset(otherAsset.address, true, '0', '1', '10000');
-  });
-
-  it('reverts when asset exists', async function () {
-    const fixture = await loadFixture(setup);
-    const { pool, dai } = fixture;
-    const [governance] = fixture.accounts.governanceContracts;
-
-    await expect(pool.connect(governance).addAsset(dai.address, false, '0', '1', '0')).to.be.revertedWith(
-      'Pool: Asset exists',
+    await expect(pool.connect(governor).addAsset(tokenOne, false, tokenOneAggregator, 1)).to.be.revertedWithCustomError(
+      pool,
+      'IncompatibleAggregatorDecimals',
     );
   });
 
-  it('reverts when asset lacks an oracle', async function () {
-    const fixture = await loadFixture(setup);
-    const { pool } = fixture;
-    const [governance] = fixture.accounts.governanceContracts;
+  it('reverts if incompatible aggregator decimals are used for USD', async function () {
+    const fixture = await loadFixture(addAssetSetup);
+    const { pool, governor, tokenTwo, tokenTwoAggregator } = fixture;
 
-    const arbitraryAddress = '0x47ec31abc6b86e49933dC7B2969EBEbE3De662cA';
-
-    await expect(pool.connect(governance).addAsset(arbitraryAddress, true, '0', '1', '0')).to.be.revertedWith(
-      'Pool: PriceFeedOracle lacks aggregator for asset',
+    await expect(pool.connect(governor).addAsset(tokenTwo, false, tokenTwoAggregator, 0)).to.be.revertedWithCustomError(
+      pool,
+      'IncompatibleAggregatorDecimals',
     );
   });
 
-  it('should add assets setting min, max, slippage ratio, and their bool flags', async function () {
-    const fixture = await loadFixture(setup);
-    const { pool, dai, stETH, enzymeVault, st } = fixture;
-    const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault, chainlinkEthUsdAsset } = fixture;
-    const [governance] = fixture.accounts.governanceContracts;
+  it('reverts asset already exists', async function () {
+    const fixture = await loadFixture(addAssetSetup);
+    const { pool, governor, usdc, usdcAggregator } = fixture;
 
-    const coverToken = await ethers.deployContract('ERC20Mock');
-    const clCoverToken = await ethers.deployContract('ChainlinkAggregatorMock');
-    await clCoverToken.setLatestAnswer(WeiPerEther);
+    await expect(pool.connect(governor).addAsset(usdc, false, usdcAggregator, 0)).to.be.revertedWithCustomError(
+      pool,
+      'AssetAlreadyExists',
+    );
+  });
 
-    const investmentToken = await ethers.deployContract('ERC20Mock');
-    const clInvestmentToken = await ethers.deployContract('ChainlinkAggregatorMock');
-    await clInvestmentToken.setLatestAnswer(WeiPerEther);
+  it('should add an asset', async function () {
+    const fixture = await loadFixture(addAssetSetup);
+    const { pool, governor, tokenOne, tokenOneAggregator } = fixture;
 
-    const priceFeedOracle = await ethers.deployContract('PriceFeedOracle', [
-      [dai, stETH, enzymeVault, coverToken, investmentToken, { address: Assets.ETH }].map(c => c.address),
-      [chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault, clCoverToken, clInvestmentToken, chainlinkEthUsdAsset].map(
-        c => c.address,
-      ),
-      [
-        AggregatorType.ETH,
-        AggregatorType.ETH,
-        AggregatorType.ETH,
-        AggregatorType.ETH,
-        AggregatorType.ETH,
-        AggregatorType.USD,
-      ],
-      [18, 18, 18, 18, 18, 18],
-      st.address,
-    ]);
+    await pool.connect(governor).addAsset(tokenOne.target, false, tokenOneAggregator.target, 0);
 
-    const assetsBefore = await pool.getAssets();
+    const tokenOneAsset = await pool.getAsset(3);
+    const tokenOneOracle = await pool.oracles(tokenOne);
 
-    await pool.connect(governance).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address);
-    await pool.connect(governance).addAsset(coverToken.address, true, '1', '2', '3');
-    await pool.connect(governance).addAsset(investmentToken.address, false, '4', '5', '6');
+    expect(tokenOneAsset.assetAddress).to.equal(tokenOne);
+    expect(tokenOneAsset.isCoverAsset).to.equal(false);
+    expect(tokenOneAsset.isAbandoned).to.equal(false);
 
-    const assets = await pool.getAssets();
-    const [ethAsset, daiAsset, stEthAsset, enzymeAsset, coverAsset, investmentAsset] = assets;
-
-    const coverAssetSwapDetails = await pool.getAssetSwapDetails(coverToken.address);
-    const investmentAssetSwapDetails = await pool.getAssetSwapDetails(investmentToken.address);
-
-    // initial assets should have not changed
-    expect([ethAsset, daiAsset, stEthAsset, enzymeAsset]).to.be.deep.equal(assetsBefore);
-
-    expect(coverAsset.assetAddress).to.be.equal(coverToken.address);
-    expect(coverAsset.isCoverAsset).to.be.equal(true);
-    expect(coverAsset.isAbandoned).to.be.equal(false);
-
-    expect(coverAssetSwapDetails.minAmount).to.be.equal(1);
-    expect(coverAssetSwapDetails.maxAmount).to.be.equal(2);
-    expect(coverAssetSwapDetails.maxSlippageRatio).to.be.equal(3);
-    expect(coverAssetSwapDetails.lastSwapTime).to.be.equal(0);
-
-    expect(investmentAsset.assetAddress).to.be.equal(investmentToken.address);
-    expect(investmentAsset.isCoverAsset).to.be.equal(false);
-    expect(coverAsset.isAbandoned).to.be.equal(false);
-
-    expect(investmentAssetSwapDetails.minAmount).to.be.equal(4);
-    expect(investmentAssetSwapDetails.maxAmount).to.be.equal(5);
-    expect(investmentAssetSwapDetails.maxSlippageRatio).to.be.equal(6);
-    expect(investmentAssetSwapDetails.lastSwapTime).to.be.equal(0);
+    expect(tokenOneOracle.aggregator).to.equal(tokenOneAggregator);
+    expect(tokenOneOracle.aggregatorType).to.equal(0);
+    expect(tokenOneOracle.assetDecimals).to.equal(6);
   });
 });

@@ -1,25 +1,33 @@
-const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { nexus, ethers } = require('hardhat');
+const { loadFixture, setBalance } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
-const { BigNumber } = ethers;
+const { setNextBlockTime } = require('../../utils/evm');
+const { calculateCurrentMCR } = nexus.pool;
+const { parseEther } = ethers;
+
+const stored = 12348870328212262601890n;
+const desired = 10922706197119349905840n;
+const updatedAt = 1751371403n;
 
 describe('getMCRRatio', function () {
-  it('gets MCR ratio value', async function () {
+  it('should return right MCR ratio', async function () {
     const fixture = await loadFixture(setup);
-    const { pool, mcr } = fixture;
-    const [member] = fixture.accounts.members;
+    const { pool, constants } = fixture;
 
-    const initialAssetValue = BigNumber.from('210959924071154460525457');
-    const mcrEth = BigNumber.from('162424730681679380000000');
+    const totalAssetValue = parseEther('10000');
+    await setBalance(await pool.target, totalAssetValue);
+    const { timestamp } = await ethers.provider.getBlock('latest');
 
-    await mcr.setMCR(mcrEth);
-    await member.sendTransaction({ to: pool.address, value: initialAssetValue });
+    const nextBlockTimestamp = BigInt(timestamp) + 86400n;
 
-    const expectedMCRRatio = initialAssetValue.mul(10000).div(mcrEth);
-    const calculatedMCRRatio = await pool.getMCRRatio();
+    const mcr = calculateCurrentMCR({ stored, desired, now: nextBlockTimestamp, updatedAt }, constants);
+    const expectedValue = (totalAssetValue * 10n ** constants.MCR_RATIO_DECIMALS) / mcr;
 
-    expect(calculatedMCRRatio).to.be.equal(expectedMCRRatio);
+    await setNextBlockTime(Number(nextBlockTimestamp));
+    const mcrRatio = await pool.getMCRRatio();
+
+    expect(mcrRatio).to.be.equal(expectedValue);
   });
 });

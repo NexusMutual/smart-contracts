@@ -1,94 +1,76 @@
-const { ethers } = require('hardhat');
-const { hex } = require('../../../lib/helpers');
-const { Role } = require('../../../lib/constants');
+const { ethers, nexus } = require('hardhat');
+const { loadFixture, setBalance } = require('@nomicfoundation/hardhat-network-helpers');
+
 const { getAccounts } = require('../../utils/accounts');
-const { impersonateAccount, setEtherBalance } = require('../utils').evm;
-const { parseEther } = ethers.utils;
+const { init } = require('../../init');
+
+const { ContractIndexes } = nexus.constants;
+const ONE_DAY = BigInt(24 * 60 * 60);
+const MIN_VOTING_PERIOD = 3n * ONE_DAY;
+const PRODUCT_TYPE_ID = 1n;
+const CLAIM_ID = 1;
+const IPFS_HASH = ethers.solidityPackedKeccak256(['string'], ['standard-ipfs-hash']);
 
 async function setup() {
+  await loadFixture(init);
   const accounts = await getAccounts();
-  const NXM = await ethers.getContractFactory('NXMTokenMock');
-  const nxm = await NXM.deploy();
-  await nxm.deployed();
 
-  const ASMockTokenController = await ethers.getContractFactory('ASMockTokenController');
-  const tokenController = await ASMockTokenController.deploy(nxm.address);
-  await tokenController.deployed();
+  // Deploy contracts
+  const registry = await ethers.deployContract('RegistryMock', []);
+  const assessment = await ethers.deployContract('Assessments', [registry]);
+  const claims = await ethers.deployContract('ASMockClaims', [registry]);
 
-  const ASMockIndividualClaims = await ethers.getContractFactory('ASMockIndividualClaims');
-  const individualClaims = await ASMockIndividualClaims.deploy();
-  await individualClaims.deployed();
+  // Add contracts in the registry
+  const [governanceAccount] = accounts.governanceContracts;
+  await registry.addContract(ContractIndexes.C_ASSESSMENTS, assessment.target, false);
+  await registry.addContract(ContractIndexes.C_CLAIMS, claims.target, false);
+  await registry.addContract(ContractIndexes.C_GOVERNOR, governanceAccount.address, false);
 
-  const ASMockRamm = await ethers.getContractFactory('RammMock');
-  const ramm = await ASMockRamm.deploy();
-  await ramm.deployed();
-
-  await nxm.setOperator(tokenController.address);
-
-  const Master = await ethers.getContractFactory('MasterMock');
-  const master = await Master.deploy();
-  await master.deployed();
-
-  const DAI = await ethers.getContractFactory('ERC20BlacklistableMock');
-  const dai = await DAI.deploy();
-  await dai.deployed();
-
-  const Assessment = await ethers.getContractFactory('Assessment');
-  const assessment = await Assessment.deploy(nxm.address);
-  await assessment.deployed();
-
-  const ASMockMemberRoles = await ethers.getContractFactory('ASMockMemberRoles');
-  const memberRoles = await ASMockMemberRoles.deploy();
-  await memberRoles.deployed();
-
-  const masterInitTxs = await Promise.all([
-    master.setLatestAddress(hex('TC'), tokenController.address),
-    master.setTokenAddress(nxm.address),
-    master.setLatestAddress(hex('CI'), individualClaims.address),
-    master.setLatestAddress(hex('AS'), assessment.address),
-    master.setLatestAddress(hex('MR'), memberRoles.address),
-    master.setLatestAddress(hex('RA'), ramm.address),
-    master.enrollInternal(individualClaims.address),
+  // Join assessors and members in the registry
+  const signature = ethers.toBeHex(0, 32);
+  await Promise.all([
+    ...accounts.assessors.map(a => registry.join(a.address, signature)),
+    ...accounts.members.map(a => registry.join(a.address, signature)),
   ]);
-  await Promise.all(masterInitTxs.map(x => x.wait()));
 
-  await assessment.changeMasterAddress(master.address);
-  await individualClaims.changeMasterAddress(master.address);
+  // Add assessors to a new assessor group
+  const newGroupId = 0; // 0 - new group
+  const assessorMemberIds = await Promise.all(accounts.assessors.map(a => registry.getMemberId(a.address)));
+  await assessment.connect(governanceAccount).addAssessorsToGroup(assessorMemberIds, newGroupId);
 
-  await assessment.changeDependentContractAddress();
-  await individualClaims.changeDependentContractAddress();
+  // Set assessing group for product types
+  // NOTE: mock claims sets product type to coverId, so we need to set for each coverId that is used in tests
+  const ASSESSOR_GROUP_ID = await assessment.getGroupsCount();
+  await assessment
+    .connect(governanceAccount)
+    .setAssessingGroupIdForProductTypes([PRODUCT_TYPE_ID, 2, 3, 4], ASSESSOR_GROUP_ID);
 
-  await master.enrollGovernance(accounts.governanceContracts[0].address);
-  for (const member of accounts.members) {
-    await master.enrollMember(member.address, Role.Member);
-    await memberRoles.enrollMember(member.address, Role.Member);
-    await nxm.mint(member.address, parseEther('10000'));
-    await nxm.connect(member).approve(tokenController.address, parseEther('10000'));
-  }
+  // Set cooldown and redemption periods
+  await claims.setCooldownAndRedemptionPeriod(ONE_DAY, 7n * ONE_DAY);
 
-  const config = {
-    minVotingPeriod: Number(await assessment.getMinVotingPeriod()),
-    payoutCooldown: Number(await assessment.getPayoutCooldown()),
-    silentEndingPeriod: Number(await assessment.getSilentEndingPeriod()),
-    stakeLockupPeriod: Number(await assessment.getStakeLockupPeriod()),
-  };
+  // Use a member account to submit the claim
+  const [coverOwner] = accounts.members;
+  await setBalance(coverOwner.address, ethers.parseEther('10'));
 
-  await impersonateAccount(tokenController.address);
-  await setEtherBalance(tokenController.address, parseEther('100'));
-  accounts.tokenControllerSigner = await ethers.getSigner(tokenController.address);
+  // Submit a claim using the cover owner account
+  await claims.connect(coverOwner).submitClaim(CLAIM_ID, ethers.parseEther('1'), IPFS_HASH);
+
+  // Give Claims contract ETH balance for tests that need to impersonate it
+  await setBalance(claims.target, ethers.parseEther('10'));
 
   return {
-    config,
     accounts,
     contracts: {
-      nxm,
-      dai,
       assessment,
-      master,
-      individualClaims,
-      tokenController,
-      memberRoles,
-      ramm,
+      registry,
+      claims,
+    },
+    constants: {
+      ASSESSOR_GROUP_ID,
+      PRODUCT_TYPE_ID,
+      CLAIM_ID,
+      MIN_VOTING_PERIOD,
+      IPFS_HASH,
     },
   };
 }

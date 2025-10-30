@@ -6,48 +6,28 @@ import "../../modules/capital/Ramm.sol";
 
 contract DisposableRamm is Ramm {
 
-  uint internal poolValue;
-  uint internal supply;
-  uint internal bondingCurveTokenPrice;
-
-  constructor(uint spotPriceB) Ramm(spotPriceB) {
+  constructor(address _registry, uint spotPriceB) Ramm(_registry, spotPriceB) {
     //
   }
 
   function initialize(
-    uint _poolValue,
-    uint _totalSupply,
-    uint _bondingCurveTokenPrice
+    State memory initialState,
+    uint initialPriceA,
+    uint initialPriceB
   ) external {
 
     require(slot1.updatedAt == 0, "DisposableRamm: Already initialized");
 
-    // initialize values
-    poolValue = _poolValue;
-    supply = _totalSupply;
-    bondingCurveTokenPrice = _bondingCurveTokenPrice;
+    super.storeState(initialState);
 
-    // set dependencies to point to self
-    internalContracts[uint(ID.P1)] = payable(address(this));
-    internalContracts[uint(ID.TC)] = payable(address(this));
-    internalContracts[uint(ID.MC)] = payable(address(this));
+    Observation[3] memory _observations = getInitialObservations(
+      initialPriceA,
+      initialPriceB,
+      initialState.timestamp
+    );
 
-    super.initialize();
-
-    slot1.swapPaused = false;
+    for (uint i = 0; i < _observations.length; i++) {
+      observations[i] = _observations[i];
+    }
   }
-
-  // fake pool functions
-  function getPoolValueInEth() external view returns (uint) {
-    return poolValue;
-  }
-
-  function totalSupply() external view returns (uint) {
-    return supply;
-  }
-
-  function getTokenPrice() external view returns (uint) {
-    return bondingCurveTokenPrice;
-  }
-
 }

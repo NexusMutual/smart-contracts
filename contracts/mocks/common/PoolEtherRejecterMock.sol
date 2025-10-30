@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.18;
 
-import "./PoolMock.sol";
+import "../generic/PoolGeneric.sol";
 
-contract PoolEtherRejecterMock is PoolMock {
+contract PoolEtherRejecterMock is PoolGeneric {
 
   receive() external payable override {
     revert("I secretly hate ether");

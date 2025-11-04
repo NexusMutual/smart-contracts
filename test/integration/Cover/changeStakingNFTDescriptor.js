@@ -5,29 +5,29 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 
 describe('changeStakingNFTDescriptor', function () {
-  it('should change stakingNFTDescriptor address', async function () {
+  it('should change stakingNFTDescriptor address via Governor', async function () {
     const fixture = await loadFixture(setup);
-    const { cover, stakingNFT } = fixture.contracts;
-    const [abMember] = fixture.accounts.advisoryBoardMembers;
+    const { cover, stakingNFT, governor } = fixture.contracts;
 
     const addressBefore = await stakingNFT.nftDescriptor();
     const newDescriptor = await ethers.deployContract('StakingNFTDescriptor');
 
-    await cover.connect(abMember).changeStakingNFTDescriptor(newDescriptor.target);
+    const governorSigner = await ethers.getSigner(governor.target);
+    await cover.connect(governorSigner).changeStakingNFTDescriptor(newDescriptor.target);
 
     const addressAfter = await stakingNFT.nftDescriptor();
     expect(addressAfter).to.not.be.equal(addressBefore);
     expect(addressAfter).to.equal(newDescriptor.target);
   });
 
-  it('should fail to change stakingNFTDescriptor address if the caller is not ab member', async function () {
+  it('should fail to change stakingNFTDescriptor address if the caller is not Governor', async function () {
     const fixture = await loadFixture(setup);
-    const { cover } = fixture.contracts;
+    const { cover, registry } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
     const newDescriptor = await ethers.deployContract('StakingNFTDescriptor');
 
     const changeStakingNFTDescriptor = cover.connect(member).changeStakingNFTDescriptor(newDescriptor.target);
-    await expect(changeStakingNFTDescriptor).to.be.revertedWith('Caller is not an advisory board member');
+    await expect(changeStakingNFTDescriptor).to.be.revertedWithCustomError(registry, 'ContractDoesNotExist');
   });
 });

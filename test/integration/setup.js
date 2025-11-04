@@ -314,7 +314,7 @@ async function setup() {
 
   // work done, switch to the real Governor, registry and Master contracts
   await registry.replaceGovernor(numberToBytes32(1337), governorImplementation);
-  const registryImplementation = await ethers.deployContract('Registry', [defaultSender.address, master]);
+  const registryImplementation = await ethers.deployContract('Registry', [registry.target, master]);
   await registryProxy.upgradeTo(registryImplementation);
   registry = await ethers.getContractAt('Registry', registryProxy);
 

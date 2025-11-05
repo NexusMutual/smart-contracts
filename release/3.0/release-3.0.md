@@ -114,8 +114,8 @@ ENABLE_OPTIMIZER=1 npx hardhat verify --network mainnet \
   * _stakingPoolImplementation = `0xcafeade1872f14adc0a03Ec7b0088b61D76ec729`
   * _verifyingAddress = `0xcafeac0fF5dA0A2777d915531bfA6B29d282Ee62`
 * Address brute force command
-  * Address: `0xcafea6DcD8Ef5836E300b4E62E9a90975b0477EA`
-  * Salt: 15283923
+  * Address: `0xcafea4A986A8d88dc63095034cE36bC8387A8534`
+  * Salt: 2295602
 ```bash
 ENABLE_OPTIMIZER=1 node scripts/create2/find-salt.js \
   -t cafea \

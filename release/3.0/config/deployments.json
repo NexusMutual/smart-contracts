@@ -104,8 +104,8 @@
     "salt": 2295602
   },
   "Cover": {
-    "expectedAddress": "0xcafea6DcD8Ef5836E300b4E62E9a90975b0477EA",
-    "salt": 15283923,
+    "expectedAddress": "0xcafea49C5a4aBae7731092B95a0B3590e3753891",
+    "salt": 22678373,
     "constructorArgs": [
       "0xcafea2c575550512582090AA06d0a069E7236b9e",
       "0xcafeade1872f14adc0a03Ec7b0088b61D76ec729",

@@ -1,11 +1,13 @@
 const { ethers, nexus } = require('hardhat');
-const { impersonateAccount, loadFixture, setBalance } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, setBalance, setStorageAt } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { init } = require('../init');
+const { getFundedSigner } = require('../fork/utils');
 
 const { parseEther, parseUnits, ZeroAddress, MaxUint256 } = ethers;
-const { ContractIndexes, ClaimMethod, AggregatorType, Assets } = nexus.constants;
+const { ContractIndexes, ClaimMethod, AggregatorType, Assets, PoolAsset } = nexus.constants;
 const { numberToBytes32 } = nexus.helpers;
+const { calculateFirstTrancheId } = nexus.protocol;
 
 const assignRoles = accounts => ({
   defaultSender: accounts[0],
@@ -32,7 +34,7 @@ async function setup() {
 
   // deploy external contracts
   const investmentSafe = await ethers.deployContract('ERC20Mock');
-  await setBalance(await investmentSafe.getAddress(), parseEther('1000'));
+  await setBalance(investmentSafe.target, parseEther('1000'));
 
   const weth = await ethers.deployContract('WETH9');
 
@@ -92,10 +94,10 @@ async function setup() {
 
   // stablecoins
   const chainlinkDAI = await ethers.deployContract('ChainlinkAggregatorMock');
-  await chainlinkDAI.setLatestAnswer(parseEther('1'));
+  await chainlinkDAI.setLatestAnswer(parseEther((1 / 4000).toString())); // 1 DAI = 1/4000 ETH
 
   const chainlinkUSDC = await ethers.deployContract('ChainlinkAggregatorMock');
-  await chainlinkUSDC.setLatestAnswer(parseEther('1'));
+  await chainlinkUSDC.setLatestAnswer(parseEther((1 / 4000).toString())); // 1 USDC = 1/4000 ETH
 
   // enzyme vault
   const chainlinkEnzymeVault = await ethers.deployContract('ChainlinkAggregatorMock');
@@ -153,7 +155,7 @@ async function setup() {
 
   const stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [stakingProductsAddress]);
 
-  const coverNFTDescriptor = await ethers.deployContract('CoverNFTDescriptor', [coverAddress]);
+  const coverNFTDescriptor = await ethers.deployContract('CoverNFTDescriptor', [master.target]);
   const coverNFT = await ethers.deployContract('CoverNFT', [
     'Nexus Mutual Cover',
     'NMC',
@@ -280,42 +282,41 @@ async function setup() {
   const ramm = await getContract(ContractIndexes.C_RAMM, 'Ramm');
 
   const assets = [
-    { asset: Assets.ETH, isCoverAsset: true, oracle: chainlinkEthUsd, type: AggregatorType.USD },
-    { asset: dai, isCoverAsset: true, oracle: chainlinkDAI, type: AggregatorType.ETH },
-    { asset: stETH, isCoverAsset: true, oracle: chainlinkSteth, type: AggregatorType.ETH },
-    { asset: rETH, isCoverAsset: true, oracle: chainlinkReth, type: AggregatorType.ETH },
-    { asset: enzymeVault, isCoverAsset: true, oracle: chainlinkEnzymeVault, type: AggregatorType.ETH },
-    { asset: usdc, isCoverAsset: true, oracle: chainlinkUSDC, type: AggregatorType.ETH },
-    { asset: safeTracker, isCoverAsset: true, oracle: safeTracker, type: AggregatorType.ETH },
-    { asset: cbBTC, isCoverAsset: true, oracle: chainlinkCbBTC, type: AggregatorType.USD },
-    { asset: aWETH, isCoverAsset: true, oracle: chainlinkAweth, type: AggregatorType.ETH },
-    { asset: debtUsdc, isCoverAsset: true, oracle: chainlinkUSDC, type: AggregatorType.ETH },
+    { asset: Assets.ETH, isCoverAsset: true, oracle: chainlinkEthUsd, type: AggregatorType.USD }, // 0 - ETH
+    { asset: dai, isCoverAsset: true, oracle: chainlinkDAI, type: AggregatorType.ETH }, // 1 - DAI
+    { asset: stETH, isCoverAsset: true, oracle: chainlinkSteth, type: AggregatorType.ETH }, // 2 - stETH
+    { asset: enzymeVault, isCoverAsset: true, oracle: chainlinkEnzymeVault, type: AggregatorType.ETH }, // 3 - NXMTY
+    { asset: rETH, isCoverAsset: true, oracle: chainlinkReth, type: AggregatorType.ETH }, // 4 - rETH
+    { asset: safeTracker, isCoverAsset: true, oracle: safeTracker, type: AggregatorType.ETH }, // 5 - safeTracker
+    { asset: usdc, isCoverAsset: true, oracle: chainlinkUSDC, type: AggregatorType.ETH }, // 6 - USDC
+    { asset: cbBTC, isCoverAsset: true, oracle: chainlinkCbBTC, type: AggregatorType.USD }, // 7 - cbBTC
   ];
 
   for (const assetDetails of assets) {
-    await pool.addAsset(
-      assetDetails.asset,
-      assetDetails.isCoverAsset,
-      await assetDetails.oracle.getAddress(),
-      assetDetails.type,
-    );
+    await pool.addAsset(assetDetails.asset, assetDetails.isCoverAsset, assetDetails.oracle.target, assetDetails.type);
   }
 
-  const masterAwareContracts = [ContractIndexes.C_COVER_PRODUCTS, ContractIndexes.C_STAKING_PRODUCTS];
+  const masterSigner = await getFundedSigner(master.target);
+  const masterAwareContracts = [
+    ContractIndexes.C_COVER_PRODUCTS,
+    ContractIndexes.C_LIMIT_ORDERS,
+    ContractIndexes.C_STAKING_PRODUCTS,
+  ];
 
   for (const contract of masterAwareContracts) {
     const contractAddress = await registry.getContractAddressByIndex(contract);
     const masterAwareContract = await ethers.getContractAt('IMasterAwareV2', contractAddress);
-    await masterAwareContract.changeMasterAddress(masterProxy);
+    await masterAwareContract.connect(masterSigner).changeMasterAddress(masterProxy);
     await masterAwareContract.changeDependentContractAddress();
   }
 
-  const coverBroker = await ethers.deployContract('CoverBroker', [registry, defaultSender.address]);
+  const coverBroker = await ethers.deployContract('CoverBroker', [registry.target, defaultSender.address]);
   await registry.addMembers([coverBroker]);
 
   // work done, switch to the real Governor, registry and Master contracts
-  await registry.replaceGovernor(numberToBytes32(1337), governorImplementation);
-  const registryImplementation = await ethers.deployContract('Registry', [defaultSender.address, master]);
+  const salt = numberToBytes32(1337);
+  await registry.replaceGovernor(salt, governorImplementation);
+  const registryImplementation = await ethers.deployContract('Registry', [registry.target, master]);
   await registryProxy.upgradeTo(registryImplementation);
   registry = await ethers.getContractAt('Registry', registryProxy);
 
@@ -365,23 +366,31 @@ async function setup() {
   await enzymeVault.mint(pool, parseEther('15000'));
 
   // mint safeTracker funds
-
-  await setBalance(await safeTracker.getAddress(), parseEther('100')); // 100 eth
-
+  await setBalance(safeTracker.target, parseEther('100')); // 100 eth
   await weth.deposit({ value: parseEther('100') }); // create 100 weth
   await weth.transfer(safeTracker, parseEther('100'));
-
   await aWETH.mint(safeTracker, parseEther('100')); // 100 eth collateral ~= 250k usd
   await debtUsdc.mint(safeTracker, parseUnits('50000', debtUsdcDecimals)); // 50k usdc debt
-  await usdc.mint(safeTracker, parseUnits('10000', usdcDecimals)); // 10k usdc
+  await usdc.mint(safeTracker, parseUnits('100000', usdcDecimals)); // 100k USDC
+  await cbBTC.mint(safeTracker, parseUnits('100000', cbBTCDecimals)); // 100k cbBTC
 
-  await impersonateAccount(tokenController.target);
-  const tokenControllerSigner = await ethers.getSigner(tokenController.target);
+  // whitelist members
+  const tokenControllerSigner = await getFundedSigner(tokenController.target);
   await setBalance(tokenController.target, parseEther('10000'));
 
-  for (const account of [...accounts.members, ...accounts.advisoryBoardMembers, ...accounts.stakingPoolManagers]) {
+  for (const account of [
+    ...accounts.members,
+    ...accounts.advisoryBoardMembers,
+    ...accounts.stakingPoolManagers,
+    limitOrders.target,
+  ]) {
     await token.connect(tokenControllerSigner).addToWhiteList(account);
   }
+
+  // mint members NXM tokens
+  const [member] = accounts.members;
+  await token.connect(tokenControllerSigner).mint(member.address, parseEther('10000'));
+  await token.connect(member).approve(tokenController.target, parseEther('10000'));
 
   await setBalance(tokenController.target, parseEther('0'));
 
@@ -471,7 +480,7 @@ async function setup() {
         productType: 1, // Custody Cover
         minPrice: 0,
         __gap: 0,
-        coverAssets: 0, // Use fallback
+        coverAssets: 0, // Use fallback (all supported assets)
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
         isDeprecated: false,
@@ -487,7 +496,7 @@ async function setup() {
         productType: 0, // Protocol Cover
         minPrice: 0,
         __gap: 0,
-        coverAssets: 0, // Use fallback
+        coverAssets: 0, // Use fallback (all supported assets)
         initialPriceRatio: 500,
         capacityReductionRatio: 0,
         isDeprecated: false,
@@ -503,7 +512,7 @@ async function setup() {
         productType: 0, // Protocol Cover
         minPrice: 0,
         __gap: 0,
-        coverAssets: 0b10000, // use usdc
+        coverAssets: (1 << PoolAsset.ETH) | (1 << PoolAsset.USDC) | (1 << PoolAsset.cbBTC),
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
         isDeprecated: false,
@@ -519,7 +528,7 @@ async function setup() {
         productType: 0, // Protocol Cover
         minPrice: 0,
         __gap: 0,
-        coverAssets: 0, // Use fallback
+        coverAssets: 0, // Use fallback (all supported assets)
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
         isDeprecated: true,
@@ -535,7 +544,7 @@ async function setup() {
         productType: 0, // Protocol Cover
         minPrice: 0,
         __gap: 0,
-        coverAssets: 0, // Use fallback
+        coverAssets: 0, // Use fallback (all supported assets)
         initialPriceRatio: 200,
         capacityReductionRatio: 0,
         isDeprecated: false,
@@ -547,7 +556,7 @@ async function setup() {
 
   await coverProducts.connect(abMember).setProducts(products);
 
-  const stakingPoolProduct = {
+  const stakingPoolProduct0 = {
     productId: 0,
     recalculateEffectiveWeight: true,
     setTargetWeight: true,
@@ -556,28 +565,105 @@ async function setup() {
     targetPrice: 100,
   };
 
+  const stakingPoolProduct2 = {
+    productId: 2, // supports ETH, USDC and cbBTC
+    recalculateEffectiveWeight: true,
+    setTargetWeight: true,
+    targetWeight: 100,
+    setTargetPrice: true,
+    targetPrice: 100,
+  };
+
+  const productIdWithBumpedPrice = products.findIndex(
+    p => stakingPoolProduct0.targetPrice !== p.product.initialPriceRatio && !p.product.useFixedPrice,
+  );
+  const productIdWithFixedPrice = products.findIndex(
+    p => stakingPoolProduct0.targetPrice !== p.product.initialPriceRatio && p.product.useFixedPrice,
+  );
+  const productIdIsDeprecated = products.findIndex(p => p.product.isDeprecated);
+
   for (let i = 0; i < 5; i++) {
     const poolId = i + 1;
-    await stakingProducts.connect(stakingPoolManagers[i]).setProducts(poolId, [stakingPoolProduct]);
+    const stakedProducts = [
+      stakingPoolProduct0,
+      stakingPoolProduct2,
+      { ...stakingPoolProduct0, productId: productIdWithBumpedPrice },
+      { ...stakingPoolProduct0, productId: productIdIsDeprecated },
+    ];
+    if ([1, 3].includes(poolId)) {
+      // only pool 1 and 3 for product 1 fixed price
+      stakedProducts.push({ ...stakingPoolProduct0, productId: productIdWithFixedPrice });
+    }
+    await stakingProducts.connect(stakingPoolManagers[i]).setProducts(poolId, stakedProducts);
   }
 
+  const staker = defaultSender;
+  const stakeAmount = parseEther('900000');
+  const latestBlock = await ethers.provider.getBlock('latest');
+  const firstActiveTrancheId = calculateFirstTrancheId(latestBlock, 30 * 24 * 3600, 0); // 30 days period, 0 gracePeriod
+  const trancheId = firstActiveTrancheId + 5;
+
+  // Add stake capacity to pools 1, 2, and 3 for product 0
+  await token.connect(staker).approve(tokenController, MaxUint256);
+  const depositParams = [stakeAmount, trancheId, 0, staker.address];
+  const tokenId1 = await fixture.contracts.stakingPool1.connect(staker).depositTo.staticCall(...depositParams);
+  const tokenId2 = await fixture.contracts.stakingPool2.connect(staker).depositTo.staticCall(...depositParams);
+  const tokenId3 = await fixture.contracts.stakingPool3.connect(staker).depositTo.staticCall(...depositParams);
+
+  await fixture.contracts.stakingPool1.connect(staker).depositTo(...depositParams);
+  await fixture.contracts.stakingPool2.connect(staker).depositTo(...depositParams);
+  await fixture.contracts.stakingPool3.connect(staker).depositTo(...depositParams);
+
+  // Set pool MCR
+  const mcrStorageSlot = 3;
+  const storedMcr = parseEther('5000');
+  const desiredMcr = parseEther('3000');
+
+  const packedMcrData = ethers.solidityPacked(
+    ['uint80', 'uint80', 'uint32'],
+    [storedMcr, desiredMcr, latestBlock.timestamp],
+  );
+
+  await setStorageAt(pool.target, mcrStorageSlot, ethers.zeroPadValue(packedMcrData, 32));
+
+  // LimitOrders
+  await limitOrders.maxApproveTokenControllerContract();
+  await limitOrders.maxApproveCoverContract(usdc.target);
+
   const config = {
-    TRANCHE_DURATION: await fixture.contracts.stakingPool1.TRANCHE_DURATION(),
     MAX_RENEWABLE_PERIOD_BEFORE_EXPIRATION:
       await fixture.contracts.limitOrders.MAX_RENEWABLE_PERIOD_BEFORE_EXPIRATION(),
-    BUCKET_SIZE: BigInt(7 * 24 * 3600), // 7 days
-    BUCKET_DURATION: BigInt(28 * 24 * 3600), // 28 days
-    GLOBAL_REWARDS_RATIO: 5000n, // 50%
-    COMMISSION_DENOMINATOR: 10000n,
     TARGET_PRICE_DENOMINATOR: await stakingProducts.TARGET_PRICE_DENOMINATOR(),
+    TARGET_PRICE: stakingPoolProduct0.targetPrice,
     ONE_NXM: parseEther('1'),
     NXM_PER_ALLOCATION_UNIT: await fixture.contracts.stakingPool1.NXM_PER_ALLOCATION_UNIT(),
     USDC_DECIMALS: usdcDecimals,
+    STAKE_AMOUNT: stakeAmount,
+    // Cover constants
+    BUCKET_SIZE: BigInt(7 * 24 * 3600), // 7 days
+    GLOBAL_REWARDS_RATIO: 5000n, // 50%
+    COMMISSION_DENOMINATOR: 10000n,
+    // StakingPool constants
+    BUCKET_DURATION: await fixture.contracts.stakingPool1.BUCKET_DURATION(),
+    TRANCHE_DURATION: await fixture.contracts.stakingPool1.TRANCHE_DURATION(),
+    GLOBAL_CAPACITY_DENOMINATOR: await fixture.contracts.stakingPool1.GLOBAL_CAPACITY_DENOMINATOR(),
+    CAPACITY_REDUCTION_DENOMINATOR: await fixture.contracts.stakingPool1.CAPACITY_REDUCTION_DENOMINATOR(),
+    WEIGHT_DENOMINATOR: await fixture.contracts.stakingPool1.WEIGHT_DENOMINATOR(),
+    // MCR values set in setup
+    INITIAL_STORED_MCR: storedMcr,
+    INITIAL_DESIRED_MCR: desiredMcr,
   };
 
   fixture.config = config;
   fixture.accounts = accounts;
+
+  fixture.tokenIds = [tokenId1, tokenId2, tokenId3];
+  fixture.stakeAmount = stakeAmount;
+  fixture.trancheIds = [[trancheId], [trancheId], [trancheId]];
+  fixture.trancheId = trancheId;
+
   fixture.products = products;
+  fixture.stakedProducts = [stakingPoolProduct0, stakingPoolProduct2];
 
   return fixture;
 }

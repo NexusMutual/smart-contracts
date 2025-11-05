@@ -246,7 +246,9 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
     {
       uint nxmPriceInCoverAsset = pool.getInternalTokenPriceInAssetAndUpdateTwap(params.coverAsset);
       uint amountDueInNXM = _createCover(params, poolAllocationRequests, coverId, nxmPriceInCoverAsset);
-      premiumInPaymentAsset = nxmPriceInCoverAsset * amountDueInNXM / ONE_NXM;
+      premiumInPaymentAsset = params.coverAsset == params.paymentAsset
+        ? nxmPriceInCoverAsset * amountDueInNXM / ONE_NXM
+        : amountDueInNXM;
     }
 
     _retrievePayment(

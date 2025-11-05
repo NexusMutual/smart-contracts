@@ -87,7 +87,14 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
 
     const product = await stakingProducts.getProduct(1, productId);
     const ethRate = await getInternalPrice(ramm, pool, tokenController, nextBlockTimestamp);
-    const { premiumInAsset } = calculatePremium(amount, ethRate, period, product.bumpedPrice, NXM_PER_ALLOCATION_UNIT);
+    const { premiumInAsset } = calculatePremium(
+      amount,
+      ethRate,
+      period,
+      product.bumpedPrice,
+      NXM_PER_ALLOCATION_UNIT,
+      coverAsset,
+    );
 
     // Compute expectedActiveWeight given how much the cover is worth in NXM and existing capacity
     const coverAmountInNXM = roundUpToMultiple(divCeil(amount * ONE_NXM, ethRate), NXM_PER_ALLOCATION_UNIT);
@@ -180,6 +187,7 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
         period,
         product.bumpedPrice,
         NXM_PER_ALLOCATION_UNIT,
+        coverAsset,
       );
 
       const buyCoverParams = buyCoverFixture({
@@ -236,6 +244,7 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
         period,
         product.bumpedPrice,
         NXM_PER_ALLOCATION_UNIT,
+        coverAsset,
       );
 
       const buyCoverParams = buyCoverFixture({

@@ -88,6 +88,7 @@ describe('CoverNFTDescriptor', function () {
       period,
       usdcProduct.bumpedPrice,
       fixture.config.NXM_PER_ALLOCATION_UNIT,
+      PoolAsset.USDC,
     );
 
     await usdc.connect(coverBuyer).approve(cover.target, ethers.MaxUint256);
@@ -139,6 +140,7 @@ describe('CoverNFTDescriptor', function () {
       period,
       cbBTCProduct.bumpedPrice,
       fixture.config.NXM_PER_ALLOCATION_UNIT,
+      PoolAsset.cbBTC,
     );
 
     await cbBTC.connect(coverBuyer).approve(cover.target, ethers.MaxUint256);

@@ -41,9 +41,17 @@ async function generateStakeRewards(fixture) {
     amount - (amount / 3n) * 2n, // whatever's left
   ];
 
-  const premiumInNxmPerPool = coverAmountAllocationsPerPool.map(
-    amount => calculatePremium(amount, nxmPrice, period, product.bumpedPrice, NXM_PER_ALLOCATION_UNIT).premiumInNxm,
-  );
+  const premiumInNxmPerPool = coverAmountAllocationsPerPool.map(amount => {
+    const { premiumInNxm } = calculatePremium(
+      amount,
+      nxmPrice,
+      period,
+      product.bumpedPrice,
+      NXM_PER_ALLOCATION_UNIT,
+      PoolAsset.ETH,
+    );
+    return premiumInNxm;
+  });
 
   const premiumInNxm = premiumInNxmPerPool.reduce((total, premiumInNxm) => total + premiumInNxm, 0n);
   const premiumInAsset = (premiumInNxm * nxmPrice) / parseEther('1');

@@ -104,6 +104,7 @@ describe('LimitOrders - executeOrder', function () {
       period,
       product.targetPrice,
       NXM_PER_ALLOCATION_UNIT,
+      PoolAsset.USDC,
     );
 
     const solverFee = ethers.parseUnits('10', 6);
@@ -196,6 +197,7 @@ describe('LimitOrders - executeOrder', function () {
       period,
       product.targetPrice,
       NXM_PER_ALLOCATION_UNIT,
+      PoolAsset.ETH,
     );
 
     // get balances before
@@ -302,6 +304,7 @@ describe('LimitOrders - executeOrder', function () {
       period,
       product.targetPrice,
       NXM_PER_ALLOCATION_UNIT,
+      PoolAsset.NXM,
     );
 
     // before balances

@@ -1,6 +1,6 @@
 {
   "name": "@nexusmutual/deployments",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Nexus Mutual deployed contract addresses and abis",
   "typings": "./dist/index.d.ts",
   "main": "./dist/index.js",

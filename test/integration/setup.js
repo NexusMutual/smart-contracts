@@ -1,12 +1,8 @@
 const { ethers, nexus } = require('hardhat');
-const {
-  impersonateAccount,
-  loadFixture,
-  setBalance,
-  setStorageAt,
-} = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, setBalance, setStorageAt } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { init } = require('../init');
+const { getFundedSigner } = require('../fork/utils');
 
 const { parseEther, parseUnits, ZeroAddress, MaxUint256 } = ethers;
 const { ContractIndexes, ClaimMethod, AggregatorType, Assets, PoolAsset } = nexus.constants;
@@ -300,16 +296,21 @@ async function setup() {
     await pool.addAsset(assetDetails.asset, assetDetails.isCoverAsset, assetDetails.oracle.target, assetDetails.type);
   }
 
-  const masterAwareContracts = [ContractIndexes.C_COVER_PRODUCTS, ContractIndexes.C_STAKING_PRODUCTS];
+  const masterSigner = await getFundedSigner(master.target);
+  const masterAwareContracts = [
+    ContractIndexes.C_COVER_PRODUCTS,
+    ContractIndexes.C_LIMIT_ORDERS,
+    ContractIndexes.C_STAKING_PRODUCTS,
+  ];
 
   for (const contract of masterAwareContracts) {
     const contractAddress = await registry.getContractAddressByIndex(contract);
     const masterAwareContract = await ethers.getContractAt('IMasterAwareV2', contractAddress);
-    await masterAwareContract.changeMasterAddress(masterProxy);
+    await masterAwareContract.connect(masterSigner).changeMasterAddress(masterProxy);
     await masterAwareContract.changeDependentContractAddress();
   }
 
-  const coverBroker = await ethers.deployContract('CoverBroker', [registry, defaultSender.address]);
+  const coverBroker = await ethers.deployContract('CoverBroker', [registry.target, defaultSender.address]);
   await registry.addMembers([coverBroker]);
 
   // work done, switch to the real Governor, registry and Master contracts
@@ -373,8 +374,7 @@ async function setup() {
   await cbBTC.mint(safeTracker, parseUnits('100000', cbBTCDecimals)); // 100k cbBTC
 
   // whitelist members
-  await impersonateAccount(tokenController.target);
-  const tokenControllerSigner = await ethers.getSigner(tokenController.target);
+  const tokenControllerSigner = await getFundedSigner(tokenController.target);
   await setBalance(tokenController.target, parseEther('10000'));
 
   for (const account of [
@@ -626,8 +626,6 @@ async function setup() {
   await setStorageAt(pool.target, mcrStorageSlot, ethers.zeroPadValue(packedMcrData, 32));
 
   // LimitOrders
-  await limitOrders.changeMasterAddress(master.target);
-  await limitOrders.changeDependentContractAddress();
   await limitOrders.maxApproveTokenControllerContract();
   await limitOrders.maxApproveCoverContract(usdc.target);
 

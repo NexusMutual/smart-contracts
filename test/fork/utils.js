@@ -7,6 +7,7 @@ const {
   setNextBlockBaseFeePerGas,
   time,
 } = require('@nomicfoundation/hardhat-network-helpers');
+const { getDeploymentBytecode, calculateCreate2Address } = require('../../scripts/create2/deploy');
 
 const {
   AbiCoder,
@@ -52,6 +53,7 @@ const Addresses = {
   // misc
   ADVISORY_BOARD_MULTISIG: '0x51ad1265C8702c9e96Ea61Fe4088C2e22eD4418e',
   KYC_AUTH_ADDRESS: '0x176c27973E0229501D049De626d50918ddA24656',
+  CREATE2_FACTORY: '0xfac7011663910F75CbE1E25539ec2D7529f93C3F',
   // Safe DELEGATECALL txes
   // https://docs.safe.global/advanced/smart-account-supported-networks?service=Transaction+Service&expand=1
   MULTISEND: '0xA83c336B20401Af773B6219BA5027174338D1836',
@@ -133,7 +135,8 @@ const createSafeExecutor = async multisigAddress => {
   safe = safe.connect(ownerSigner);
 
   // sets threshold to 1
-  await setStorageAt(multisigAddress, 4, 1);
+  const setStorageAtFn = network.name === 'tenderly' ? tenderlySetStorageAt : setStorageAt;
+  await setStorageAtFn(multisigAddress, 4, 1);
 
   /**
    * @param {{ to: string, value?: bigint | number | string, data?: string }[]} txs
@@ -144,7 +147,9 @@ const createSafeExecutor = async multisigAddress => {
   const executeSafeTransaction = async (txs, value = 0n, overrides = {}) => {
     const blob = concat(txs.map(packMultiSendTx));
     const data = multiSendIface.encodeFunctionData('multiSend', [blob]);
-    await setNextBlockBaseFeePerGas(0);
+    if (network.name !== 'tenderly') {
+      await setNextBlockBaseFeePerGas(0);
+    }
 
     return safe.execTransaction(
       Addresses.MULTISEND,
@@ -218,6 +223,49 @@ const getImplementation = async proxyAddress => {
   return await proxy.implementation();
 };
 
+/**
+ * Deploy a contract using CREATE2 factory
+ * @param {string} contractName - Name of the contract to deploy
+ * @param {Object} config - Configuration object with expectedAddress, salt, constructorArgs, libraries
+ * @param {string} factoryAddress - CREATE2 factory address (optional)
+ * @returns {Promise<Contract>} Deployed contract instance
+ */
+const deployCreate2 = async (
+  contractName,
+  { expectedAddress, salt, constructorArgs = [], libraries = {} },
+  factoryAddress = Addresses.CREATE2_FACTORY,
+) => {
+  const bytecode = await getDeploymentBytecode({
+    contract: contractName,
+    constructorArgs,
+    libraries,
+  });
+
+  const calculatedAddress = calculateCreate2Address(factoryAddress, salt, bytecode);
+
+  assert.strictEqual(
+    calculatedAddress.toLowerCase(),
+    expectedAddress.toLowerCase(),
+    `Expected address ${expectedAddress} but calculated ${calculatedAddress}`,
+  );
+
+  const deployerFactory = await ethers.getContractAt('Deployer', factoryAddress);
+  const deployTx = await deployerFactory.deployAt(bytecode, salt, expectedAddress);
+  await deployTx.wait();
+
+  const deployedCode = await ethers.provider.getCode(expectedAddress);
+  assert(deployedCode !== '0x', `Contract deployment failed - no code at expected address ${expectedAddress}`);
+
+  return ethers.getContractAt(contractName, expectedAddress);
+};
+
+/**
+ * tenderly_setStorageAt must be 32-byte padded slot which is different from the conventional setStorageAt
+ */
+const tenderlySetStorageAt = async (address, slot, value) => {
+  return ethers.provider.send('tenderly_setStorageAt', [address, toBeHex(slot, 32), toBeHex(value, 32)]);
+};
+
 module.exports = {
   Addresses,
   submitGovernanceProposal,
@@ -231,4 +279,6 @@ module.exports = {
   setUSDCBalance,
   setCbBTCBalance,
   getImplementation,
+  deployCreate2,
+  tenderlySetStorageAt,
 };

@@ -17,6 +17,7 @@ require('./tasks');
 
 /** @type import('hardhat/config').HardhatUserConfig */
 const config = {
+  defaultNetwork: process.env.HARDHAT_NETWORK || 'hardhat',
   contractSizer: {
     alphaSort: true,
     runOnCompile: false,

@@ -997,8 +997,8 @@ describe('basic functionality tests', function () {
     // this test verifies the scenario in which a critical vulnerability is detected
     // system is paused, system is upgraded, and system is resumed
 
-    const emergencyAdmin1 = await getFundedSigner(Addresses.EMERGENCY_ADMIN_1);
-    const emergencyAdmin2 = await getFundedSigner(Addresses.EMERGENCY_ADMIN_2);
+    const emergencyAdmin1 = await getFundedSigner(this.admins[0]);
+    const emergencyAdmin2 = await getFundedSigner(this.admins[1]);
 
     await this.registry.connect(emergencyAdmin1).proposePauseConfig(1);
     await this.registry.connect(emergencyAdmin2).confirmPauseConfig(1);

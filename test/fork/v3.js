@@ -12,6 +12,7 @@ const {
   revertToSnapshot,
   submitGovernanceProposal,
 } = require('./utils');
+const deployments = require('../../release/3.0/config/deployments.json');
 
 const { AbiCoder, deployContract, encodeBytes32String, parseEther, parseUnits, toBeHex, toUtf8Bytes } = ethers;
 const { ContractCode, ContractIndexes, ProposalCategory } = nexus.constants;
@@ -22,6 +23,7 @@ const defaultAbiCoder = AbiCoder.defaultAbiCoder();
 // "false", "0" and empty strings are evaluated as false
 const truthy = v => !/^(false|0|)$/i.test((v || '').trim());
 const FAST_MIGRATION = truthy(process.env.FAST_MIGRATION);
+const REGISTRY_PROXY = '0xcafea2c575550512582090AA06d0a069E7236b9e';
 
 async function getPoolBalances(thisParam, poolAddress, prefix) {
   // Check old pool balances to see if migration worked
@@ -113,7 +115,7 @@ describe('v3 launch', function () {
     Object.entries(addresses).forEach(([k, v]) => (tracer.nameTags[v] = `#[${k}]`));
   });
 
-  it('Impersonate AB members', async function () {
+  it.skip('Impersonate AB members', async function () {
     const { memberArray: members } = await this.memberRoles.members(1);
     this.abMembers = [];
     for (const address of members) {
@@ -121,8 +123,18 @@ describe('v3 launch', function () {
     }
   });
 
+  it('Impersonate AB members pulling addresses from Registry', async function () {
+    this.abMembers = [];
+    this.registry = await ethers.getContractAt('Registry', REGISTRY_PROXY);
+
+    for (let seat = 1; seat <= 5; seat++) {
+      const memberAddress = await this.registry.getMemberAddressBySeat(seat);
+      this.abMembers.push(await getFundedSigner(memberAddress));
+    }
+  });
+
   // push legacy governance rewards
-  require('../../scripts/v3-migration/push-governance-rewards');
+  // require('../../scripts/v3-migration/push-governance-rewards');
 
   // Phase 0
   //   - push old governance rewards
@@ -140,7 +152,7 @@ describe('v3 launch', function () {
   //      - upgrade NXMaster
   //      - master.transferOwnershipToRegistry
   //      - registry.migrate
-  it('should run phase 0 and 1', async function () {
+  it.skip('should run phase 0 and 1', async function () {
     // @TODO: push old governance rewards
     // @TODO: calculate salts for registry and registry proxy
 
@@ -238,6 +250,17 @@ describe('v3 launch', function () {
     this.tGovernor = await ethers.getContractAt('TemporaryGovernance', governorAddress);
   });
 
+  it('initialize contracts from phase 1', async function () {
+    this.registryProxy = await ethers.getContractAt('UpgradeableProxy', REGISTRY_PROXY);
+    this.registry = await ethers.getContractAt('Registry', REGISTRY_PROXY);
+
+    const governanceAddress = await this.master.getLatestAddress(toBytes2('GV'));
+    this.tGovernance = await ethers.getContractAt('TemporaryGovernance', governanceAddress);
+
+    const governorAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_GOVERNOR);
+    this.tGovernor = await ethers.getContractAt('TemporaryGovernance', governorAddress);
+  });
+
   // Phase 2
   //   - push legacy assessment stake and rewards
   //   - legacyMemberRoles.migrateMembers (including AB members)
@@ -245,12 +268,10 @@ describe('v3 launch', function () {
   //   - deploy new P1, SO, RA, ST, AS, CL implementations
 
   // push legacy assessment stake and rewards
-  require('../../scripts/v3-migration/push-assessment-stake');
-  require('../../scripts/v3-migration/push-assessment-rewards');
+  // require('../../scripts/v3-migration/push-assessment-stake');
+  // require('../../scripts/v3-migration/push-assessment-rewards');
 
-  it('should run phase 2', async function () {
-    const SAFE_ADDRESS = '0x51ad1265C8702c9e96Ea61Fe4088C2e22eD4418e';
-
+  it('should run phase 2: migrate members', async function () {
     // memberRoles.migrateMembers (including AB members)
     this.memberRoles = await ethers.getContractAt('LegacyMemberRoles', this.memberRoles);
 
@@ -303,7 +324,9 @@ describe('v3 launch', function () {
     for (const address of abMembers) {
       expect(await this.registry.isAdvisoryBoardMember(address)).to.equal(true, `AB member ${address} not migrated`);
     }
+  });
 
+  it.skip('should run phase 2: deploy contracts', async function () {
     const poolImplementation = await deployContract('Pool', [this.registry.target]);
     const swapOperatorImplementation = await deployContract('SwapOperator', [
       this.registry.target,
@@ -318,7 +341,7 @@ describe('v3 launch', function () {
     const safeTrackerImplementation = await deployContract('SafeTracker', [
       this.registry.target,
       parseUnits('25000000', 6), // investmentLimit
-      SAFE_ADDRESS,
+      Addresses.ADVISORY_BOARD_MULTISIG,
       Addresses.USDC_ADDRESS,
       Addresses.WETH_ADDRESS,
       Addresses.AWETH_ADDRESS,
@@ -334,6 +357,17 @@ describe('v3 launch', function () {
       this.cover,
     ]);
 
+    const limitOrdersImplementation = await deployContract('LimitOrders', [
+      addresses.NXMToken,
+      addresses.wETH,
+      '0xA2dB05Ab09b00725f0C0327df6EFcbdA3F584C97', // internal solver
+    ]);
+
+    const stakingProductsImplementation = await deployContract('StakingProducts', [
+      addresses.Cover,
+      addresses.StakingPoolFactory,
+    ]);
+
     this.contractUpgrades = [
       { index: ContractIndexes.C_POOL, address: poolImplementation.target },
       { index: ContractIndexes.C_SWAP_OPERATOR, address: swapOperatorImplementation.target },
@@ -342,9 +376,30 @@ describe('v3 launch', function () {
       { index: ContractIndexes.C_ASSESSMENTS, address: assessmentImplementation.target },
       { index: ContractIndexes.C_CLAIMS, address: claimsImplementation.target },
       { index: ContractIndexes.C_TOKEN_CONTROLLER, address: tokenControllerImplementation.target },
-      { index: ContractIndexes.C_COVER_PRODUCTS, address: coverProductsImplementation.target },
       { index: ContractIndexes.C_COVER, address: coverImplementation.target },
+      { index: ContractIndexes.C_COVER_PRODUCTS, address: coverProductsImplementation.target },
+      { index: ContractIndexes.C_LIMIT_ORDERS, address: limitOrdersImplementation.target },
+      { index: ContractIndexes.C_STAKING_PRODUCTS, address: stakingProductsImplementation.target },
     ];
+  });
+
+  it('should run phase 2: get target contracts', async function () {
+    this.contractUpgrades = [
+      { index: ContractIndexes.C_POOL, address: deployments.Pool.expectedAddress },
+      { index: ContractIndexes.C_SWAP_OPERATOR, address: deployments.SwapOperator.expectedAddress },
+      { index: ContractIndexes.C_RAMM, address: deployments.Ramm.expectedAddress },
+      { index: ContractIndexes.C_SAFE_TRACKER, address: deployments.SafeTracker.expectedAddress },
+      { index: ContractIndexes.C_ASSESSMENTS, address: deployments.Assessments.expectedAddress },
+      { index: ContractIndexes.C_CLAIMS, address: deployments.Claims.expectedAddress },
+      { index: ContractIndexes.C_TOKEN_CONTROLLER, address: deployments.TokenController.expectedAddress },
+      { index: ContractIndexes.C_COVER, address: deployments.Cover.expectedAddress },
+      { index: ContractIndexes.C_COVER_PRODUCTS, address: deployments.CoverProducts.expectedAddress },
+      { index: ContractIndexes.C_LIMIT_ORDERS, address: deployments.LimitOrders.expectedAddress },
+      { index: ContractIndexes.C_STAKING_PRODUCTS, address: deployments.StakingProducts.expectedAddress },
+    ];
+
+    // upgraded separately
+    this.governorImplementationAddress = deployments.Governor.expectedAddress;
   });
 
   /*
@@ -359,7 +414,7 @@ describe('v3 launch', function () {
    * - pool.migrate
    * - update existing productTypes with new assessmentCooldownPeriod and payoutRedemptionPeriod fields
    */
-  it('should run phase 3', async function () {
+  it.skip('should run phase 3', async function () {
     const tGovernorTxs = [];
     const tGovernanceTxs = [];
 
@@ -372,9 +427,17 @@ describe('v3 launch', function () {
     );
 
     // TGovernor -> Registry.setEmergencyAdmin
-    const admins = [Addresses.EMERGENCY_ADMIN_1, Addresses.EMERGENCY_ADMIN_2];
+    this.admins = [
+      '0x23E1B127Fd62A4dbe64cC30Bb30FFfBfd71BcFc6',
+      '0x8D38C81B7bE9Dbe7440D66B92d4EF529806baAE7',
+      '0x43f4cd7d153701794ce25a01eFD90DdC32FF8e8E',
+      '0x9063a2C78aFd6C8A3510273d646111Df67D6CB4b',
+      '0x87B2a7559d85f4653f13E6546A14189cd5455d45',
+      '0x6FE2C2643cb5064951fB7DD87FbCE4777FB146E3',
+    ];
+
     tGovernorTxs.push(
-      ...admins.map(admin => ({
+      ...this.admins.map(admin => ({
         target: this.registry.target,
         data: this.registry.interface.encodeFunctionData('setEmergencyAdmin', [admin, true]),
       })),
@@ -461,6 +524,16 @@ describe('v3 launch', function () {
     };
 
     const safeCalls = [...tGovernorCalls, ...tGovernanceCalls, registryProxyCall];
+
+    const builderTxes = safeCalls.map(call => ({
+      to: call.to,
+      value: '0',
+      data: call.data,
+      contractMethod: null,
+      contractInputsValues: null,
+    }));
+    console.log('Safe Transaction Builder txes', JSON.stringify(builderTxes, null, 2));
+
     tracer.printNext = true;
     const abTx = await this.executeSafeTransaction(safeCalls);
 
@@ -492,12 +565,10 @@ describe('v3 launch', function () {
     expect(enzymeShareBal).to.not.equal(0n);
     expect(safeTrackerBal).to.not.equal(0n);
 
-    const governorImplementation = await deployContract('Governor', [this.registry]);
-
     // TGovernor -> Registry.upgradeContract
     const registryCallData = this.registry.interface.encodeFunctionData('upgradeContract', [
       ContractIndexes.C_GOVERNOR,
-      governorImplementation.target,
+      this.governorImplementationAddress,
     ]);
 
     // tx.data for safe -> TGovernor
@@ -513,7 +584,31 @@ describe('v3 launch', function () {
     this.governor = await ethers.getContractAt('Governor', this.tGovernor.target);
 
     const governorProxyImplementation = await getImplementation(this.governor);
-    expect(governorProxyImplementation).to.equal(governorImplementation.target);
+    expect(governorProxyImplementation).to.equal(this.governorImplementationAddress);
+  });
+
+  it('load post phase 3 contracts', async function () {
+    const swapOperatorAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_SWAP_OPERATOR);
+    this.swapOperator = await ethers.getContractAt('SwapOperator', swapOperatorAddress);
+
+    const claimsAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_CLAIMS);
+    this.claims = await ethers.getContractAt('Claims', claimsAddress);
+
+    const assessmentsAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_ASSESSMENTS);
+    this.assessments = await ethers.getContractAt('Assessments', assessmentsAddress);
+
+    this.master = await ethers.getContractAt('NXMaster', this.master.target); // get upgraded master contract
+
+    const coverProductsAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_COVER_PRODUCTS);
+    this.coverProducts = await ethers.getContractAt('CoverProducts', coverProductsAddress);
+
+    const poolAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_POOL);
+    this.pool = await ethers.getContractAt('Pool', poolAddress);
+
+    const coverAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_COVER);
+    this.cover = await ethers.getContractAt('Cover', coverAddress);
+
+    this.governor = await ethers.getContractAt('Governor', this.tGovernor.target);
   });
 
   // post phase 3:

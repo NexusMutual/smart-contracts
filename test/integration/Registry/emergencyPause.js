@@ -1,11 +1,11 @@
 const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture, impersonateAccount, setBalance } = require('@nomicfoundation/hardhat-network-helpers');
-const { signJoinMessage } = require('../../../lib/membership');
 
 const setup = require('../setup');
 
 const { PauseTypes, Assets, SwapKind, ContractIndexes } = nexus.constants;
+const { signJoinMessage } = nexus.signing;
 
 describe('Global Pause', function () {
   it('should revert when not called by emergency admin', async function () {
@@ -98,8 +98,7 @@ describe('Global Pause', function () {
       [{ poolId: 1, coverAmountInAsset: ethers.parseEther('1') }],
       { value: ethers.parseEther('0.1') },
     );
-
-    await expect(buyCoverTx).to.be.revertedWith('System is paused');
+    await expect(buyCoverTx).to.be.revertedWithCustomError(registry, 'Paused').withArgs(1, 64);
   });
 
   it('stops claim payouts on redeemPayout', async function () {
@@ -137,7 +136,6 @@ describe('Global Pause', function () {
     const [, member] = fixture.accounts.members;
     const [ea1, ea2] = fixture.accounts.emergencyAdmins;
     const { kycAuthSigner } = fixture;
-    const { signJoinMessage } = require('../../../lib/membership');
     const JOINING_FEE = ethers.parseEther('0.002');
 
     await registry.connect(ea1).proposePauseConfig(PauseTypes.PAUSE_GLOBAL);

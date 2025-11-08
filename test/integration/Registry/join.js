@@ -1,12 +1,13 @@
-const { ethers, nexus } = require('hardhat');
-const { expect } = require('chai');
 const { loadFixture, setBalance } = require('@nomicfoundation/hardhat-network-helpers');
+const { expect } = require('chai');
+const { ethers, nexus } = require('hardhat');
 
 const setup = require('../setup');
 
-const { signJoinMessage } = nexus.membership;
+const { signJoinMessage } = nexus.signing;
 const { PauseTypes, ContractIndexes } = nexus.constants;
 const { ZeroAddress } = ethers;
+
 const JOINING_FEE = ethers.parseEther('0.002');
 
 describe('join', function () {

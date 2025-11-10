@@ -1,14 +1,33 @@
 const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
-const { loadFixture, setNextBlockBaseFeePerGas } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, setNextBlockBaseFeePerGas, time } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('../setup');
-const { setNextBlockTime } = require('../../utils/evm');
-const { daysToSeconds, calculateRewards } = require('../utils');
+const { daysToSeconds } = require('../utils');
 
-const { calculatePremium, getInternalPrice } = nexus.protocol;
+const {
+  calculateCoverEditPremium,
+  calculateCoverEditRefund,
+  calculateCoverEditRewards,
+  calculatePremium,
+  calculateRewards,
+  getInternalPrice,
+} = nexus.protocol;
 const { BigIntMath } = nexus.helpers;
 const { PoolAsset } = nexus.constants;
+
+// assetNames reverse lookup
+const assetNames = {
+  0: 'ETH',
+  1: 'DAI',
+  2: 'stETH',
+  3: 'NXMTY',
+  4: 'rETH',
+  5: 'SafeTracker',
+  6: 'USDC',
+  7: 'cbBTC',
+  255: 'NXM',
+};
 
 const PRICE_CHANGE_PER_DAY = 200n;
 
@@ -28,18 +47,17 @@ const buyCoverFixture = (overrides = {}) => ({
 });
 
 describe('buyCover', function () {
-  const productId = 0; // Default product for all tests
-  const period = daysToSeconds(30); // Default period for all tests
+  const productId = 0;
+  const period = daysToSeconds(30);
 
-  // Test configurations for payment assets
   const paymentTestConfigs = [
     {
       name: 'ETH',
       paymentAsset: PoolAsset.ETH,
       coverAsset: PoolAsset.ETH,
-      getAmount: () => ethers.parseEther('1'),
+      getAmount: () => ethers.parseEther('1000'),
       setup: async () => {}, // noop
-      getAssetPrice: ({ ramm, pool, tokenController }, paymentAsset, timestamp) =>
+      getAssetPrice: ({ ramm, pool, tokenController }, coverAsset, timestamp) =>
         getInternalPrice(ramm, pool, tokenController, timestamp), // NXM price in ETH
       getBalance: (contracts, address) => ethers.provider.getBalance(address),
     },
@@ -47,37 +65,69 @@ describe('buyCover', function () {
       name: 'USDC',
       paymentAsset: PoolAsset.USDC,
       coverAsset: PoolAsset.USDC,
-      getAmount: () => ethers.parseUnits('100000', 6),
+      getAmount: () => ethers.parseUnits('5000000', 6),
       setup: async ({ usdc, cover }, coverBuyer, amount) => {
         await usdc.mint(coverBuyer.address, amount);
         await usdc.connect(coverBuyer).approve(cover.target, ethers.MaxUint256);
       },
-      getAssetPrice: ({ pool }, paymentAsset) => pool.getInternalTokenPriceInAsset(paymentAsset), // USDC price in ETH
+      getAssetPrice: ({ pool }, coverAsset) => pool.getInternalTokenPriceInAsset(coverAsset), // NXM price in USDC
       getBalance: ({ usdc }, address) => usdc.balanceOf(address),
+    },
+    {
+      name: 'cbBTC',
+      paymentAsset: PoolAsset.cbBTC,
+      coverAsset: PoolAsset.cbBTC,
+      getAmount: () => ethers.parseUnits('50', 8),
+      setup: async ({ cbBTC, cover }, coverBuyer, amount) => {
+        await cbBTC.mint(coverBuyer.address, amount);
+        await cbBTC.connect(coverBuyer).approve(cover.target, ethers.MaxUint256);
+      },
+      getAssetPrice: ({ pool }, coverAsset) => pool.getInternalTokenPriceInAsset(coverAsset), // NXM price in cbBTC
+      getBalance: ({ cbBTC }, address) => cbBTC.balanceOf(address),
     },
     {
       name: 'NXM',
       paymentAsset: PoolAsset.NXM,
       coverAsset: PoolAsset.ETH,
-      getAmount: () => ethers.parseEther('1'),
+      getAmount: () => ethers.parseEther('5000'),
       setup: async ({ token, cover }, coverBuyer) => {
         await token.connect(coverBuyer).approve(cover.target, ethers.MaxUint256);
       },
-      getAssetPrice: ({ ramm, pool, tokenController }, paymentAsset, timestamp) =>
-        getInternalPrice(ramm, pool, tokenController, timestamp), // current NXM price in ETH
+      getAssetPrice: ({ ramm, pool, tokenController }, coverAsset, timestamp) =>
+        getInternalPrice(ramm, pool, tokenController, timestamp), // NXM price in ETH
+      getBalance: ({ token }, address) => token.balanceOf(address),
+    },
+    {
+      name: 'NXM',
+      paymentAsset: PoolAsset.NXM,
+      coverAsset: PoolAsset.USDC,
+      getAmount: () => ethers.parseUnits('10000000', 6),
+      setup: async ({ token, cover }, coverBuyer) => {
+        await token.connect(coverBuyer).approve(cover.target, ethers.MaxUint256);
+      },
+      getAssetPrice: ({ pool }, coverAsset) => pool.getInternalTokenPriceInAsset(coverAsset), // NXM price in USDC
+      getBalance: ({ token }, address) => token.balanceOf(address),
+    },
+    {
+      name: 'NXM',
+      paymentAsset: PoolAsset.NXM,
+      coverAsset: PoolAsset.cbBTC,
+      getAmount: () => ethers.parseUnits('150', 8),
+      setup: async ({ token, cover }, coverBuyer) => {
+        await token.connect(coverBuyer).approve(cover.target, ethers.MaxUint256);
+      },
+      getAssetPrice: ({ pool }, coverAsset) => pool.getInternalTokenPriceInAsset(coverAsset), // NXM price in cbBTC
       getBalance: ({ token }, address) => token.balanceOf(address),
     },
   ];
 
   paymentTestConfigs.forEach(config => {
-    describe(`paymentAsset=${config.name} / coverAsset=${config.name === 'NXM' ? 'ETH' : config.name}`, function () {
+    describe(`paymentAsset=${assetNames[config.paymentAsset]} / coverAsset=${assetNames[config.coverAsset]}`, () => {
       it('allows to buy against multiple staking pools', async function () {
         const fixture = await loadFixture(setup);
         const { cover, tokenController, stakingProducts, token, pool } = fixture.contracts;
         const [coverBuyer, coverReceiver] = fixture.accounts.members;
-        const { GLOBAL_REWARDS_RATIO, NXM_PER_ALLOCATION_UNIT, BUCKET_DURATION } = fixture.config;
-
-        await setNextBlockBaseFeePerGas(0);
+        const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
 
         const amount = config.getAmount();
         await config.setup(fixture.contracts, coverBuyer, amount);
@@ -86,7 +136,7 @@ describe('buyCover', function () {
 
         const latestBlock = await ethers.provider.getBlock('latest');
         const nextBlockTimestamp = latestBlock.timestamp + 10;
-        const assetPrice = await config.getAssetPrice(fixture.contracts, config.paymentAsset, nextBlockTimestamp);
+        const assetPrice = await config.getAssetPrice(fixture.contracts, config.coverAsset, nextBlockTimestamp);
 
         const coverAmountAllocationsPerPool = [
           amount / 3n, // a third
@@ -104,9 +154,7 @@ describe('buyCover', function () {
             config.paymentAsset,
           ),
         );
-        const rewards = premiums.map(premium =>
-          calculateRewards(premium.premiumInNxm, nextBlockTimestamp, period, GLOBAL_REWARDS_RATIO, BUCKET_DURATION),
-        );
+        const rewards = premiums.map(premium => calculateRewards(premium.premiumInNxm, nextBlockTimestamp, period));
 
         const premiumInNxm = premiums.reduce((total, premium) => total + premium.premiumInNxm, 0n);
         // Calculate premiumInAsset from summed premiumInNxm using same logic as calculatePremium
@@ -136,7 +184,9 @@ describe('buyCover', function () {
           { poolId: 3, coverAmountInAsset: coverAmountAllocationsPerPool[2] },
         ];
 
-        await setNextBlockTime(nextBlockTimestamp);
+        await setNextBlockBaseFeePerGas(0);
+        await time.setNextBlockTimestamp(nextBlockTimestamp);
+
         const buyCoverOptions = config.paymentAsset === PoolAsset.ETH ? { value: premiumInAsset, gasPrice: 0 } : {};
         await cover.connect(coverBuyer).buyCover(buyCoverParams, poolAllocationRequests, buyCoverOptions);
 
@@ -161,13 +211,11 @@ describe('buyCover', function () {
           expect(poolAllocations[i].premiumInNXM).to.equal(premiums[i].premiumInNxm);
         }
 
-        // Buyer balance decreases by premium paid
         expect(buyerBalanceAfter).to.equal(buyerBalanceBefore - premiumInAsset);
 
         // NXM is burned so no tokens is transferred to pool
-        const poolTransferred = config.paymentAsset === PoolAsset.NXM ? 0n : premiumInAsset;
-        // NXM premium payment is burned
         const burned = config.paymentAsset === PoolAsset.NXM ? premiumInNxm : 0n;
+        const poolTransferred = config.paymentAsset === PoolAsset.NXM ? 0n : premiumInAsset;
 
         expect(poolBalanceAfter).to.equal(poolBalanceBefore + poolTransferred);
         expect(tokenTotalSupplyAfter).to.equal(tokenTotalSupplyBefore + totalRewards - burned);
@@ -177,9 +225,7 @@ describe('buyCover', function () {
         const fixture = await loadFixture(setup);
         const { cover, tokenController, stakingProducts, token, pool } = fixture.contracts;
         const [coverBuyer, coverReceiver] = fixture.accounts.members;
-        const { NXM_PER_ALLOCATION_UNIT, GLOBAL_REWARDS_RATIO, BUCKET_DURATION } = fixture.config;
-
-        await setNextBlockBaseFeePerGas(0);
+        const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
 
         const amount = config.getAmount();
         await config.setup(fixture.contracts, coverBuyer, amount);
@@ -187,7 +233,7 @@ describe('buyCover', function () {
         const latestBlock = await ethers.provider.getBlock('latest');
         const nextBlockTimestamp = latestBlock.timestamp + 10;
 
-        const assetPrice = await config.getAssetPrice(fixture.contracts, config.paymentAsset, nextBlockTimestamp);
+        const assetPrice = await config.getAssetPrice(fixture.contracts, config.coverAsset, nextBlockTimestamp);
         const product = await stakingProducts.getProduct(1, productId);
 
         const { premiumInNxm, premiumInAsset } = calculatePremium(
@@ -212,7 +258,8 @@ describe('buyCover', function () {
           premiumInAsset,
         });
 
-        await setNextBlockTime(nextBlockTimestamp);
+        await setNextBlockBaseFeePerGas(0);
+        await time.setNextBlockTimestamp(nextBlockTimestamp);
 
         const buyCoverOptions = config.paymentAsset === PoolAsset.ETH ? { value: premiumInAsset, gasPrice: 0 } : {};
         await cover
@@ -223,23 +270,14 @@ describe('buyCover', function () {
         const poolBalanceAfter = await config.getBalance(fixture.contracts, pool.target);
         const buyerBalanceAfter = await config.getBalance(fixture.contracts, coverBuyer.address);
         const tokenTotalSupplyAfter = await token.totalSupply();
-        const rewards = calculateRewards(
-          premiumInNxm,
-          nextBlockTimestamp,
-          period,
-          GLOBAL_REWARDS_RATIO,
-          BUCKET_DURATION,
-        );
+        const rewards = calculateRewards(premiumInNxm, nextBlockTimestamp, period);
 
         expect(stakingPoolAfter.rewards).to.equal(stakingPoolBefore.rewards + rewards);
-
-        // Buyer balance decreases by premium paid
         expect(buyerBalanceAfter).to.equal(buyerBalanceBefore - premiumInAsset);
 
         // NXM is burned so no tokens is transferred to pool
-        const poolTransferred = config.paymentAsset === PoolAsset.NXM ? 0n : premiumInAsset;
-        // NXM premium payment is burned
         const burned = config.paymentAsset === PoolAsset.NXM ? premiumInNxm : 0n;
+        const poolTransferred = config.paymentAsset === PoolAsset.NXM ? 0n : premiumInAsset;
 
         expect(poolBalanceAfter).to.equal(poolBalanceBefore + poolTransferred);
         expect(tokenTotalSupplyAfter).to.equal(tokenTotalSupplyBefore + rewards - burned);
@@ -249,12 +287,9 @@ describe('buyCover', function () {
         const fixture = await loadFixture(setup);
         const { cover, tokenController, stakingProducts, token, pool } = fixture.contracts;
         const [coverBuyer, coverReceiver] = fixture.accounts.members;
-        const { NXM_PER_ALLOCATION_UNIT, GLOBAL_REWARDS_RATIO, BUCKET_DURATION } = fixture.config;
+        const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
         const [{ targetPrice }] = fixture.stakedProducts;
         const daysElapsed = 1;
-
-        // Set base fee to 0 to isolate balance changes from gas costs
-        await setNextBlockBaseFeePerGas(0);
 
         const amount = config.getAmount();
         await config.setup(fixture.contracts, coverBuyer, amount);
@@ -267,7 +302,7 @@ describe('buyCover', function () {
         const timeDecayedPrice = product.bumpedPrice - BigInt(daysElapsed) * PRICE_CHANGE_PER_DAY;
         const price = BigIntMath.max(timeDecayedPrice, BigInt(targetPrice));
         const nextTimestamp = product.bumpedPriceUpdateTime + BigInt(daysToSeconds(daysElapsed));
-        const assetPrice = await config.getAssetPrice(fixture.contracts, config.paymentAsset, nextTimestamp);
+        const assetPrice = await config.getAssetPrice(fixture.contracts, config.coverAsset, nextTimestamp);
 
         const { premiumInNxm, premiumInAsset } = calculatePremium(
           amount,
@@ -292,7 +327,8 @@ describe('buyCover', function () {
           premiumInAsset,
         });
 
-        await setNextBlockTime(Number(nextTimestamp));
+        await setNextBlockBaseFeePerGas(0);
+        await time.setNextBlockTimestamp(nextTimestamp);
 
         const buyCoverOptions = config.paymentAsset === PoolAsset.ETH ? { value: premiumInAsset, gasPrice: 0 } : {};
         await cover
@@ -303,16 +339,15 @@ describe('buyCover', function () {
         const poolBalanceAfter = await config.getBalance(fixture.contracts, pool.target);
         const buyerBalanceAfter = await config.getBalance(fixture.contracts, coverBuyer.address);
         const tokenTotalSupplyAfter = await token.totalSupply();
-        const rewards = calculateRewards(premiumInNxm, nextTimestamp, period, GLOBAL_REWARDS_RATIO, BUCKET_DURATION);
+        const rewards = calculateRewards(premiumInNxm, nextTimestamp, period);
 
         expect(stakingPoolAfter.rewards).to.equal(stakingPoolBefore.rewards + rewards);
-
-        // Buyer balance decreases by premium paid
         expect(buyerBalanceAfter).to.equal(buyerBalanceBefore - premiumInAsset);
 
         // NXM is burned so no tokens is transferred to pool
+        const burned = config.paymentAsset === PoolAsset.NXM ? premiumInNxm : 0n;
         const poolTransferred = config.paymentAsset === PoolAsset.NXM ? 0n : premiumInAsset;
-        const burned = config.paymentAsset === PoolAsset.NXM ? premiumInNxm : 0n; // NXM premium payment is burned
+
         expect(poolBalanceAfter).to.equal(poolBalanceBefore + poolTransferred);
         expect(tokenTotalSupplyAfter).to.equal(tokenTotalSupplyBefore + rewards - burned);
       });
@@ -321,19 +356,16 @@ describe('buyCover', function () {
         const fixture = await loadFixture(setup);
         const { cover, tokenController, stakingProducts, token, pool } = fixture.contracts;
         const [coverBuyer, coverReceiver] = fixture.accounts.members;
-        const { NXM_PER_ALLOCATION_UNIT, GLOBAL_REWARDS_RATIO, BUCKET_DURATION } = fixture.config;
+        const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
         const [{ targetPrice }] = fixture.stakedProducts;
         const { products } = fixture;
-
-        // Set base fee to 0 to isolate balance changes from gas costs
-        await setNextBlockBaseFeePerGas(0);
 
         const amount = config.getAmount();
         await config.setup(fixture.contracts, coverBuyer, amount);
 
         const latestBlock = await ethers.provider.getBlock('latest');
         const nextBlockTimestamp = latestBlock.timestamp + 10;
-        const assetPrice = await config.getAssetPrice(fixture.contracts, config.paymentAsset, nextBlockTimestamp);
+        const assetPrice = await config.getAssetPrice(fixture.contracts, config.coverAsset, nextBlockTimestamp);
 
         const fixedPriceProductId = products.findIndex(
           p => targetPrice !== p.product.initialPriceRatio && p.product.useFixedPrice,
@@ -364,7 +396,8 @@ describe('buyCover', function () {
           premiumInAsset,
         });
 
-        await setNextBlockTime(nextBlockTimestamp);
+        await setNextBlockBaseFeePerGas(0);
+        await time.setNextBlockTimestamp(nextBlockTimestamp);
 
         const buyCoverOptions = config.paymentAsset === PoolAsset.ETH ? { value: premiumInAsset, gasPrice: 0 } : {};
         await cover
@@ -375,23 +408,14 @@ describe('buyCover', function () {
         const poolBalanceAfter = await config.getBalance(fixture.contracts, pool.target);
         const buyerBalanceAfter = await config.getBalance(fixture.contracts, coverBuyer.address);
         const tokenTotalSupplyAfter = await token.totalSupply();
-        const rewards = calculateRewards(
-          premiumInNxm,
-          nextBlockTimestamp,
-          period,
-          GLOBAL_REWARDS_RATIO,
-          BUCKET_DURATION,
-        );
+        const rewards = calculateRewards(premiumInNxm, nextBlockTimestamp, period);
 
         expect(stakingPoolAfter.rewards).to.equal(stakingPoolBefore.rewards + rewards);
-
-        // Buyer balance decreases by premium paid
         expect(buyerBalanceAfter).to.equal(buyerBalanceBefore - premiumInAsset);
 
         // NXM is burned so no tokens is transferred to pool
-        const poolTransferred = config.paymentAsset === PoolAsset.NXM ? 0n : premiumInAsset;
-        // NXM premium payment is burned
         const burned = config.paymentAsset === PoolAsset.NXM ? premiumInNxm : 0n;
+        const poolTransferred = config.paymentAsset === PoolAsset.NXM ? 0n : premiumInAsset;
 
         expect(poolBalanceAfter).to.equal(poolBalanceBefore + poolTransferred);
         expect(tokenTotalSupplyAfter).to.equal(tokenTotalSupplyBefore + rewards - burned);
@@ -399,11 +423,9 @@ describe('buyCover', function () {
 
       it('should edit purchased cover and increase period and amount', async function () {
         const fixture = await loadFixture(setup);
-        const { cover, stakingProducts, pool } = fixture.contracts;
+        const { cover, stakingProducts, pool, token } = fixture.contracts;
         const [coverBuyer] = fixture.accounts.members;
         const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
-
-        await setNextBlockBaseFeePerGas(0);
 
         const { paymentAsset } = config;
         const amount = config.getAmount();
@@ -411,11 +433,11 @@ describe('buyCover', function () {
 
         const latestBlock = await ethers.provider.getBlock('latest');
         const buyTimestamp = latestBlock.timestamp + 10;
-        const assetPrice = await config.getAssetPrice(fixture.contracts, config.paymentAsset, buyTimestamp);
+        const assetPrice = await config.getAssetPrice(fixture.contracts, config.coverAsset, buyTimestamp);
         const product = await stakingProducts.getProduct(1, productId);
 
         // buy initial cover
-        const { premiumInNxm, premiumInAsset } = calculatePremium(
+        const initialPremium = calculatePremium(
           amount,
           assetPrice,
           period,
@@ -429,51 +451,75 @@ describe('buyCover', function () {
           coverAsset: config.coverAsset,
           paymentAsset,
           owner: coverBuyer.address,
-          premiumInAsset,
+          premiumInAsset: initialPremium.premiumInAsset,
         });
 
-        const buyCoverOptions = paymentAsset === PoolAsset.ETH ? { value: premiumInAsset, gasPrice: 0 } : {};
+        const buyCoverOptions =
+          paymentAsset === PoolAsset.ETH ? { value: initialPremium.premiumInAsset, gasPrice: 0 } : {};
 
-        await setNextBlockTime(buyTimestamp);
-        await cover
+        await setNextBlockBaseFeePerGas(0);
+        await time.setNextBlockTimestamp(buyTimestamp);
+
+        const buyTx = await cover
           .connect(coverBuyer)
           .buyCover(buyCoverParams, [{ poolId: 1, coverAmountInAsset: amount }], buyCoverOptions);
+
+        const buyReceipt = await buyTx.wait();
+        const buyBlock = await ethers.provider.getBlock(buyReceipt.blockNumber);
 
         const coverId = await cover.getCoverDataCount();
         const coverData = await cover.getCoverData(coverId);
 
+        // verify contract stored the correct premium for initial cover bought
+        const initialCoverAllocations = await cover.getPoolAllocations(coverId);
+        const storedInitialPremiumInNxm = initialCoverAllocations.reduce((sum, alloc) => sum + alloc.premiumInNXM, 0n);
+        expect(storedInitialPremiumInNxm).to.equal(initialPremium.premiumInNxm);
+
         const passedPeriod = 10n; // +10s
         const editTimestamp = coverData.start + passedPeriod;
-        await setNextBlockTime(Number(editTimestamp));
+        await time.setNextBlockTimestamp(editTimestamp);
 
         // calculate cover edit premiums (increasing amount and period by 2x)
         const increasedAmount = amount * 2n;
         const increasedPeriod = BigInt(period) * 2n;
-        const editAssetPrice = await config.getAssetPrice(fixture.contracts, paymentAsset, editTimestamp);
+        const editAssetPrice = await config.getAssetPrice(fixture.contracts, config.coverAsset, editTimestamp);
+
+        // IMPORTANT:
+        // the initial cover buy can trigger a price bump due to large cover amount
+        // 1. re-fetch product state
+        // 2. use SP.getBasePrice instead of bumpedPrice to calculate the new premium
+        const updatedProduct = await stakingProducts.getProduct(1, productId);
+        const basePrice = await stakingProducts.getBasePrice(
+          updatedProduct.bumpedPrice,
+          updatedProduct.bumpedPriceUpdateTime,
+          updatedProduct.targetPrice,
+          editTimestamp,
+        );
 
         // premium for the new amount and period without refunds
         const { premiumInAsset: newPremiumInAsset, coverNXMAmount } = calculatePremium(
           increasedAmount,
           editAssetPrice,
           increasedPeriod,
-          product.bumpedPrice,
+          basePrice, // basePrice instead of bumpedPrice
           NXM_PER_ALLOCATION_UNIT,
           paymentAsset,
         );
 
-        const expectedCoverAmount = (coverNXMAmount * editAssetPrice) / ethers.parseEther('1');
-
-        // refund for the unused period (using original amount and price)
-        const refundInNxm = (premiumInNxm * (BigInt(period) - passedPeriod)) / BigInt(period);
-        const refundInAsset =
-          paymentAsset === PoolAsset.NXM ? refundInNxm : (refundInNxm * editAssetPrice) / ethers.parseEther('1');
-
-        const extraPremiumInAsset = newPremiumInAsset - refundInAsset;
+        // refund for the unused period
+        const { refundInNxm, refundInAsset } = calculateCoverEditRefund(
+          period,
+          passedPeriod,
+          initialPremium.premiumInNxm,
+          editAssetPrice,
+          paymentAsset,
+        );
 
         const poolBalanceBefore = await config.getBalance(fixture.contracts, pool.target);
         const buyerBalanceBefore = await config.getBalance(fixture.contracts, coverBuyer.address);
+        const tokenTotalSupplyBefore = await token.totalSupply();
 
-        // increasing amount and period
+        const coverEditExtraPremium = newPremiumInAsset - refundInAsset;
         const editCoverParams = buyCoverFixture({
           coverId,
           amount: increasedAmount,
@@ -481,34 +527,59 @@ describe('buyCover', function () {
           coverAsset: config.coverAsset,
           paymentAsset,
           owner: coverBuyer.address,
-          premiumInAsset: extraPremiumInAsset,
+          premiumInAsset: coverEditExtraPremium,
         });
+        const editCoverOptions = paymentAsset === PoolAsset.ETH ? { value: coverEditExtraPremium, gasPrice: 0 } : {};
 
-        const editCoverOptions = paymentAsset === PoolAsset.ETH ? { value: extraPremiumInAsset, gasPrice: 0 } : {};
-
-        // execute edit cover
-        await cover
+        // execute cover edit (amount and period increased by 2x)
+        const editTx = await cover
           .connect(coverBuyer)
           .buyCover(editCoverParams, [{ poolId: 1, coverAmountInAsset: increasedAmount }], editCoverOptions);
 
+        const editReceipt = await editTx.wait();
+        const editBlock = await ethers.provider.getBlock(editReceipt.blockNumber);
+
         const editedCoverId = coverId + 1n;
         const editedCoverData = await cover.getCoverData(editedCoverId);
+        const expectedCoverAmount = (coverNXMAmount * editAssetPrice) / ethers.parseEther('1');
 
         expect(editedCoverData.productId).to.equal(productId);
         expect(editedCoverData.coverAsset).to.equal(config.coverAsset);
         expect(editedCoverData.amount).to.equal(expectedCoverAmount);
         expect(editedCoverData.period).to.equal(increasedPeriod);
 
-        const poolBalanceAfter = await config.getBalance(fixture.contracts, pool.target);
-        const buyerBalanceAfter = await config.getBalance(fixture.contracts, coverBuyer.address);
+        const { newPremiumInNxm, extraPremiumInNxm, extraPremiumInAsset } = calculateCoverEditPremium(
+          coverNXMAmount,
+          basePrice,
+          increasedPeriod,
+          refundInNxm,
+          editAssetPrice,
+          paymentAsset,
+        );
 
-        const expectedBuyerBalance = buyerBalanceBefore - extraPremiumInAsset;
-        expect(Number(buyerBalanceAfter)).to.be.closeTo(Number(expectedBuyerBalance), 1);
+        const oldCoverInput = { premiumInNxm: initialPremium.premiumInNxm, start: buyBlock.timestamp, period };
+        const newCoverInput = { premiumInNxm: newPremiumInNxm, start: editBlock.timestamp, period: increasedPeriod };
+        const rewards = calculateCoverEditRewards(oldCoverInput, newCoverInput);
 
-        // verify pool received the extra premium (NXM payments is burned - no pool transfer)
+        // verify the contract stored the correct new premium
+        const editedCoverAllocations = await cover.getPoolAllocations(editedCoverId);
+        const storedNewPremiumInNxm = editedCoverAllocations.reduce((sum, alloc) => sum + alloc.premiumInNXM, 0n);
+        expect(storedNewPremiumInNxm).to.equal(newPremiumInNxm, 'Contract should store the premium we calculated');
+
+        const poolBalAfter = await config.getBalance(fixture.contracts, pool.target);
+        const buyerBalAfter = await config.getBalance(fixture.contracts, coverBuyer.address);
+        const tokenTotalSupplyAfter = await token.totalSupply();
+
+        expect(buyerBalAfter).to.equal(buyerBalanceBefore - extraPremiumInAsset);
+
+        // NXM is burned so no tokens is transferred to pool
+        const burned = config.paymentAsset === PoolAsset.NXM ? extraPremiumInNxm : 0n;
         const poolTransferred = paymentAsset === PoolAsset.NXM ? 0n : extraPremiumInAsset;
-        const expectedPoolBalance = poolBalanceBefore + poolTransferred;
-        expect(Number(poolBalanceAfter)).to.be.closeTo(Number(expectedPoolBalance), 1);
+
+        expect(poolBalAfter).to.equal(poolBalanceBefore + poolTransferred);
+
+        const actualSupplyChange = tokenTotalSupplyAfter - tokenTotalSupplyBefore;
+        expect(actualSupplyChange).to.equal(rewards - burned);
       });
 
       it('should revert the purchase of deprecated product', async function () {
@@ -604,7 +675,7 @@ describe('CoverBroker - buyCover', function () {
     const fixture = await loadFixture(setup);
     const { tokenController, stakingProducts, pool, ramm, coverBroker, coverNFT } = fixture.contracts;
     const [coverBuyer] = fixture.accounts.nonMembers;
-    const { NXM_PER_ALLOCATION_UNIT, GLOBAL_REWARDS_RATIO, BUCKET_DURATION } = fixture.config;
+    const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
     const [{ targetPrice }] = fixture.stakedProducts;
     const { period, amount } = buyCoverFixture();
 
@@ -634,7 +705,7 @@ describe('CoverBroker - buyCover', function () {
     const nftBalanceBefore = await coverNFT.balanceOf(coverBuyer.address);
 
     await setNextBlockBaseFeePerGas(0);
-    await setNextBlockTime(nextBlockTimestamp);
+    await time.setNextBlockTimestamp(nextBlockTimestamp);
 
     const buyCoverParams = buyCoverFixture({
       paymentAsset: PoolAsset.ETH,
@@ -657,7 +728,7 @@ describe('CoverBroker - buyCover', function () {
     const { timestamp } = await ethers.provider.getBlock('latest');
     const stakingPoolAfter = await tokenController.stakingPoolNXMBalances(1);
     const poolAfterETH = await ethers.provider.getBalance(pool.target);
-    const rewards = calculateRewards(premiumInNxm, timestamp, period, GLOBAL_REWARDS_RATIO, BUCKET_DURATION);
+    const rewards = calculateRewards(premiumInNxm, timestamp, period);
 
     expect(stakingPoolAfter.rewards).to.equal(stakingPoolBefore.rewards + rewards);
     expect(poolAfterETH).to.equal(poolBeforeETH + premiumInAsset);
@@ -667,7 +738,7 @@ describe('CoverBroker - buyCover', function () {
     const fixture = await loadFixture(setup);
     const { tokenController, stakingProducts, pool, coverBroker, usdc, coverNFT } = fixture.contracts;
     const [coverBuyer] = fixture.accounts.nonMembers;
-    const { NXM_PER_ALLOCATION_UNIT, GLOBAL_REWARDS_RATIO, BUCKET_DURATION } = fixture.config;
+    const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
     const { period, productId } = buyCoverFixture();
 
     const usdcAmount = ethers.parseUnits('10000', 6);
@@ -713,7 +784,7 @@ describe('CoverBroker - buyCover', function () {
     expect(nftBalanceAfter).to.equal(nftBalanceBefore + 1n);
     expect(userBalanceAfter).to.equal(userBalanceBefore - premiumInAsset);
 
-    const rewards = calculateRewards(premiumInNxm, timestamp, period, GLOBAL_REWARDS_RATIO, BUCKET_DURATION);
+    const rewards = calculateRewards(premiumInNxm, timestamp, period);
 
     expect(stakingPoolAfter.rewards).to.equal(stakingPoolBefore.rewards + rewards);
     expect(poolAfterUSDC).to.equal(poolBeforeUSDC + premiumInAsset);

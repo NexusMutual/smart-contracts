@@ -83,7 +83,7 @@ describe('LimitOrders - executeOrder', function () {
   it('should purchase new cover for a order creator with USDC', async function () {
     const fixture = await loadFixture(setup);
     const { tokenController, stakingProducts, pool, limitOrders, usdc, coverNFT } = fixture.contracts;
-    const { NXM_PER_ALLOCATION_UNIT, GLOBAL_REWARDS_RATIO, BUCKET_DURATION } = fixture.config;
+    const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
     const [coverBuyer] = fixture.accounts.nonMembers;
     const orderSettler = fixture.accounts.defaultSender;
     const { period } = orderDetailsFixture;
@@ -176,7 +176,7 @@ describe('LimitOrders - executeOrder', function () {
   it('should purchase new cover for a order creator with WETH', async function () {
     const fixture = await loadFixture(setup);
     const { tokenController, stakingProducts, pool, limitOrders, weth, coverNFT } = fixture.contracts;
-    const { NXM_PER_ALLOCATION_UNIT, GLOBAL_REWARDS_RATIO } = fixture.config;
+    const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
     const [coverBuyer] = fixture.accounts.nonMembers;
     const orderSettler = fixture.accounts.defaultSender;
     const { period, amount } = orderDetailsFixture;
@@ -278,7 +278,7 @@ describe('LimitOrders - executeOrder', function () {
     const { tokenController, stakingProducts, pool, limitOrders, token: nxm, coverNFT } = fixture.contracts;
     const [coverBuyer] = fixture.accounts.members;
     const orderSettler = fixture.accounts.defaultSender;
-    const { NXM_PER_ALLOCATION_UNIT, GLOBAL_REWARDS_RATIO, BUCKET_DURATION } = fixture.config;
+    const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
     const { period, amount } = orderDetailsFixture;
 
     // approve NXM to LimitOrders

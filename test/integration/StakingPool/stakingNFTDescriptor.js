@@ -20,8 +20,8 @@ async function createStakingDeposit(fixture) {
 
   const { stakingPool1, token, tokenController } = fixture.contracts;
   const stakingAmount = parseEther('170.091');
-  const block = await ethers.provider.getBlock('latest');
-  const firstTrancheId = calculateFirstTrancheId(block, 60, 30);
+  const latestTimestamp = await time.latest();
+  const firstTrancheId = calculateFirstTrancheId(latestTimestamp, 60, 30);
 
   const operatorAddress = await token.operator();
   await impersonateAccount(operatorAddress);

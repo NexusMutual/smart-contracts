@@ -112,8 +112,8 @@ describe('withdrawNXM', function () {
     await token.connect(manager).approve(tokenController, MaxUint256);
 
     // stake
-    const latestBlock = await ethers.provider.getBlock('latest');
-    const firstActiveTrancheId = calculateFirstTrancheId(latestBlock, buyCoverFixture.period, 0n);
+    const latestTimestamp = await time.latest();
+    const firstActiveTrancheId = calculateFirstTrancheId(latestTimestamp, buyCoverFixture.period, 0n);
     const depositParams = [fixture.stakeAmount, firstActiveTrancheId + 5, 0, manager.address];
     const tokenId = await stakingPool1.connect(manager).depositTo.staticCall(...depositParams);
     await stakingPool1.connect(manager).depositTo(...depositParams);

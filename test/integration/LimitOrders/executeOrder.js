@@ -3,11 +3,10 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('../setup');
-const { calculateRewards } = require('../utils');
 
-const { calculatePremium } = nexus.protocol;
-const { PoolAsset } = nexus.constants;
 const { parseEther, ZeroAddress, MaxUint256 } = ethers;
+const { calculatePremium, calculateRewards } = nexus.protocol;
+const { PoolAsset } = nexus.constants;
 
 async function signLimitOrder(contractAddress, params, signer) {
   const { chainId } = await ethers.provider.getNetwork();
@@ -168,7 +167,7 @@ describe('LimitOrders - executeOrder', function () {
     const poolAfterUSDC = await usdc.balanceOf(pool.target);
 
     const { timestamp } = await ethers.provider.getBlock('latest');
-    const rewards = calculateRewards(premiumInNxm, timestamp, period, GLOBAL_REWARDS_RATIO, BUCKET_DURATION);
+    const rewards = calculateRewards(premiumInNxm, timestamp, period);
 
     expect(stakingPoolAfter.rewards).to.be.equal(stakingPoolBefore.rewards + rewards);
     expect(poolAfterUSDC).to.be.equal(poolBeforeUSDC + premium);
@@ -268,13 +267,7 @@ describe('LimitOrders - executeOrder', function () {
     const stakingPoolAfter = await tokenController.stakingPoolNXMBalances(1);
     const poolAfterETH = await ethers.provider.getBalance(pool.target);
 
-    const rewards = calculateRewards(
-      premiumInNxm,
-      timestamp,
-      period,
-      GLOBAL_REWARDS_RATIO,
-      fixture.config.BUCKET_DURATION,
-    );
+    const rewards = calculateRewards(premiumInNxm, timestamp, period);
 
     expect(stakingPoolAfter.rewards).to.be.equal(stakingPoolBefore.rewards + rewards);
     expect(poolAfterETH).to.be.equal(poolEthBalanceBefore + premium);
@@ -356,7 +349,7 @@ describe('LimitOrders - executeOrder', function () {
     expect(balanceAfterNXM).to.be.equal(nxmBalanceBefore - premium);
 
     const { timestamp } = await ethers.provider.getBlock('latest');
-    const rewards = calculateRewards(premium, timestamp, period, GLOBAL_REWARDS_RATIO, BUCKET_DURATION);
+    const rewards = calculateRewards(premium, timestamp, period);
 
     const stakingPoolAfter = await tokenController.stakingPoolNXMBalances(1);
     expect(stakingPoolAfter.rewards).to.be.equal(stakingPoolBefore.rewards + rewards);

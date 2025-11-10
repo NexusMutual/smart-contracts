@@ -2,9 +2,6 @@ const { ethers, nexus } = require('hardhat');
 
 const { parseEther } = ethers;
 const { PoolAsset } = nexus.constants;
-const { BigIntMath } = nexus.helpers;
-
-const REWARD_DENOMINATOR = 10000n;
 
 /**
  * Creates a cover for testing claims

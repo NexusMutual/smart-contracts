@@ -1,5 +1,5 @@
 const { ethers, nexus } = require('hardhat');
-const { loadFixture, setBalance, setStorageAt } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, setBalance, setStorageAt, time } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { init } = require('../init');
 const { getFundedSigner } = require('../utils/signer');
@@ -269,7 +269,8 @@ async function setup() {
 
   await claims.initialize(0);
 
-  const block = await ethers.provider.getBlock('latest');
+  const latestTimestamp = await time.latest();
+
   // current state of the contract
   await rammProxy.initialize(
     {
@@ -278,7 +279,7 @@ async function setup() {
       eth: 4704907065875751479427n,
       budget: 0n,
       ratchetSpeedB: 400n,
-      timestamp: block.timestamp,
+      timestamp: latestTimestamp,
     },
     1345717350623347035287899n, //  initialPriceA
     1247806022159962531468322n, //  initialPriceB
@@ -607,12 +608,8 @@ async function setup() {
   const mcrStorageSlot = 3;
   const storedMcr = parseEther('5000');
   const desiredMcr = parseEther('3000');
-  const latestBlock = await ethers.provider.getBlock('latest');
 
-  const packedMcrData = ethers.solidityPacked(
-    ['uint80', 'uint80', 'uint32'],
-    [storedMcr, desiredMcr, latestBlock.timestamp],
-  );
+  const packedMcrData = ethers.solidityPacked(['uint80', 'uint80', 'uint32'], [storedMcr, desiredMcr, latestTimestamp]);
 
   await setStorageAt(pool.target, mcrStorageSlot, ethers.zeroPadValue(packedMcrData, 32));
 
@@ -623,7 +620,9 @@ async function setup() {
   const operatorSigner = await getFundedSigner(operatorAddress);
 
   const stakeAmount = parseEther('900000');
-  const trancheId = calculateFirstTrancheId(latestBlock, 30n * 24n * 60n * 60n, 0) + 5;
+  const trancheTimestamp = await time.latest();
+  const period = 30 * 24 * 60 * 60; // 30 days in seconds
+  const trancheId = calculateFirstTrancheId(trancheTimestamp, period, 0) + 5;
   const tokenControllerAddress = await registry.getContractAddressByIndex(ContractIndexes.C_TOKEN_CONTROLLER);
 
   // fund first 3 staking pools with capacity
@@ -651,9 +650,7 @@ async function setup() {
     USDC_DECIMALS: usdcDecimals,
     STAKE_AMOUNT: stakeAmount,
     // Cover constants
-    BUCKET_SIZE: BigInt(7 * 24 * 3600), // 7 days
     GLOBAL_REWARDS_RATIO: 5000n, // 50%
-    COMMISSION_DENOMINATOR: 10000n,
     // StakingPool constants
     BUCKET_DURATION: await fixture.contracts.stakingPool1.BUCKET_DURATION(),
     TRANCHE_DURATION: await fixture.contracts.stakingPool1.TRANCHE_DURATION(),

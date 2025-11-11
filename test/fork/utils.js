@@ -1,8 +1,9 @@
 const { ethers, network } = require('hardhat');
 const assert = require('assert');
-const { setStorageAt, setNextBlockBaseFeePerGas, time } = require('@nomicfoundation/hardhat-network-helpers');
+const { setStorageAt, setNextBlockBaseFeePerGas } = require('@nomicfoundation/hardhat-network-helpers');
 const { getDeploymentBytecode, calculateCreate2Address } = require('../../scripts/create2/deploy');
 const { getFundedSigner } = require('../utils/signer');
+const { executeGovernorProposal } = require('../utils/governor');
 
 const { AbiCoder, Interface, concat, getBytes, keccak256, solidityPacked, toBeHex, zeroPadValue } = ethers;
 
@@ -68,20 +69,6 @@ async function submitGovernanceProposal(categoryId, actionData, signers, gv) {
     }),
     'ActionSuccess was expected',
   );
-}
-
-async function executeGovernorProposal(governor, abMembers, txs) {
-  const [proposer] = abMembers;
-  await governor.connect(proposer).propose(txs, 'Governor Proposal');
-  const proposalId = await governor.proposalCount();
-
-  for (const voter of abMembers.slice(0, 3)) {
-    await governor.connect(voter).vote(proposalId, 1);
-  }
-
-  await time.increase(4 * 24 * 3600 + 1);
-  await governor.connect(proposer).execute(proposalId);
-  console.log(`Governor proposal ${proposalId} executed`);
 }
 
 // type Tx = { to: string, value?: bigint | number | string, data?: string };

@@ -1,4 +1,5 @@
 const { getFundedSigner } = require('../../utils/signer');
+const { executeGovernorProposal } = require('../../utils/governor');
 
 /**
  * Parse events from transaction receipt using ethers v6 native functionality
@@ -54,4 +55,5 @@ module.exports = {
   getEventsFromTxReceipt,
   daysToSeconds,
   mintNxmTo,
+  executeGovernorProposal,
 };

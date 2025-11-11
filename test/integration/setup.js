@@ -333,6 +333,7 @@ async function setup() {
   master = await ethers.getContractAt('NXMaster', masterProxy);
 
   await token.changeOperator(tokenController);
+  await registryProxy.transferProxyOwnership(governor.target);
 
   await coverProducts.connect(abMember).setProductTypes([
     {

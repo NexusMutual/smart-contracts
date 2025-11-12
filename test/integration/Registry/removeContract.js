@@ -3,7 +3,7 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('../setup');
-const { executeGovernorProposal } = require('../../utils/governor');
+const { executeGovernorProposal } = require('../utils');
 
 const NEW_INDEX = 1n << 17n;
 

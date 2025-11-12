@@ -2,12 +2,11 @@ const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers');
 
-const { daysToSeconds } = require('../utils');
-const { getFundedSigner } = require('../../utils/signer');
-const { BigIntMath } = require('../../../lib/helpers');
 const setup = require('../setup');
+const { daysToSeconds, getFundedSigner } = require('../utils');
 
 const { PoolAsset } = nexus.constants;
+const { BigIntMath } = nexus.helpers;
 
 const ONE_NXM = ethers.parseEther('1');
 const ALLOCATION_UNITS_PER_NXM = 100n;

@@ -1,8 +1,8 @@
 const { ethers, nexus } = require('hardhat');
 const { loadFixture, setBalance, setStorageAt, time } = require('@nomicfoundation/hardhat-network-helpers');
 
+const { getFundedSigner } = require('./utils');
 const { init } = require('../init');
-const { getFundedSigner } = require('../utils/signer');
 
 const { parseEther, parseUnits, ZeroAddress, MaxUint256 } = ethers;
 const { ContractIndexes, ClaimMethod, AggregatorType, Assets, PoolAsset } = nexus.constants;

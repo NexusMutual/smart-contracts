@@ -2,7 +2,6 @@ const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers');
 
-const { increaseTime } = require('../../utils/evm');
 const { daysToSeconds } = require('../utils');
 const setup = require('../setup');
 
@@ -53,7 +52,7 @@ describe('expireCover', function () {
     const coverBuyerAddress = await coverBuyer.getAddress();
 
     // skip time so we would have less ratchet impact on internal price
-    await increaseTime(Number(period));
+    await time.increase(period);
     const initialAllocations = await stakingPool1.getActiveAllocations(productId);
 
     await cover
@@ -66,13 +65,13 @@ describe('expireCover', function () {
 
     const coverId = await cover.getCoverDataCount();
 
-    await increaseTime(Number(period) + 1);
+    await time.increase(period + 1);
     const allocationsWithCover = await stakingPool1.getActiveAllocations(productId);
 
     await cover.connect(coverBuyer).expireCover(coverId);
     const allocationsAfter = await stakingPool1.getActiveAllocations(productId);
 
-    await increaseTime(Number(BUCKET_DURATION)); // go to next bucket
+    await time.increase(BUCKET_DURATION); // go to next bucket
 
     const totalCoverAmountAfter = await cover.totalActiveCoverInAsset(0);
     const allocationsAfterBucketExpiration = await stakingPool1.getActiveAllocations(productId);
@@ -105,7 +104,7 @@ describe('expireCover', function () {
     const pool1Allocation = poolAllocations.find(alloc => alloc.poolId === 1n);
     const expectedAllocationId = pool1Allocation.allocationId;
 
-    await increaseTime(Number(period) + 1);
+    await time.increase(period + 1);
 
     const expireCover = cover.connect(coverBuyer).expireCover(coverId);
     await expect(expireCover).to.emit(stakingPool1, 'Deallocated').withArgs(expectedAllocationId);
@@ -135,7 +134,7 @@ describe('expireCover', function () {
     const allocationsPool1During = await stakingPool1.getActiveAllocations(productId);
     const allocationsPool2During = await stakingPool2.getActiveAllocations(productId);
 
-    await increaseTime(Number(period) + 1);
+    await time.increase(period + 1);
     await cover.connect(coverBuyer).expireCover(coverId);
 
     const allocationsPool1After = await stakingPool1.getActiveAllocations(productId);
@@ -169,7 +168,7 @@ describe('expireCover', function () {
     const coverId = await cover.getCoverDataCount();
 
     // successful expire
-    await increaseTime(Number(period) + 1);
+    await time.increase(period + 1);
     await cover.connect(coverBuyer).expireCover(coverId);
 
     // expire again
@@ -197,7 +196,7 @@ describe('expireCover', function () {
         { value: amount },
       );
 
-    await increaseTime(Number(coverBucketExpirationPeriod)); // go to next bucket
+    await time.increase(coverBucketExpirationPeriod); // go to next bucket
 
     const coverId = await cover.getCoverDataCount();
     const expireCover = cover.connect(coverBuyer).expireCover(coverId);

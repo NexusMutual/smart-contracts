@@ -56,4 +56,5 @@ module.exports = {
   daysToSeconds,
   mintNxmTo,
   executeGovernorProposal,
+  getFundedSigner,
 };

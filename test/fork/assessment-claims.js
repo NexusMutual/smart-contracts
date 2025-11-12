@@ -2,8 +2,7 @@ const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
 const { takeSnapshot, time, setNextBlockBaseFeePerGas } = require('@nomicfoundation/hardhat-network-helpers');
 
-const { Addresses, setUSDCBalance, executeGovernorProposal } = require('./utils');
-const { getSigner, getFundedSigner } = require('../utils/signer');
+const { Addresses, setUSDCBalance, executeGovernorProposal, getSigner, getFundedSigner } = require('./utils');
 
 const { AssessmentOutcome, AssessmentStatus, PauseTypes, PoolAsset } = nexus.constants;
 const { PAUSE_CLAIMS } = PauseTypes;

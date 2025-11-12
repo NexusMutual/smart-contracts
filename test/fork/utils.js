@@ -2,8 +2,8 @@ const { ethers, network } = require('hardhat');
 const assert = require('assert');
 const { setStorageAt, setNextBlockBaseFeePerGas } = require('@nomicfoundation/hardhat-network-helpers');
 const { getDeploymentBytecode, calculateCreate2Address } = require('../../scripts/create2/deploy');
-const { getFundedSigner } = require('../utils/signer');
 const { executeGovernorProposal } = require('../utils/governor');
+const { getSigner, getFundedSigner } = require('../utils/signer');
 
 const { AbiCoder, Interface, concat, getBytes, keccak256, solidityPacked, toBeHex, zeroPadValue } = ethers;
 
@@ -236,4 +236,6 @@ module.exports = {
   getImplementation,
   deployCreate2,
   tenderlySetStorageAt,
+  getFundedSigner,
+  getSigner,
 };

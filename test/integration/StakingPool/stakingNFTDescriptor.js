@@ -1,11 +1,10 @@
 const { ethers, nexus } = require('hardhat');
+const base64 = require('base64-js');
 const { expect } = require('chai');
-const { loadFixture, setBalance, impersonateAccount, time } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, setBalance, impersonateAccount, time, mine } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('../setup');
 const { daysToSeconds } = require('../utils');
-const { mineNextBlock } = require('../../utils/evm');
-const base64 = require('base64-js');
 
 const { calculateFirstTrancheId } = nexus.protocol;
 const { parseEther, formatEther, MaxUint256 } = ethers;
@@ -139,7 +138,7 @@ describe('StakingNFTDescriptor', function () {
 
     const timestamp = await time.latest();
     await time.setNextBlockTimestamp(timestamp + daysToSeconds(1000));
-    await mineNextBlock();
+    await mine();
 
     const uri = await stakingNFT.tokenURI(Number(tokenIdA));
     const decodedJson = JSON.parse(new TextDecoder().decode(base64.toByteArray(uri.slice(jsonHeader.length))));

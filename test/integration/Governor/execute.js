@@ -3,8 +3,7 @@ const { expect } = require('chai');
 const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('../setup');
-const { mintNxmTo } = require('../utils/helpers');
-const { executeGovernorProposal } = require('../../utils/governor');
+const { executeGovernorProposal, mintNxmTo } = require('../utils');
 
 const { Choice, ContractIndexes, ProposalStatus } = nexus.constants;
 

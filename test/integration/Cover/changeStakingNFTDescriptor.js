@@ -3,7 +3,7 @@ const { ethers } = require('hardhat');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('../setup');
-const { getFundedSigner } = require('../../utils/signer');
+const { getFundedSigner } = require('../utils');
 
 describe('changeStakingNFTDescriptor', function () {
   it('should change stakingNFTDescriptor address via Governor', async function () {

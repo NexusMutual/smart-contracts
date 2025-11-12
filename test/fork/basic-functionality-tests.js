@@ -11,8 +11,9 @@ const {
   setCbBTCBalance,
   setERC20Balance,
   setUSDCBalance,
+  getSigner,
+  getFundedSigner,
 } = require('./utils');
-const { getSigner, getFundedSigner } = require('../utils/signer');
 
 const { deployContract, formatEther, ZeroAddress, MaxUint256, parseEther, parseUnits } = ethers;
 const { ContractIndexes, AssessmentOutcome, AssessmentStatus } = nexus.constants;

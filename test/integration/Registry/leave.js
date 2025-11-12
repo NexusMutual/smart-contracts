@@ -107,4 +107,62 @@ describe('leave', function () {
 
     expect(await registry.isMember(member.address)).to.be.true;
   });
+
+  it('should prevent staking pool manager from leaving', async function () {
+    const fixture = await loadFixture(setup);
+    const { registry, tokenController, token } = fixture.contracts;
+    const [stakingPoolManager] = fixture.accounts.stakingPoolManagers;
+
+    const poolIds = await tokenController.getManagerStakingPools(stakingPoolManager.address);
+
+    expect(poolIds).to.be.lengthOf.greaterThan(0);
+    expect(await registry.isMember(stakingPoolManager.address)).to.be.true;
+    expect(await tokenController.isStakingPoolManager(stakingPoolManager.address)).to.be.true;
+
+    // burn all NXM tokens before leaving
+    const balance = await token.balanceOf(stakingPoolManager.address);
+    await token.connect(stakingPoolManager).burn(balance);
+    expect(await token.balanceOf(stakingPoolManager.address)).to.equal(0);
+
+    // manager cannot leave
+    const leaveFailTx = registry.connect(stakingPoolManager).leave();
+    await expect(leaveFailTx).to.be.revertedWithCustomError(tokenController, 'MemberHasStakingPools');
+
+    // still a member
+    expect(await registry.isMember(stakingPoolManager.address)).to.be.true;
+    expect(await token.whiteListed(stakingPoolManager.address)).to.be.true;
+    expect(await tokenController.isStakingPoolManager(stakingPoolManager.address)).to.be.true;
+  });
+
+  it('should prevent advisory board member from leaving', async function () {
+    const fixture = await loadFixture(setup);
+    const { registry, token } = fixture.contracts;
+    const [abMember] = fixture.accounts.advisoryBoardMembers;
+
+    expect(await registry.isMember(abMember.address)).to.be.true;
+    expect(await registry.isAdvisoryBoardMember(abMember.address)).to.be.true;
+
+    // burn all NXM tokens before leaving
+    const balance = await token.balanceOf(abMember.address);
+    await token.connect(abMember).burn(balance);
+    expect(await token.balanceOf(abMember.address)).to.equal(0);
+
+    // AB leave fail
+    const leaveFailTx = registry.connect(abMember).leave();
+    await expect(leaveFailTx).to.be.revertedWithCustomError(registry, 'AdvisoryBoardMemberCannotLeave');
+
+    // still a member
+    expect(await registry.isMember(abMember.address)).to.be.true;
+    expect(await registry.isAdvisoryBoardMember(abMember.address)).to.be.true;
+  });
+
+  it('should revert when non-member tries to leave', async function () {
+    const fixture = await loadFixture(setup);
+    const { registry } = fixture.contracts;
+    const [nonMember] = fixture.accounts.nonMembers;
+
+    expect(await registry.isMember(nonMember.address)).to.be.false;
+
+    await expect(registry.connect(nonMember).leave()).to.be.revertedWithCustomError(registry, 'NotMember');
+  });
 });

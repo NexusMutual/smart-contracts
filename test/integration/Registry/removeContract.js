@@ -93,7 +93,14 @@ describe('removeContract', function () {
 
     const poolImplementation = await ethers.deployContract('Pool', [registry.target]);
     const isProxy = false;
-    await addContractViaGovernance(registry, governor, advisoryBoardMembers, NEW_INDEX, poolImplementation.target, isProxy);
+    await addContractViaGovernance(
+      registry,
+      governor,
+      advisoryBoardMembers,
+      NEW_INDEX,
+      poolImplementation.target,
+      isProxy,
+    );
 
     const removeContractTx = {
       target: registry.target,

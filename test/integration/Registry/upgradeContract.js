@@ -173,4 +173,3 @@ describe('upgradeContract', function () {
     expect(await registry.getContractAddressByIndex(tcIndex)).to.equal(tokenController.target);
   });
 });
-

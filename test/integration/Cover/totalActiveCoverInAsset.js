@@ -40,7 +40,7 @@ const buyCoverFixture = {
   ipfsData: '',
 };
 
-const BUCKET_SIZE = 7n * 24n * 3600n; // 7 days in seconds
+const BUCKET_SIZE = 7n * 24n * 3600n; // 7 days
 
 describe('totalActiveCoverInAsset', function () {
   it('should return 0 when no cover has been bought', async function () {

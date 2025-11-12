@@ -13,7 +13,7 @@ const { BigIntMath } = nexus.helpers;
 const ONE_NXM = parseEther('1');
 const ALLOCATION_UNITS_PER_NXM = 100n;
 const NXM_PER_ALLOCATION_UNIT = ONE_NXM / ALLOCATION_UNITS_PER_NXM;
-const BUCKET_SIZE = 7n * 24n * 3600n; // 7 days in seconds
+const BUCKET_SIZE = 7n * 24n * 3600n; // 7 days
 
 /**
  * Calculate the exact cover amount that will be allocated by the contract
@@ -504,17 +504,17 @@ describe('MCR Integration Tests', function () {
 
       await setMCR(pool.target, { stored, desired: targetDesired, updatedAt }, ethers.provider);
 
-      // First update
+      // update 1
       await time.increase(MIN_UPDATE_TIME);
       await pool.updateMCR();
       const mcr1 = await pool.getMCR();
 
-      // Second update
+      // update 2
       await time.increase(MIN_UPDATE_TIME);
       await pool.updateMCR();
       const mcr2 = await pool.getMCR();
 
-      // Third update
+      // update 3
       await time.increase(MIN_UPDATE_TIME);
       await pool.updateMCR();
       const mcr3 = await pool.getMCR();

@@ -32,4 +32,3 @@ async function executeGovernorProposal(governor, abMembers, txs, description = '
 module.exports = {
   executeGovernorProposal,
 };
-

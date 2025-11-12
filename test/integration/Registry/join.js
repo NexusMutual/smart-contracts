@@ -11,7 +11,7 @@ const { ZeroAddress } = ethers;
 const JOINING_FEE = ethers.parseEther('0.002');
 
 describe('join', function () {
-  it('should successfully join with real Pool and TokenController integration', async function () {
+  it('should successfully join', async function () {
     const fixture = await loadFixture(setup);
     const { registry, pool, token } = fixture.contracts;
     const { kycAuthSigner } = fixture;

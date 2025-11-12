@@ -13,15 +13,20 @@ const { PoolAsset } = nexus.constants;
 async function createCover(
   cover,
   owner,
-  { coverAsset = PoolAsset.ETH, amount = parseEther('0.1'), periodDays = 30, productId = 0 } = {},
+  {
+    coverAsset = PoolAsset.ETH,
+    amount = parseEther('0.1'),
+    periodDays = 30,
+    productId = 0,
+    paymentAsset = coverAsset,
+    maxPremiumInAsset = (amount * 260n) / 10000n, // 2.6% of coverage amount
+  } = {},
 ) {
-  const paymentAsset = coverAsset; // Pay in same asset as cover
   const commissionRatio = 500; // 5% commission
   const commissionDestination = owner.address;
   const ipfsData = '';
 
   const daysToSeconds = days => BigInt(days) * 24n * 60n * 60n;
-  const maxPremiumInAsset = (amount * 260n) / 10000n; // 2.6% of coverage amount
   const value = coverAsset === PoolAsset.ETH ? maxPremiumInAsset : 0n;
 
   const coverTx = await cover.connect(owner).buyCover(

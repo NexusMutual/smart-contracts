@@ -144,6 +144,11 @@ const parseArgs = async args => {
   return opts;
 };
 
+/**
+ * Get deployment bytecode with encoded constructor arguments
+ * @param {object} options - Options object containing contract, constructorArgs, and libraries
+ * @returns {Promise<Uint8Array>} Deployment bytecode as bytes with encoded constructor args
+ */
 const getDeploymentBytecode = async options => {
   const { abi, bytecode: initialBytecode } = await artifacts.readArtifact(options.contract);
 
@@ -162,7 +167,7 @@ const getDeploymentBytecode = async options => {
   }
 
   if (typeof constructorAbi === 'undefined') {
-    return bytecode;
+    return hexToBytes(bytecode.replace(/^0x/i, ''));
   }
 
   if (constructorAbi.inputs.length !== options.constructorArgs.length) {
@@ -174,8 +179,29 @@ const getDeploymentBytecode = async options => {
 
   const abiCoder = ethers.AbiCoder.defaultAbiCoder();
   const constructorArgs = abiCoder.encode(constructorAbi.inputs, options.constructorArgs);
+  const deploymentBytecode = `${bytecode}${constructorArgs.replace(/^0x/i, '')}`;
 
-  return `${bytecode}${constructorArgs.replace(/^0x/i, '')}`;
+  return hexToBytes(deploymentBytecode.replace(/^0x/i, ''));
+};
+
+/**
+ * Calculate CREATE2 address from factory, salt, and bytecode
+ * @param {string} factoryAddress - Address of the CREATE2 factory
+ * @param {number} salt - Salt value for CREATE2
+ * @param {Uint8Array} bytecode - Deployment bytecode as bytes (including constructor args)
+ * @returns {string} Calculated CREATE2 address
+ */
+const calculateCreate2Address = (factoryAddress, salt, bytecode) => {
+  const factory = factoryAddress.slice(-40);
+  const bytecodeHash = bytesToHex(keccak256(bytecode));
+
+  // assemble input
+  const saltHex = salt.toString(16).padStart(64, '0');
+  const input = hexToBytes(`ff${factory}${saltHex}${bytecodeHash}`);
+  const create2Hash = keccak256(input);
+  const address = '0x' + bytesToHex(create2Hash.slice(32 - 20));
+
+  return address;
 };
 
 async function main() {
@@ -187,20 +213,12 @@ async function main() {
   // make sure the contracts are compiled and we're not deploying an outdated artifact
   await run('compile');
 
-  const deploymentBytecode = await getDeploymentBytecode(opts).catch(err => {
+  const bytecode = await getDeploymentBytecode(opts).catch(err => {
     console.error(`Error: ${err.message}`);
     process.exit(1);
   });
 
-  const factory = opts.factory.slice(-40);
-  const bytecode = hexToBytes(deploymentBytecode.replace(/^0x/i, ''));
-  const bytecodeHash = bytesToHex(keccak256(bytecode));
-
-  // assemble input
-  const saltHex = opts.salt.toString(16).padStart(64, '0');
-  const input = hexToBytes(`ff${factory}${saltHex}${bytecodeHash}`);
-  const create2Hash = keccak256(input);
-  const address = '0x' + bytesToHex(create2Hash.slice(32 - 20));
+  const address = calculateCreate2Address(opts.factory, opts.salt, bytecode);
 
   // check if the expected address is the same as resulting address
   if (address.toLowerCase() !== opts.address.toLowerCase()) {
@@ -225,11 +243,18 @@ async function main() {
   console.log('Done!');
 }
 
-main()
-  .then(() => {
-    process.exit(0);
-  })
-  .catch(error => {
-    console.error('An unexpected error encountered:', error);
-    process.exit(1);
-  });
+if (require.main === module) {
+  main()
+    .then(() => {
+      process.exit(0);
+    })
+    .catch(error => {
+      console.error('An unexpected error encountered:', error);
+      process.exit(1);
+    });
+}
+
+module.exports = {
+  getDeploymentBytecode,
+  calculateCreate2Address,
+};

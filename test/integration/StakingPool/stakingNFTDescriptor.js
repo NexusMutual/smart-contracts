@@ -1,10 +1,10 @@
 const { ethers, nexus } = require('hardhat');
 const base64 = require('base64-js');
 const { expect } = require('chai');
-const { loadFixture, setBalance, impersonateAccount, time, mine } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, time, mine } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('../setup');
-const { daysToSeconds } = require('../utils');
+const { daysToSeconds, getFundedSigner } = require('../utils');
 
 const { calculateFirstTrancheId } = nexus.protocol;
 const { parseEther, formatEther, MaxUint256 } = ethers;
@@ -22,11 +22,9 @@ async function createStakingDeposit(fixture) {
   const firstTrancheId = calculateFirstTrancheId(latestTimestamp, 60, 30);
 
   const operatorAddress = await token.operator();
-  await impersonateAccount(operatorAddress);
-  const operator = await ethers.getSigner(operatorAddress);
+  const operator = await getFundedSigner(operatorAddress, parseEther('10000'));
 
   // set balances
-  await setBalance(operatorAddress, parseEther('10000'));
   await token.connect(operator).mint(staker.address, parseEther('10000'));
   await token.connect(staker).approve(tokenController.target, MaxUint256);
 

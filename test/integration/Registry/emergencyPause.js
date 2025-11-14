@@ -1,8 +1,9 @@
 const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
-const { loadFixture, impersonateAccount, setBalance } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('../setup');
+const { getFundedSigner } = require('../utils');
 
 const { PauseTypes, Assets, SwapKind, ContractIndexes } = nexus.constants;
 const { signJoinMessage } = nexus.signing;
@@ -61,9 +62,7 @@ describe('Global Pause', function () {
 
     // upgrade
     const newImplementation = await ethers.deployContract('Pool', [registry]);
-    await impersonateAccount(governor.target);
-    const governorSigner = await ethers.getSigner(governor.target);
-    await setBalance(governor.target, ethers.parseEther('1'));
+    const governorSigner = await getFundedSigner(governor.target);
     await registry.connect(governorSigner).upgradeContract(ContractIndexes.C_POOL, newImplementation.target);
 
     // proxy should have new implementation
@@ -241,15 +240,12 @@ describe('Global Pause', function () {
     const fixture = await loadFixture(setup);
     const { registry, swapOperator, dai, governor } = fixture.contracts;
     const [ea1, ea2] = fixture.accounts.emergencyAdmins;
-    const { impersonateAccount, setBalance } = require('@nomicfoundation/hardhat-network-helpers');
     const timestamp = Math.floor(Date.now() / 1000);
 
     await registry.connect(ea1).proposePauseConfig(PauseTypes.PAUSE_GLOBAL);
     await registry.connect(ea2).confirmPauseConfig(PauseTypes.PAUSE_GLOBAL);
 
-    await impersonateAccount(governor.target);
-    const governorSigner = await ethers.getSigner(governor.target);
-    await setBalance(governor.target, ethers.parseEther('1'));
+    const governorSigner = await getFundedSigner(governor.target, ethers.parseEther('1'));
 
     // requestAssetSwap should fail
     const requestAssetSwapTx = swapOperator.connect(governorSigner).requestAssetSwap({
@@ -353,7 +349,6 @@ describe('Specific Pause Types', function () {
     const [fromUser] = fixture.accounts.members;
     const [toUser] = fixture.accounts.nonMembers;
     const [ea1, ea2] = fixture.accounts.emergencyAdmins;
-    const { impersonateAccount, setBalance } = require('@nomicfoundation/hardhat-network-helpers');
 
     expect(await registry.isMember(fromUser.address)).to.be.true;
 
@@ -362,9 +357,7 @@ describe('Specific Pause Types', function () {
     await registry.connect(ea2).confirmPauseConfig(PauseTypes.PAUSE_MEMBERSHIP);
 
     // switchFor should fail
-    await impersonateAccount(memberRoles.target);
-    const memberRolesSigner = await ethers.getSigner(memberRoles.target);
-    await setBalance(memberRoles.target, ethers.parseEther('1'));
+    const memberRolesSigner = await getFundedSigner(memberRoles.target, ethers.parseEther('1'));
 
     await expect(registry.connect(memberRolesSigner).switchFor(fromUser.address, toUser.address))
       .to.be.revertedWithCustomError(registry, 'Paused')
@@ -446,9 +439,7 @@ describe('Specific Pause Types', function () {
     await registry.connect(ea1).proposePauseConfig(PauseTypes.PAUSE_SWAPS);
     await registry.connect(ea2).confirmPauseConfig(PauseTypes.PAUSE_SWAPS);
 
-    await impersonateAccount(governor.target);
-    const governorSigner = await ethers.getSigner(governor.target);
-    await setBalance(governor.target, ethers.parseEther('1'));
+    const governorSigner = await getFundedSigner(governor.target, ethers.parseEther('1'));
 
     // requestAssetSwap should fail
     const requestAssetSwapTx = swapOperator.connect(governorSigner).requestAssetSwap({

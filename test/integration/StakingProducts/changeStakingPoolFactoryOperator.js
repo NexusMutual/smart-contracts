@@ -1,8 +1,9 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
-const { loadFixture, impersonateAccount, setBalance } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('../setup');
+const { getFundedSigner } = require('../utils');
 
 describe('changeStakingPoolFactoryOperator', function () {
   it('should change Staking Pool Factory operator', async function () {
@@ -10,9 +11,7 @@ describe('changeStakingPoolFactoryOperator', function () {
     const { stakingProducts, stakingPoolFactory, governor } = fixture.contracts;
 
     // Impersonate governor contract
-    await impersonateAccount(governor.target);
-    await setBalance(governor.target, ethers.parseEther('1000'));
-    const governanceSigner = await ethers.getSigner(governor.target);
+    const governanceSigner = await getFundedSigner(governor.target, ethers.parseEther('1000'));
     const operator = ethers.Wallet.createRandom();
 
     const stakingPoolFactoryOperatorBefore = await stakingPoolFactory.operator();

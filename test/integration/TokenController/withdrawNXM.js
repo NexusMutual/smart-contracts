@@ -1,8 +1,9 @@
 const { ethers, nexus } = require('hardhat');
-const { loadFixture, time, impersonateAccount, setBalance } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, time, setBalance } = require('@nomicfoundation/hardhat-network-helpers');
 const { expect } = require('chai');
 
 const setup = require('../setup');
+const { getFundedSigner } = require('../utils');
 
 const { calculatePremium, calculateFirstTrancheId } = nexus.protocol;
 const { PoolAsset } = nexus.constants;
@@ -102,12 +103,10 @@ describe('withdrawNXM', function () {
     const [manager] = fixture.accounts.stakingPoolManagers;
 
     const operatorAddress = await token.operator();
-    await impersonateAccount(operatorAddress);
-    const operator = await ethers.provider.getSigner(operatorAddress);
+    const operator = await getFundedSigner(operatorAddress, parseEther('10000'));
 
     // set ETH and NXM balances
     await setBalance(manager.address, parseEther('10000'));
-    await setBalance(operatorAddress, parseEther('10000'));
     await token.connect(operator).mint(manager.address, parseEther('10000000'));
     await token.connect(manager).approve(tokenController, MaxUint256);
 

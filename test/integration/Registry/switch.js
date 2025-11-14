@@ -1,8 +1,9 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { loadFixture, setBalance, impersonateAccount } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('../setup');
+const { getFundedSigner } = require('../utils');
 
 describe('switch', function () {
   it('should switchTo with real TokenController integration and NXM token transfer', async function () {
@@ -53,9 +54,7 @@ describe('switch', function () {
     expect(await token.balanceOf(toUser.address)).to.equal(0n);
 
     // switchFor
-    await impersonateAccount(memberRoles.target);
-    const memberRolesSigner = await ethers.getSigner(memberRoles.target);
-    await setBalance(memberRoles.target, ethers.parseEther('1'));
+    const memberRolesSigner = await getFundedSigner(memberRoles.target, ethers.parseEther('1'));
 
     const switchTx = await registry.connect(memberRolesSigner).switchFor(fromUser.address, toUser.address);
 

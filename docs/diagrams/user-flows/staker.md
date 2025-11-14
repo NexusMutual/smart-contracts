@@ -14,11 +14,11 @@ graph TD
     SNFT["StakingNFT Contract"]
 
     %% Deposit Flow
-    Staker -->|"(1a) depositTo()"| SP
-    SP -->|"(1b) depositStakedNXM()"| TCO
-    TCO -->|"(1c) operatorTransfer()"| NXM
-    SP -->|"(1d) mintStakeNFT()"| SNFT
-    SNFT -.->|"(1e) issue Staking NFT"| Staker
+    Staker -->|"**(1a)** depositTo()"| SP
+    SP -->|"**(1b)** depositStakedNXM()"| TCO
+    TCO -->|"**(1c)** operatorTransfer()"| NXM
+    SP -->|"**(1d)** mintStakeNFT()"| SNFT
+    SNFT -.->|"**(1e)** issue Staking NFT"| Staker
 ```
 
 ## Withdraw Flow
@@ -34,10 +34,10 @@ graph TD
     NXM["NXMToken Contract"]
 
     %% Withdraw Flow
-    Staker -->|"(1a) withdraw()"| SP
-    SP -->|"(1b) withdrawNXMStakeAndRewards()"| TCO
-    TCO -->|"(1c) transfer"| NXM
-    NXM -.->|"(1c) transfer stake + rewards"| Staker
+    Staker -->|"**(1a)** withdraw()"| SP
+    SP -->|"**(1b)** withdrawNXMStakeAndRewards()"| TCO
+    TCO -->|"**(1c)** transfer"| NXM
+    NXM -.->|"**(1c)** transfer stake + rewards"| Staker
 ```
 
 ## Staker Actions
@@ -62,16 +62,16 @@ graph TD
 
 ## Deposit Stake Flow
 
-(1a) **Staker** calls `depositTo()` on **StakingPool**.
-(1b) **StakingPool** validates and calculates shares, calls `depositStakedNXM()` on **TokenController**.
-(1c) **TokenController** updates pool balance and transfers NXM via **NXMToken**.
-(1d) **StakingPool** calls `mintStakeNFT()` on **StakingNFT**.
-(1e) **StakingNFT** issues NFT to staker as proof of stake.
+**(1a)** `Staker` calls `depositTo()` on **StakingPool**.
+**(1b)** `StakingPool` validates and calculates shares, calls `depositStakedNXM()` on **TokenController**.
+**(1c)** `TokenController` updates pool balance and transfers NXM via **NXMToken**.
+**(1d)** `StakingPool` calls `mintStakeNFT()` on **StakingNFT**.
+**(1e)** `StakingNFT` issues NFT to staker as proof of stake.
 
 ---
 
 ## Withdraw Stake Flow
 
-(1a) **Staker** calls `withdraw()` on **StakingPool**.
-(1b) **StakingPool** calculates amounts, calls `withdrawNXMStakeAndRewards()` on **TokenController**.
-(1c) **TokenController** transfers stake and rewards to staker via **NXMToken**.
+**(1a)** `Staker` calls `withdraw()` on **StakingPool**.
+**(1b)** `StakingPool` calculates amounts, calls `withdrawNXMStakeAndRewards()` on **TokenController**.
+**(1c)** `TokenController` transfers stake and rewards to staker via **NXMToken**.

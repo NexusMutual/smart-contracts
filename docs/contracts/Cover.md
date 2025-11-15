@@ -14,41 +14,27 @@ Represents the basic information about a cover.
 
 ```solidity
 struct CoverData {
-    uint productId;
-    uint coverAsset;
-    uint96 amountPaidOut;
-}
-```
-
-| Parameter       | Description                                     |
-| --------------- | ----------------------------------------------- |
-| `productId`     | The ID of the product being covered.            |
-| `coverAsset`    | The asset ID used for coverage (e.g., ETH).     |
-| `amountPaidOut` | Total amount paid out for claims on this cover. |
-
-#### CoverSegment
-
-Each cover can have multiple segments representing different periods or modifications to the coverage.
-
-```solidity
-struct CoverSegment {
+    uint24 productId;
+    uint8 coverAsset;
     uint96 amount;
     uint32 start;
     uint32 period;
     uint32 gracePeriod;
-    uint24 globalRewardsRatio;
-    uint24 globalCapacityRatio;
+    uint16 rewardsRatio;
+    uint16 capacityRatio;
 }
 ```
 
-| Parameter             | Description                                             |
-| --------------------- | ------------------------------------------------------- |
-| `amount`              | Coverage amount in cover asset.                         |
-| `start`               | Start timestamp of the cover segment.                   |
-| `period`              | Duration of the cover segment in seconds.               |
-| `gracePeriod`         | Additional time after expiration for claim submissions. |
-| `globalRewardsRatio`  | Global rewards ratio applicable to the cover.           |
-| `globalCapacityRatio` | Global capacity ratio applicable to the cover.          |
+| Parameter        | Description                                        |
+|------------------|----------------------------------------------------|
+| `productId`      | The ID of the product being covered.               |
+| `coverAsset`     | The asset ID used for coverage (e.g., ETH).        |
+| `amount`         | Active amount of cover in cover asset.             |
+| `start`          | Start timestamp of the cover.                      |
+| `period`         | Duration of the cover (in seconds).                |
+| `gracePeriod`    | Additional time allowed for submitting claims.     |
+| `rewardsRatio`   | Ratio used to calculate rewards.                   |
+| `capacityRatio`  | Ratio used to calculate pool capacity utilization. |
 
 #### PoolAllocation
 
@@ -56,19 +42,29 @@ Represents the allocation of coverage to a specific staking pool.
 
 ```solidity
 struct PoolAllocation {
-    uint poolId;
+    uint40 poolId;
     uint96 coverAmountInNXM;
     uint96 premiumInNXM;
     uint24 allocationId;
 }
 ```
 
-| Parameter          | Description                                           |
-| ------------------ | ----------------------------------------------------- |
-| `poolId`           | ID of the staking pool.                               |
-| `coverAmountInNXM` | Cover amount allocated to the pool in NXM tokens.     |
-| `premiumInNXM`     | Premium paid for the allocation in NXM tokens.        |
-| `allocationId`     | Unique identifier for the allocation within the pool. |
+| Parameter           | Description                                            |
+|---------------------|--------------------------------------------------------|
+| `poolId`            | ID of the staking pool.                                |
+| `coverAmountInNXM`  | Cover amount allocated to the pool in NXM tokens.      |
+| `premiumInNXM`      | Premium paid for the allocation in NXM tokens.         |
+| `allocationId`      | Unique identifier for the allocation within the pool.  |
+
+#### CoverReference
+Tracks edits and extensions to a cover.
+
+```solidity
+struct CoverReference {
+    uint32 originalCoverId;
+    uint32 latestCoverId;
+}
+```
 
 ### Active Cover and Expiration Buckets
 
@@ -85,6 +81,7 @@ uint public constant MAX_COMMISSION_RATIO = 3000; // 30%
 uint public constant GLOBAL_CAPACITY_RATIO = 20000; // 2x
 uint public constant GLOBAL_REWARDS_RATIO = 5000; // 50%
 uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
+uint public constant DEFAULT_MIN_PRICE_RATIO  = 100; // 1%
 ```
 
 - **Cover Periods:**
@@ -102,6 +99,7 @@ uint private constant BUCKET_SIZE = 7 days;
 ```solidity
 uint private constant ALLOCATION_UNITS_PER_NXM = 100;
 uint public constant NXM_PER_ALLOCATION_UNIT = ONE_NXM / ALLOCATION_UNITS_PER_NXM;
+uint private constant MAX_ACTIVE_TRANCHES = 8;
 ```
 
 ### Asset IDs
@@ -117,7 +115,7 @@ uint private constant NXM_ASSET_ID = type(uint8).max;
 
 ### `buyCover`
 
-Allows a user to purchase cover for a specific product.
+Allows a user to purchase or edit cover for a specific product.
 
 ```solidity
 function buyCover(
@@ -126,42 +124,43 @@ function buyCover(
 ) external payable onlyMember nonReentrant whenNotPaused returns (uint coverId);
 ```
 
-| Parameter                | Description                                                                                                 |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| `params`                 | Struct containing cover purchase parameters (see below).                                                    |
-| `poolAllocationRequests` | Array of pool allocation requests specifying how to allocate cover amount across staking pools (see below). |
+| Parameter                 | Description                                                                                                 |
+|---------------------------|-------------------------------------------------------------------------------------------------------------|
+| `params`                  | Struct containing cover purchase parameters (see below).                                                    |
+| `poolAllocationRequests`  | Array of pool allocation requests specifying how to allocate cover amount across staking pools (see below). |
 
 #### `BuyCoverParams` Structure:
 
 ```solidity
 struct BuyCoverParams {
-    uint productId;
     uint coverId;
     address owner;
-    uint coverAsset;
-    uint period;
-    uint amount;
-    uint16 commissionRatio;
-    uint paymentAsset;
+    uint24 productId;
+    uint8 coverAsset;
+    uint96 amount;
+    uint32 period;
     uint maxPremiumInAsset;
+    uint8 paymentAsset;
+    uint16 commissionRatio;
     address commissionDestination;
-    bytes ipfsData;
+    string ipfsData;
 }
+
 ```
 
-| Field                   | Description                                                                  |
-| ----------------------- | ---------------------------------------------------------------------------- |
-| `productId`             | The ID of the product to purchase cover for.                                 |
-| `coverId`               | The ID of an existing cover to extend or modify, or 0 to create a new cover. |
-| `owner`                 | The address that will own the cover NFT.                                     |
-| `coverAsset`            | The asset ID used for coverage. See `Pool.getAssets` (e.g., 0 ~ ETH).        |
-| `period`                | The duration of the cover in seconds.                                        |
-| `amount`                | The amount of coverage in the cover asset.                                   |
-| `commissionRatio`       | The commission ratio (in basis points, where 10000 = 100%).                  |
-| `paymentAsset`          | The asset ID used for payment (must be coverAsset or NXM_ASSET_ID).          |
-| `maxPremiumInAsset`     | The maximum premium the buyer is willing to pay in the payment asset.        |
-| `commissionDestination` | The address where the commission should be sent.                             |
-| `ipfsData`              | IPFS hash of additional data related to the cover (e.g., policy documents).  |
+| Field                     | Description                                                                          |
+|---------------------------|--------------------------------------------------------------------------------------|
+| `coverId`                 | The ID of an existing cover to extend or modify, or 0 to create a new cover.         |
+| `owner`                   | The address that will own the cover NFT.                                             |
+| `productId`               | The ID of the product to purchase cover for.                                         |
+| `coverAsset`              | The asset ID used for coverage. See `Pool.getAssets` (e.g., 0 ~ ETH).                |
+| `amount`                  | The amount of coverage in the cover asset.                                           |
+| `period`                  | The duration of the cover in seconds.                                                |
+| `maxPremiumInAsset`       | The maximum premium the buyer is willing to pay in the payment asset.                |
+| `paymentAsset`            | The asset ID used for payment (must be coverAsset or NXM_ASSET_ID).                  |
+| `commissionRatio`         | The commission ratio (in basis points, where 10000 = 100%).                          |
+| `commissionDestination`   | The address where the commission should be sent.                                     |
+| `ipfsData`                | IPFS hash of additional data related to the cover (e.g., list of wallet addresses).  |
 
 #### `PoolAllocationRequest` Structure:
 
@@ -169,33 +168,31 @@ struct BuyCoverParams {
 struct PoolAllocationRequest {
     uint poolId;
     uint coverAmountInAsset;
-    bool skip;
 }
 ```
 
 To retrieve data to construct `PoolAllocationRequest`, call the `/quote` endpoint of the cover-router API service: [API Documentation](https://api.nexusmutual.io/v2/api/docs/#/Quote/get_v2_quote).
 
-| Field                | Description                                                                                                       |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `poolId`             | ID of the staking pool to allocate cover to.                                                                      |
-| `coverAmountInAsset` | Amount of coverage to allocate to the pool in the cover asset.                                                    |
-| `skip`               | If true, skips allocation to this pool, keeping the previous allocation if extending/modifying an existing cover. |
+| Field                 | Description                                                           |
+|-----------------------|-----------------------------------------------------------------------|
+| `poolId`              | ID of the staking pool to allocate cover to.                          |
+| `coverAmountInAsset`  | Amount of coverage to allocate to the pool in the cover asset.        |
 
-**Returns:** The coverId of the purchased or modified cover.
+**Returns:** The coverId of the purchased cover.
 
-**Description:** Purchases new cover or extends an existing cover. Validates input parameters (e.g., cover period, commission ratio), allocates cover amounts across specified staking pools, calculates premiums and commissions, and mints a new Cover NFT if it's a new cover.
+**Description:** Purchases new cover or edits an existing cover. Validates input parameters (e.g., cover period, commission ratio), allocates cover amounts across specified staking pools, calculates premiums and commissions, and mints a new Cover NFT if it's a new cover.
 
 ### `expireCover`
 
-Expires a cover that has reached its expiration time.
+Explicitly expires a cover that has reached its expiration time removing its allocations.
 
 ```solidity
 function expireCover(uint coverId) external;
 ```
 
-| Parameter | Description                    |
-| --------- | ------------------------------ |
-| `coverId` | The ID of the cover to expire. |
+| Parameter   | Description                     |
+|-------------|---------------------------------|
+| `coverId`   | The ID of the cover to expire.  |
 
 **Description:** Checks if the cover has expired, deallocates cover amounts from staking pools, and updates active cover amounts and expiration buckets. Reverts if the cover has not yet expired.
 
@@ -213,11 +210,11 @@ function burnStake(
 ) external onlyInternal override returns (address);
 ```
 
-| Parameter             | Description                                                  |
-| --------------------- | ------------------------------------------------------------ |
-| `coverId`             | The ID of the cover associated with the claim.               |
-| `segmentId`           | The segment ID within the cover.                             |
-| `payoutAmountInAsset` | The amount to be paid out for the claim, in the cover asset. |
+| Parameter               | Description                                                    |
+|-------------------------|----------------------------------------------------------------|
+| `coverId`               | The ID of the cover associated with the claim.                 |
+| `segmentId`             | The segment ID within the cover.                               |
+| `payoutAmountInAsset`   | The amount to be paid out for the claim, in the cover asset.   |
 
 **Returns:** The owner address of the cover NFT.
 
@@ -233,9 +230,9 @@ Updates the total active cover amount for a specific asset.
 function updateTotalActiveCoverAmount(uint coverAsset) public;
 ```
 
-| Parameter    | Description                                                                    |
-| ------------ | ------------------------------------------------------------------------------ |
-| `coverAsset` | The asset ID for which to update the active cover amount. See `Pool.getAssets` |
+| Parameter      | Description                                                                      |
+|----------------|----------------------------------------------------------------------------------|
+| `coverAsset`   | The asset ID for which to update the active cover amount. See `Pool.getAssets`   |
 
 **Description:** Processes expired covers and updates active cover amounts. Adjusts the active cover expiration buckets. Can be called to manually trigger an update of active cover amounts. Typically used internally when buying or expiring covers.
 
@@ -248,68 +245,70 @@ function updateTotalActiveCoverAmount(uint coverAsset) public;
 Retrieves the cover data for a specific cover ID.
 
 ```solidity
-function coverData(uint coverId) external override view returns (CoverData memory);
+function getCoverData(uint coverId) external override view returns (CoverData memory);
 ```
 
-| Parameter | Description          |
-| --------- | -------------------- |
-| `coverId` | The ID of the cover. |
+| Parameter   | Description            |
+|-------------|------------------------|
+| `coverId`   | The ID of the cover.   |
 
 **Description:** Returns the CoverData struct associated with the given cover ID. Useful for fetching basic information about a cover, such as productId, coverAsset, and amountPaidOut.
 
-### `coverSegmentWithRemainingAmount`
+### `getPoolAllocations`
 
-Returns a cover segment with the remaining amount after payouts.
-
-```solidity
-function coverSegmentWithRemainingAmount(
-    uint coverId,
-    uint segmentId
-) public override view returns (CoverSegment memory);
-```
-
-| Parameter   | Description                                   |
-| ----------- | --------------------------------------------- |
-| `coverId`   | The ID of the cover.                          |
-| `segmentId` | The ID of the cover segment within the cover. |
-
-**Description:** Calculates the remaining cover amount after subtracting any amounts paid out (amountPaidOut). Returns the updated CoverSegment struct.
-
-### `coverSegments`
-
-Retrieves all cover segments for a specific cover ID.
+Returns PoolAllocation array for a given coverId.
 
 ```solidity
-function coverSegments(uint coverId) external override view returns (CoverSegment[] memory);
+function getPoolAllocations(uint coverId) external view returns (PoolAllocation[] memory);
 ```
 
-| Parameter | Description          |
-| --------- | -------------------- |
-| `coverId` | The ID of the cover. |
+| Parameter    | Description           |
+|--------------|-----------------------|
+| `coverId`    | The ID of the cover.  |
 
-**Description:** Returns an array of all CoverSegment structs associated with the cover. Allows users to see the history of cover segments, including any extensions or modifications.
+**Description:** Returns PoolAllocation array for a given coverId.
 
-### `coverSegmentsCount`
+### `getCoverReference`
 
-Returns the number of segments for a specific cover ID.
+Returns the reference for a cover.
 
 ```solidity
-function coverSegmentsCount(uint coverId) external override view returns (uint);
+function getCoverReference(uint coverId) public view returns (CoverReference memory);
 ```
 
-| Parameter | Description          |
-| --------- | -------------------- |
-| `coverId` | The ID of the cover. |
+| Parameter   | Description           |
+|-------------|-----------------------|
+| `coverId`   | The ID of the cover.  |
 
-**Description:** Returns the count of cover segments associated with the cover. Useful for iterating over cover segments or checking if a cover has been modified.
+**Description:** Returns the cover reference original id and the latest id for a cover.
 
-### `coverDataCount`
+### `getCoverDataWithReference`
 
-Returns the total number of covers created.
+Returns CoverData and CoverReference.
 
 ```solidity
-function coverDataCount() external override view returns (uint);
+function getCoverDataWithReference(uint coverId) external view returns (CoverData memory, CoverReference memory);
 ```
+
+| Parameter   | Description           |
+|-------------|-----------------------|
+| `coverId`   | The ID of the cover.  |
+
+**Description:** Returns both Cover data and cover reference for a cover by ID.
+
+### `getLatestEditCoverData`
+
+Returns the latest edited cover data.
+
+```solidity
+function getLatestEditCoverData(uint coverId) external view returns (CoverData memory);
+```
+
+| Parameter  | Description           |
+|------------|-----------------------|
+| `coverId`  | The ID of the cover.  |
+
+**Description:** Returns latest edited Cover data by ID
 
 ### `totalActiveCoverInAsset`
 
@@ -319,9 +318,9 @@ Returns the total active cover amount for a specific asset.
 function totalActiveCoverInAsset(uint assetId) public view returns (uint);
 ```
 
-| Parameter | Description          |
-| --------- | -------------------- |
-| `assetId` | The ID of the asset. |
+| Parameter  | Description            |
+|------------|------------------------|
+| `assetId`  | The ID of the asset.   |
 
 **Description:** Retrieves the total amount of active cover in the specified asset. Useful for assessing the exposure of the protocol in a particular asset.
 
@@ -364,8 +363,7 @@ function getGlobalCapacityAndPriceRatios() external pure returns (
 
 ## Integration Guidelines
 
-- **Buying Cover:** Use the `buyCover` function with appropriate parameters to purchase coverage. Ensure that you handle the premium payment and any commissions.
-- **Understanding Cover Segments:** Covers can have multiple segments due to extensions or modifications. Use `coverSegments` and `coverSegmentWithRemainingAmount` to retrieve current cover details.
+- **Buying Cover:** Use the `buyCover` function with appropriate parameters to purchase or edit coverage. Ensure that you handle the premium payment and any commissions.
 - **Staking Pools Allocation:** To retrieve data to construct `PoolAllocationRequest`, call the `/quote` endpoint of the cover-router API service: [API Documentation](https://api.nexusmutual.io/v2/api/docs/#/Quote/get_v2_quote).
 - **Asset IDs:** Be aware of the asset IDs used within the protocol, such as `ETH_ASSET_ID` and `NXM_ASSET_ID`.
 - **Premium Payments:** Premiums can be paid in NXM or the cover asset. Ensure you handle token transfers and approvals appropriately.

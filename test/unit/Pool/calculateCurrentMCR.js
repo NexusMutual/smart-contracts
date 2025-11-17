@@ -1,9 +1,8 @@
 const { expect } = require('chai');
-const { nexus } = require('hardhat');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
-const { calculateCurrentMCR } = nexus.pool;
+const { calculateCurrentMCR } = require('../utils');
 
 const stored = 12348870328212262601890n;
 const desired = 10922706197119349905840n;

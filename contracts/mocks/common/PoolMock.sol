@@ -17,6 +17,7 @@ contract PoolMock is PoolGeneric {
 
   Asset[] public assets;
   mapping (uint => uint) internal prices;
+  uint internal mcrValue;
 
   uint public constant MCR_RATIO_DECIMALS = 4;
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -116,6 +117,18 @@ contract PoolMock is PoolGeneric {
 
   function getTokenPrice() public override virtual view returns (uint) {
     return prices[0];
+  }
+
+  function getMCR() public override virtual view returns (uint) {
+    return mcrValue;
+  }
+
+  function setMCR(uint _mcrValue) public {
+    mcrValue = _mcrValue;
+  }
+
+  function updateMCRInternal(bool /* forceUpdate */) external override {
+    // noop - required for Ramm.swap
   }
 
 }

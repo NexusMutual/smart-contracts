@@ -1,6 +1,7 @@
-const { BigIntMath } = require('./helpers');
+const { nexus } = require('hardhat');
 
-// TODO: move to unit test file using it
+const { BigIntMath } = nexus.helpers;
+
 /**
  * @param {Addressable|AddressLike} poolAddress
  * @param {{ stored: bigint, desired: bigint, updatedAt: bigint }}
@@ -18,7 +19,20 @@ async function setMCR(poolAddress, { stored, desired, updatedAt }, provider) {
   await provider.send('evm_mine');
 }
 
-// TODO: move to test/unit/Pool/setup.js
+/**
+ * Calculates the current MCR by gradually adjusting from stored toward desired,
+ * respecting maximum daily adjustment limits based on time elapsed.
+ * @param {Object} params - MCR state and timing parameters
+ * @param {bigint} params.stored - The stored MCR value
+ * @param {bigint} params.desired - The desired MCR value
+ * @param {bigint} params.now - Current timestamp
+ * @param {bigint} params.updatedAt - Timestamp when MCR was last updated
+ * @param {Object} constants - MCR adjustment constants
+ * @param {bigint} constants.MAX_MCR_INCREMENT - Maximum daily increment in basis points
+ * @param {bigint} constants.MAX_MCR_ADJUSTMENT - Maximum adjustment cap in basis points
+ * @param {bigint} constants.BASIS_PRECISION - Basis points precision (typically 10000)
+ * @returns {bigint} The calculated current MCR value
+ */
 function calculateCurrentMCR(
   { stored, desired, now, updatedAt },
   { MAX_MCR_INCREMENT, MAX_MCR_ADJUSTMENT, BASIS_PRECISION },
@@ -30,4 +44,7 @@ function calculateCurrentMCR(
     : BigIntMath.max((stored * (BASIS_PRECISION - changeBps)) / BASIS_PRECISION, desired);
 }
 
-module.exports = { setMCR, calculateCurrentMCR };
+module.exports = {
+  calculateCurrentMCR,
+  setMCR,
+};

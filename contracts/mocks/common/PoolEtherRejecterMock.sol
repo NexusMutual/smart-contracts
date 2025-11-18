@@ -6,6 +6,16 @@ import "../generic/PoolGeneric.sol";
 
 contract PoolEtherRejecterMock is PoolGeneric {
 
+  uint internal mcrValue = 1 ether;
+
+  function getPoolValueInEth() public override virtual view returns (uint) {
+    return address(this).balance;
+  }
+
+  function getMCR() public override virtual view returns (uint) {
+    return mcrValue;
+  }
+
   receive() external payable override {
     revert("I secretly hate ether");
   }

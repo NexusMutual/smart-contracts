@@ -1,10 +1,10 @@
+const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { nexus, ethers } = require('hardhat');
 const { loadFixture, setBalance } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
 const { setNextBlockTime } = require('../../utils/evm');
-const { calculateCurrentMCR } = nexus.pool;
+const { calculateCurrentMCR } = require('../utils');
 const { parseEther } = ethers;
 
 const stored = 12348870328212262601890n;

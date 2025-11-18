@@ -3,11 +3,10 @@ const { expect } = require('chai');
 const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('../setup');
-const { createCover, daysToSeconds } = require('../utils');
+const { createCover, daysToSeconds, setMCR, calculateCurrentMCR } = require('../utils');
 
 const { parseEther, parseUnits } = ethers;
 const { PoolAsset, PauseTypes } = nexus.constants;
-const { setMCR, calculateCurrentMCR } = nexus.pool;
 const { BigIntMath } = nexus.helpers;
 
 const ONE_NXM = parseEther('1');

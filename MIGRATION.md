@@ -27,7 +27,12 @@ phase 1: first ab actions
 phase 2: prep for ab actions
 1. execute script to push LegacyAssessment stake and rewards
 2. call LegacyMemberRoles.migrateMembers
-3. deploy new contract implementations (create2)
+3. deploy non-proxy contracts (create2)
+   - CoverNFTDescriptor
+   - VotePower
+   - StakingViewer
+   - CoverBroker
+4. deploy new proxy contract implementations (create2)
    - Pool
    - SwapOperator
    - Ramm

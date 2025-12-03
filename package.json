@@ -77,7 +77,7 @@
     "dev": "nodemon --ext js,sol -x hardhat test test/unit test/integration test/layout --show-stack-traces",
     "dev-integration": "nodemon --ext js,sol -x hardhat test test/integration --show-stack-traces",
     "dev-unit": "nodemon --ext js,sol -x hardhat test test/unit --show-stack-traces",
-    "coverage": "NODE_OPTIONS='--max-old-space-size=8192' hardhat coverage --testfiles 'test/{unit,integration}/**/*.js'",
+    "coverage": "MOCHA_JOBS=1 NODE_OPTIONS='--max-old-space-size=8192' hardhat coverage --testfiles 'test/{unit,integration}/**/*.js'",
     "test": "hardhat test test/unit test/integration test/layout",
     "test-integration": "hardhat test test/integration",
     "test-unit": "hardhat test test/unit",

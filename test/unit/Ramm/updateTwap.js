@@ -77,7 +77,11 @@ describe('updateTwap', function () {
     const { ramm } = fixture.contracts;
 
     await time.increase(5 * 60);
-    await setBlockGasLimit('0xFFFFFFFF');
+
+    // skip setting block gas limit when running coverage tests to avoid gas limit errors
+    if (process.env.npm_lifecycle_event !== 'coverage') {
+      await setBlockGasLimit('0xFFFFFFFF');
+    }
 
     await setAutomine(false);
     const firstUpdate = await ramm.updateTwap();

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 
-import {IDefaultStakerRewards} from "./IDefaultStakerRewards.sol";
-
 import {IRegistry} from "@symbioticfi/core/src/interfaces/common/IRegistry.sol";
+
+import {IDefaultStakerRewards} from "./IDefaultStakerRewards.sol";
 
 interface IDefaultStakerRewardsFactory is IRegistry {
   /**

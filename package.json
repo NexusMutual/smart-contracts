@@ -23,6 +23,7 @@
     "@nexusmutual/deployments": "^2.12.0",
     "@nexusmutual/ethers-v6-aws-kms-signer": "^0.0.3",
     "@openzeppelin/contracts-v4": "npm:@openzeppelin/contracts@4.7.3",
+    "@symbioticfi/core": "^1.0.3",
     "dotenv": "^16.4.7",
     "ethereum-cryptography": "^3.1.0",
     "ethereumjs-util": "^7.0.1",

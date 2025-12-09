@@ -64,19 +64,14 @@ struct RiConfig {
   address premiumDestination;
 }
 
-struct VaultAllocations {
-  uint amount;
-  uint vaultId;
-  uint providerId;
-}
-
 struct RiRequest {
   uint providerId;
   uint amount;
   uint premium;
   bytes signature;
+  bytes data;
+  uint8 dataFormat;
   uint32 deadline;
-  VaultAllocations[] data;
 }
 
 interface ICover is IStakingPoolBeacon {
@@ -175,7 +170,7 @@ interface ICover is IStakingPoolBeacon {
     uint indexed buyerMemberId,
     uint productId
   );
-  event CoverRiBought(VaultAllocations[] vaultAllocations);
+  event CoverRiAllocated(bytes data, uint8 dataFormatVersion);
 
   // Auth
   error OnlyOwnerOrApproved();

@@ -5,7 +5,7 @@ const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers'
 const { setup } = require('./setup');
 
 const { signRiQuote } = nexus.signing;
-const { parseEther, ZeroAddress } = ethers;
+const { parseEther, ZeroAddress, AbiCoder } = ethers;
 
 const coverFixture = {
   productId: 0n,
@@ -28,7 +28,9 @@ const riCoverFixture = {
 
 const poolAllocationRequest = [{ poolId: 1, coverAmountInAsset: coverFixture.amount }];
 
-describe('buyCoverWithRi', function () {
+const defaultAbiCoder = AbiCoder.defaultAbiCoder();
+
+describe.only('buyCoverWithRi', function () {
   it('should purchase new cover with ri', async function () {
     const fixture = await loadFixture(setup);
     const { cover, pool, riSigner, riPremiumDst, riProviderId } = fixture;
@@ -56,7 +58,9 @@ describe('buyCoverWithRi', function () {
 
     const timestamp = await time.latest();
     const deadline = timestamp + 30 * 60;
-    const data = [{ amount: riAmount, vaultId: 1, providerId: riProviderId }];
+    const data = [{ amount: riAmount, riPoolId: 1, providerId: riProviderId }];
+    const dataFormat = 1;
+    const dataEncoded = defaultAbiCoder.encode(['tuple(uint256 amount,uint256 riPoolId,uint256 providerId)[]'], [data]);
 
     const riQuote = {
       coverId: 0,
@@ -66,7 +70,8 @@ describe('buyCoverWithRi', function () {
       premium: riPremium,
       period,
       coverAsset,
-      data,
+      data: dataEncoded,
+      dataFormat,
       deadline,
       nonce: 0,
     };
@@ -76,7 +81,8 @@ describe('buyCoverWithRi', function () {
       amount: riAmount,
       premium: riPremium,
       deadline,
-      data,
+      data: dataEncoded,
+      dataFormat,
       signature: await signRiQuote(riSigner, cover, riQuote),
     };
 
@@ -87,9 +93,7 @@ describe('buyCoverWithRi', function () {
     const tx = await cover
       .connect(coverBuyer)
       .buyCoverWithRi(coverParams, poolAllocationRequest, riRequest, { value: totalPremium });
-    await expect(tx)
-      .to.emit(cover, 'CoverRiBought')
-      .withArgs(data.map(allocation => Object.values(allocation)));
+    await expect(tx).to.emit(cover, 'CoverRiAllocated').withArgs(dataEncoded, dataFormat);
 
     expect(await ethers.provider.getBalance(cover.target)).to.be.equal(coverContractBalanceBefore);
     expect(await ethers.provider.getBalance(pool.target)).to.equal(poolEthBalanceBefore + nativeCoverPremium);
@@ -136,7 +140,9 @@ describe('buyCoverWithRi', function () {
 
     const timestamp = await time.latest();
     const deadline = timestamp + 30 * 60;
-    const data = [{ providerId: riProviderId, vaultId: 1, amount: riAmount }];
+    const data = [{ providerId: riProviderId, riPoolId: 1, amount: riAmount }];
+    const dataFormat = 1;
+    const dataEncoded = defaultAbiCoder.encode(['tuple(uint256 amount,uint256 riPoolId,uint256 providerId)[]'], [data]);
 
     const riQuote = {
       coverId: 0,
@@ -146,7 +152,8 @@ describe('buyCoverWithRi', function () {
       premium: riPremium,
       period,
       coverAsset,
-      data,
+      data: dataEncoded,
+      dataFormat,
       deadline,
       nonce: 0,
     };
@@ -156,7 +163,8 @@ describe('buyCoverWithRi', function () {
       amount: riAmount,
       premium: riPremium,
       deadline,
-      data,
+      data: dataEncoded,
+      dataFormat,
       signature: await signRiQuote(riSigner, cover, riQuote),
     };
 
@@ -194,7 +202,9 @@ describe('buyCoverWithRi', function () {
 
     const timestamp = await time.latest();
     const deadline = timestamp + 30 * 60;
-    const data = [{ providerId: riProviderId, vaultId: 1, amount: 0 }];
+    const data = [{ providerId: riProviderId, riPoolId: 1, amount: 0 }];
+    const dataFormat = 1;
+    const dataEncoded = defaultAbiCoder.encode(['tuple(uint256 amount,uint256 riPoolId,uint256 providerId)[]'], [data]);
 
     const riQuote = {
       coverId: 0,
@@ -204,7 +214,8 @@ describe('buyCoverWithRi', function () {
       premium: riPremium,
       period,
       coverAsset,
-      data,
+      data: dataEncoded,
+      dataFormat,
       deadline,
       nonce: 0,
     };
@@ -213,8 +224,9 @@ describe('buyCoverWithRi', function () {
       providerId: riProviderId,
       amount: 0,
       premium: riPremium,
+      data: dataEncoded,
+      dataFormat,
       deadline,
-      data,
       signature: await signRiQuote(riSigner, cover, riQuote),
     };
 
@@ -250,7 +262,9 @@ describe('buyCoverWithRi', function () {
 
     const timestamp = await time.latest();
     const deadline = timestamp + 30 * 60;
-    const data = [{ providerId: riProviderId, vaultId: 1, amount: riAmount }];
+    const data = [{ providerId: riProviderId, riPoolId: 1, amount: riAmount }];
+    const dataFormat = 1;
+    const dataEncoded = defaultAbiCoder.encode(['tuple(uint256 amount,uint256 riPoolId,uint256 providerId)[]'], [data]);
 
     const riQuote = {
       coverId: 0,
@@ -260,7 +274,8 @@ describe('buyCoverWithRi', function () {
       premium: riPremium,
       period,
       coverAsset,
-      data,
+      data: dataEncoded,
+      dataFormat,
       deadline,
       nonce: 0,
     };
@@ -270,7 +285,8 @@ describe('buyCoverWithRi', function () {
       amount: riAmount,
       premium: riPremium,
       deadline,
-      data,
+      data: dataEncoded,
+      dataFormat,
       signature: await signRiQuote(riSigner, cover, riQuote),
     };
 

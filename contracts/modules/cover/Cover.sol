@@ -182,18 +182,20 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
 
     bytes memory message = abi.encode(
       keccak256(
-        "RiQuote("
-        "uint256 coverId,"
-        "uint24 productId,"
-        "uint256 providerId,"
-        "uint256 amount,"
-        "uint256 premium,"
-        "uint32 period,"
-        "uint8 coverAsset,"
-        "VaultAllocations[] data,"
-        "uint32 deadline,"
-        "uint256 nonce)"
-        "VaultAllocations(uint256 providerId,uint256 vaultId,uint256 amount)"
+        abi.encodePacked(
+          "RiQuote(",
+          "uint256 coverId,",
+          "uint24 productId,",
+          "uint256 providerId,",
+          "uint256 amount,",
+          "uint256 premium,",
+          "uint32 period,",
+          "uint8 coverAsset,",
+          "bytes32 data,",
+          "uint8 dataFormat,",
+          "uint32 deadline,",
+          "uint256 nonce)"
+        )
       ),
       params.coverId,
       params.productId,
@@ -202,7 +204,8 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
       riRequest.premium,
       params.period,
       params.coverAsset,
-      _hashVaultAllocations(riRequest.data),
+      keccak256(riRequest.data),
+      riRequest.dataFormat,
       riRequest.deadline,
       nonce
     );
@@ -221,7 +224,7 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
       registry.getMemberId(msg.sender),
       params.productId
     );
-    emit CoverRiBought(riRequest.data);
+    emit CoverRiAllocated(riRequest.data, riRequest.dataFormat);
 
     return coverId;
   }
@@ -689,25 +692,6 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
   }
 
   /* ========== COVER ASSETS HELPERS ========== */
-
-  function _hashVaultAllocations(VaultAllocations[] memory _vaultAllocations) internal pure returns (bytes32) {
-    bytes32 VAULTALLOC_TYPEHASH =
-    keccak256("VaultAllocations(uint256 providerId,uint256 vaultId,uint256 amount)");
-    bytes32[] memory hashes = new bytes32[](_vaultAllocations.length);
-
-    for (uint256 i = 0; i < _vaultAllocations.length; ++i) {
-      hashes[i] = keccak256(
-        abi.encode(
-          VAULTALLOC_TYPEHASH,
-          _vaultAllocations[i].providerId,
-          _vaultAllocations[i].vaultId,
-          _vaultAllocations[i].amount
-        )
-      );
-    }
-
-    return keccak256(abi.encodePacked(hashes));
-  }
 
   function recalculateActiveCoverInAsset(uint coverAsset) public {
     uint currentBucketId = block.timestamp / BUCKET_SIZE;

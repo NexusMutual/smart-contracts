@@ -345,6 +345,145 @@ describe('claimable', function () {
     expect(claimable100).to.equal(expectedTotal);
   });
 
+  it('calculates rewards from only withdrawalShares[nextEpoch] when activeShares is 0', async function () {
+    const { accounts, contracts, constants } = await loadFixture(setup);
+    const { staker1, middleware } = accounts;
+    const { rewards, token, vault } = contracts;
+    const { ADMIN_FEE_BASE, NETWORK_ID } = constants;
+
+    const currentEpochTs = (await time.latest()) - 5;
+    const currentEpoch = 5n;
+    const nextEpoch = currentEpoch + 1n;
+
+    await vault.setEpochAt(currentEpochTs, currentEpoch);
+
+    // No activeShares
+    await vault.setActiveSharesAt(currentEpochTs, 0n);
+    await vault.setActiveStakeAt(currentEpochTs, 0n);
+
+    // Only nextEpoch withdrawals
+    await vault.setWithdrawals(nextEpoch, parseEther('1000'));
+    await vault.setWithdrawalShares(nextEpoch, parseEther('100'));
+
+    // staker1 has no active shares, only withdrawal shares
+    await vault.setActiveSharesOfAt(staker1.address, currentEpochTs, 0n);
+    await vault.setWithdrawalSharesOf(staker1.address, nextEpoch, parseEther('100'));
+
+    const rewardAmount = parseEther('500');
+    const distData = abi.encode(['uint48', 'uint256', 'bytes', 'bytes'], [currentEpochTs, ADMIN_FEE_BASE, '0x', '0x']);
+
+    await token.connect(middleware).approve(rewards.target, rewardAmount);
+    await rewards.connect(middleware).distributeRewards(NETWORK_ID, token.target, rewardAmount, distData);
+
+    const claimableData = abi.encode(['address', 'uint256'], [NETWORK_ID, 10n]);
+    const claimable = await rewards.claimable(token.target, staker1.address, claimableData);
+
+    // Should get 100% of rewards (only staker)
+    const expectedReward = (rewardAmount * (BigInt(ADMIN_FEE_BASE) - 500n)) / BigInt(ADMIN_FEE_BASE);
+    expect(claimable).to.equal(expectedReward);
+  });
+
+  it('only counts withdrawals[nextEpoch] for rewards eligibility', async function () {
+    const { accounts, contracts, constants } = await loadFixture(setup);
+    const { staker1, middleware } = accounts;
+    const { rewards, token, vault } = contracts;
+    const { ADMIN_FEE_BASE, NETWORK_ID } = constants;
+
+    const currentEpochTs = (await time.latest()) - 5;
+    const currentEpoch = 3n;
+    const nextEpoch = currentEpoch + 1n;
+
+    await vault.setEpochAt(currentEpochTs, currentEpoch);
+
+    await vault.setActiveSharesAt(currentEpochTs, parseEther('100'));
+    await vault.setActiveStakeAt(currentEpochTs, parseEther('1000'));
+
+    // set withdrawals[currentEpoch] (not eligible for rewards)
+    await vault.setWithdrawals(currentEpoch, parseEther('500'));
+    await vault.setWithdrawalShares(currentEpoch, parseEther('50'));
+
+    // set withdrawals[nextEpoch] (eligible for rewards)
+    await vault.setWithdrawals(nextEpoch, parseEther('100'));
+    await vault.setWithdrawalShares(nextEpoch, parseEther('10'));
+
+    // staker1: 50 activeShares + 5 withdrawalShares[nextEpoch] = 55/110 (50%)
+    await vault.setActiveSharesOfAt(staker1.address, currentEpochTs, parseEther('50')); // eligible
+    await vault.setWithdrawalSharesOf(staker1.address, nextEpoch, parseEther('5')); // eligible
+    await vault.setWithdrawalSharesOf(staker1.address, currentEpoch, parseEther('25')); // not eligible
+
+    const rewardAmount = parseEther('1000');
+    const distData = abi.encode(['uint48', 'uint256', 'bytes', 'bytes'], [currentEpochTs, ADMIN_FEE_BASE, '0x', '0x']);
+
+    await token.connect(middleware).approve(rewards.target, rewardAmount);
+    await rewards.connect(middleware).distributeRewards(NETWORK_ID, token.target, rewardAmount, distData);
+
+    const claimableData = abi.encode(['address', 'uint256'], [NETWORK_ID, 10n]);
+    const claimable = await rewards.claimable(token.target, staker1.address, claimableData);
+
+    const netReward = (rewardAmount * (BigInt(ADMIN_FEE_BASE) - 500n)) / BigInt(ADMIN_FEE_BASE);
+    expect(claimable).to.equal(netReward / 2n); // 50%
+  });
+
+  it('calculates nextEpoch correctly for each reward distribution across different epochs', async function () {
+    const { accounts, contracts, constants } = await loadFixture(setup);
+    const { staker1, middleware } = accounts;
+    const { rewards, token, vault } = contracts;
+    const { ADMIN_FEE_BASE, NETWORK_ID } = constants;
+
+    // epoch 2 distribution
+    const epoch2Ts = (await time.latest()) - 100;
+    const epoch2 = 2n;
+    const nextEpoch2 = epoch2 + 1n; // 3
+
+    await vault.setEpochAt(epoch2Ts, epoch2);
+    await vault.setActiveSharesAt(epoch2Ts, parseEther('100'));
+    await vault.setActiveStakeAt(epoch2Ts, parseEther('1000'));
+    await vault.setWithdrawals(nextEpoch2, parseEther('50'));
+    await vault.setWithdrawalShares(nextEpoch2, parseEther('50'));
+
+    await vault.setActiveSharesOfAt(staker1.address, epoch2Ts, parseEther('50'));
+    await vault.setWithdrawalSharesOf(staker1.address, nextEpoch2, parseEther('25'));
+
+    // epoch 5 distribution
+    const epoch5Ts = (await time.latest()) - 50;
+    const epoch5 = 5n;
+    const nextEpoch5 = epoch5 + 1n; // 6
+
+    await vault.setEpochAt(epoch5Ts, epoch5);
+    await vault.setActiveSharesAt(epoch5Ts, parseEther('200'));
+    await vault.setActiveStakeAt(epoch5Ts, parseEther('2000'));
+    await vault.setWithdrawals(nextEpoch5, parseEther('100'));
+    await vault.setWithdrawalShares(nextEpoch5, parseEther('100'));
+
+    await vault.setActiveSharesOfAt(staker1.address, epoch5Ts, parseEther('100'));
+    await vault.setWithdrawalSharesOf(staker1.address, nextEpoch5, parseEther('50'));
+
+    // distribute rewards for both epochs
+    const reward1 = parseEther('1000');
+    const distData1 = abi.encode(['uint48', 'uint256', 'bytes', 'bytes'], [epoch2Ts, ADMIN_FEE_BASE, '0x', '0x']);
+    await token.connect(middleware).approve(rewards.target, reward1);
+    await rewards.connect(middleware).distributeRewards(NETWORK_ID, token.target, reward1, distData1);
+
+    const reward2 = parseEther('2000');
+    const distData2 = abi.encode(['uint48', 'uint256', 'bytes', 'bytes'], [epoch5Ts, ADMIN_FEE_BASE, '0x', '0x']);
+    await token.connect(middleware).approve(rewards.target, reward2);
+    await rewards.connect(middleware).distributeRewards(NETWORK_ID, token.target, reward2, distData2);
+
+    const claimableData = abi.encode(['address', 'uint256'], [NETWORK_ID, 10n]);
+    const claimable = await rewards.claimable(token.target, staker1.address, claimableData);
+
+    // epoch 2: (50 + 25) / (100 + 50) = 75/150 = 50%
+    const netReward1 = (reward1 * (BigInt(ADMIN_FEE_BASE) - 500n)) / BigInt(ADMIN_FEE_BASE);
+    const expected1 = netReward1 / 2n;
+
+    // epoch 5: (100 + 50) / (200 + 100) = 150/300 = 50%
+    const netReward2 = (reward2 * (BigInt(ADMIN_FEE_BASE) - 500n)) / BigInt(ADMIN_FEE_BASE);
+    const expected2 = netReward2 / 2n;
+
+    const expectedTotal = expected1 + expected2;
+    expect(claimable).to.equal(expectedTotal);
+  });
+
   it('processes exactly maxRewards when maxRewards equals rewardsLength', async function () {
     const { accounts, contracts, constants } = await loadFixture(setup);
     const { staker1, middleware } = accounts;

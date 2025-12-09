@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.25;
+pragma solidity ^0.8.18;
 
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {MulticallUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
@@ -7,7 +7,6 @@ import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/ut
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {Time} from "@openzeppelin/contracts/utils/types/Time.sol";
 
 import {IRegistry} from "@symbioticfi/core/src/interfaces/common/IRegistry.sol";
 import {INetworkMiddlewareService} from "@symbioticfi/core/src/interfaces/service/INetworkMiddlewareService.sol";
@@ -15,6 +14,7 @@ import {IVault} from "@symbioticfi/core/src/interfaces/vault/IVault.sol";
 
 import {IDefaultStakerRewards} from "../../interfaces/symbiotic/IDefaultStakerRewards.sol";
 import {IStakerRewards} from "../../interfaces/symbiotic/IStakerRewards.sol";
+import {SafeUintCast} from "../../libraries/SafeUintCast.sol";
 
 contract DefaultStakerRewards is
   AccessControlUpgradeable,
@@ -81,7 +81,8 @@ contract DefaultStakerRewards is
    */
   mapping(address token => uint256 amount) public claimableAdminFee;
 
-  mapping(uint48 timestamp => uint256 amount) private _activeSharesCache;
+  // eligibleShares = activeShares + withdrawalShares[nextEpoch]
+  mapping(uint48 timestamp => uint256 amount) private _eligibleSharesCache;
 
   constructor(address vaultFactory, address networkMiddlewareService) {
     _disableInitializers();
@@ -112,18 +113,21 @@ contract DefaultStakerRewards is
     RewardDistribution[] storage rewardsByTokenNetwork = rewards[token][network];
     uint256 rewardIndex = lastUnclaimedReward[account][token][network];
 
-    uint256 rewardsToClaim = Math.min(maxRewards, rewardsByTokenNetwork.length - rewardIndex);
+    uint256 processed;
 
-    for (uint256 i; i < rewardsToClaim; ) {
+    // loop until we hit maxRewards or run out of reward distributions
+    while (processed < maxRewards && rewardIndex < rewardsByTokenNetwork.length) {
       RewardDistribution storage reward = rewardsByTokenNetwork[rewardIndex];
 
-      amount += IVault(VAULT).activeSharesOfAt(account, reward.timestamp, new bytes(0)).mulDiv(
-        reward.amount,
-        _activeSharesCache[reward.timestamp]
-      );
+      amount += (IVault(VAULT).activeSharesOfAt(account, reward.timestamp, new bytes(0)) +
+        // withdrawal shares of the account in the next epoch
+        IVault(VAULT).withdrawalSharesOf(IVault(VAULT).epochAt(reward.timestamp) + 1, account)).mulDiv(
+          reward.amount,
+          _eligibleSharesCache[reward.timestamp]
+        );
 
       unchecked {
-        ++i;
+        ++processed;
         ++rewardIndex;
       }
     }
@@ -188,7 +192,7 @@ contract DefaultStakerRewards is
       revert NotNetworkMiddleware();
     }
 
-    if (timestamp >= Time.timestamp()) {
+    if (timestamp >= SafeUintCast.toUint48(block.timestamp)) {
       revert InvalidRewardTimestamp();
     }
 
@@ -197,15 +201,25 @@ contract DefaultStakerRewards is
       revert HighAdminFee();
     }
 
-    if (_activeSharesCache[timestamp] == 0) {
-      uint256 activeShares_ = IVault(VAULT).activeSharesAt(timestamp, activeSharesHint);
-      uint256 activeStake_ = IVault(VAULT).activeStakeAt(timestamp, activeStakeHint);
+    if (_eligibleSharesCache[timestamp] == 0) {
+      uint256 nextEpoch = IVault(VAULT).epochAt(timestamp) + 1;
 
-      if (activeShares_ == 0 || activeStake_ == 0) {
+      // activeShares + withdrawalShares[nextEpoch]
+      uint256 activeShares = IVault(VAULT).activeSharesAt(timestamp, activeSharesHint);
+      uint256 withdrawalSharesNextEpoch = IVault(VAULT).withdrawalShares(nextEpoch);
+      uint256 totalEligibleShares = activeShares + withdrawalSharesNextEpoch;
+
+      // activeStake + withdrawalStake[nextEpoch]
+      uint256 activeStake_ = IVault(VAULT).activeStakeAt(timestamp, activeStakeHint);
+      uint256 withdrawalStakeNextEpoch_ = IVault(VAULT).withdrawals(nextEpoch);
+      uint256 totalEligibleStake_ = activeStake_ + withdrawalStakeNextEpoch_;
+
+      // revert if no eligible stake or shares
+      if (totalEligibleShares == 0 || totalEligibleStake_ == 0) {
         revert InvalidRewardTimestamp();
       }
 
-      _activeSharesCache[timestamp] = activeShares_;
+      _eligibleSharesCache[timestamp] = totalEligibleShares;
     }
 
     uint256 balanceBefore = IERC20(token).balanceOf(address(this));
@@ -244,38 +258,47 @@ contract DefaultStakerRewards is
       revert InvalidRecipient();
     }
 
-    RewardDistribution[] storage rewardsByTokenNetwork = rewards[token][network];
-    uint256 lastUnclaimedReward_ = lastUnclaimedReward[msg.sender][token][network];
-
-    uint256 rewardsToClaim = Math.min(maxRewards, rewardsByTokenNetwork.length - lastUnclaimedReward_);
-
-    if (rewardsToClaim == 0) {
-      revert NoRewardsToClaim();
-    }
-
-    if (activeSharesOfHints.length == 0) {
-      activeSharesOfHints = new bytes[](rewardsToClaim);
-    } else if (activeSharesOfHints.length != rewardsToClaim) {
-      revert InvalidHintsLength();
-    }
-
     uint256 amount;
-    uint256 rewardIndex = lastUnclaimedReward_;
-    for (uint256 i; i < rewardsToClaim; ) {
-      RewardDistribution storage reward = rewardsByTokenNetwork[rewardIndex];
+    uint256 rewardsToClaim;
+    uint256 lastUnclaimedReward_;
 
-      amount += IVault(VAULT).activeSharesOfAt(msg.sender, reward.timestamp, activeSharesOfHints[i]).mulDiv(
-        reward.amount,
-        _activeSharesCache[reward.timestamp]
-      );
+    {
+      RewardDistribution[] storage rewardsByTokenNetwork = rewards[token][network];
+      lastUnclaimedReward_ = lastUnclaimedReward[msg.sender][token][network];
 
-      unchecked {
-        ++i;
-        ++rewardIndex;
+      rewardsToClaim = Math.min(maxRewards, rewardsByTokenNetwork.length - lastUnclaimedReward_);
+
+      if (rewardsToClaim == 0) {
+        revert NoRewardsToClaim();
       }
-    }
 
-    lastUnclaimedReward[msg.sender][token][network] = rewardIndex;
+      if (activeSharesOfHints.length == 0) {
+        activeSharesOfHints = new bytes[](rewardsToClaim);
+      } else if (activeSharesOfHints.length != rewardsToClaim) {
+        revert InvalidHintsLength();
+      }
+
+      uint256 rewardIndex = lastUnclaimedReward_;
+      for (uint256 i; i < rewardsToClaim; ) {
+        RewardDistribution storage reward = rewardsByTokenNetwork[rewardIndex];
+
+        uint48 rewardTimestamp = reward.timestamp;
+        uint256 nextEpoch = IVault(VAULT).epochAt(rewardTimestamp) + 1;
+
+        uint256 activeSharesOfAt = IVault(VAULT).activeSharesOfAt(msg.sender, rewardTimestamp, activeSharesOfHints[i]);
+        uint256 withdrawalSharesOfNextEpoch = IVault(VAULT).withdrawalSharesOf(nextEpoch, msg.sender);
+        uint256 eligibleSharesOfAt = activeSharesOfAt + withdrawalSharesOfNextEpoch;
+
+        amount += eligibleSharesOfAt.mulDiv(reward.amount, _eligibleSharesCache[rewardTimestamp]);
+
+        unchecked {
+          ++i;
+          ++rewardIndex;
+        }
+      }
+
+      lastUnclaimedReward[msg.sender][token][network] = rewardIndex;
+    }
 
     if (amount > 0) {
       IERC20(token).safeTransfer(recipient, amount);

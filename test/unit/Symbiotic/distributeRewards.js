@@ -297,7 +297,7 @@ describe('distributeRewards', function () {
     // 1st distribution (cache is populated)
     await token.connect(middleware).approve(rewards.target, amount1);
     const distributeRewards1 = rewards.connect(middleware).distributeRewards(NETWORK_ID, token.target, amount1, data);
-    await expect().to.emit(distributeRewards1, 'DistributeRewards');
+    await expect(distributeRewards1).to.emit(rewards, 'DistributeRewards');
 
     // 2nd distribution with same timestamp (should reuse cache)
     await token.connect(middleware).approve(rewards.target, amount2);

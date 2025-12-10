@@ -15,9 +15,8 @@ describe('claimRewards', function () {
     const { NETWORK_ID } = constants;
 
     const data = abi.encode(['address', 'uint256', 'bytes[]'], [NETWORK_ID, 10n, []]);
-    await expect(
-      rewards.connect(staker1).claimRewards(ethers.ZeroAddress, token.target, data),
-    ).to.be.revertedWithCustomError(rewards, 'InvalidRecipient');
+    const claimRewards = rewards.connect(staker1).claimRewards(ethers.ZeroAddress, token.target, data);
+    await expect(claimRewards).to.be.revertedWithCustomError(rewards, 'InvalidRecipient');
   });
 
   it('reverts when there are no rewards to claim (NoRewardsToClaim)', async function () {
@@ -27,9 +26,8 @@ describe('claimRewards', function () {
     const { NETWORK_ID } = constants;
 
     const data = abi.encode(['address', 'uint256', 'bytes[]'], [NETWORK_ID, 10n, []]);
-    await expect(
-      rewards.connect(staker1).claimRewards(recipient.address, token.target, data),
-    ).to.be.revertedWithCustomError(rewards, 'NoRewardsToClaim');
+    const claimRewards = rewards.connect(staker1).claimRewards(recipient.address, token.target, data);
+    await expect(claimRewards).to.be.revertedWithCustomError(rewards, 'NoRewardsToClaim');
   });
 
   it('reverts when hints length is not equal to rewardsToClaim (InvalidHintsLength)', async function () {
@@ -55,9 +53,8 @@ describe('claimRewards', function () {
     // hints length must equal rewardsToClaim
     const claimData = abi.encode(['address', 'uint256', 'bytes[]'], [NETWORK_ID, 1n, ['0x', '0x']]);
 
-    await expect(
-      rewards.connect(staker1).claimRewards(recipient.address, token.target, claimData),
-    ).to.be.revertedWithCustomError(rewards, 'InvalidHintsLength');
+    const claimRewards = rewards.connect(staker1).claimRewards(recipient.address, token.target, claimData);
+    await expect(claimRewards).to.be.revertedWithCustomError(rewards, 'InvalidHintsLength');
   });
 
   it('pays rewards and updates lastUnclaimedReward index (single reward)', async function () {
@@ -86,16 +83,15 @@ describe('claimRewards', function () {
     const netReward = (rewardAmount * (BigInt(ADMIN_FEE_BASE) - 500n)) / BigInt(ADMIN_FEE_BASE);
     const expected1 = (netReward * 60n) / 100n;
 
-    const before = await token.balanceOf(staker1.address);
+    const balanceBefore = await token.balanceOf(staker1.address);
 
     const claimData = abi.encode(['address', 'uint256', 'bytes[]'], [NETWORK_ID, 10n, []]);
     await rewards.connect(staker1).claimRewards(staker1.address, token.target, claimData);
 
-    const after = await token.balanceOf(staker1.address);
-    expect(after - before).to.equal(expected1);
+    const balanceAfter = await token.balanceOf(staker1.address);
+    expect(balanceAfter - balanceBefore).to.equal(expected1);
 
-    const idx = await rewards.lastUnclaimedReward(staker1.address, token.target, NETWORK_ID);
-    expect(idx).to.equal(1n);
+    expect(await rewards.lastUnclaimedReward(staker1.address, token.target, NETWORK_ID)).to.equal(1n);
 
     const claimRewards = rewards.connect(staker1).claimRewards(staker1.address, token.target, claimData);
     await expect(claimRewards).to.be.revertedWithCustomError(rewards, 'NoRewardsToClaim');
@@ -146,15 +142,15 @@ describe('claimRewards', function () {
 
     const claimRewardsData = abi.encode(['address', 'uint256', 'bytes[]'], [NETWORK_ID, 10n, []]);
 
-    const bal1Before = await token.balanceOf(staker1.address);
+    const balance1Before = await token.balanceOf(staker1.address);
     await rewards.connect(staker1).claimRewards(staker1.address, token.target, claimRewardsData);
-    const bal1After = await token.balanceOf(staker1.address);
-    expect(bal1After - bal1Before).to.equal(expected1);
+    const balance1After = await token.balanceOf(staker1.address);
+    expect(balance1After - balance1Before).to.equal(expected1);
 
-    const bal2Before = await token.balanceOf(staker2.address);
+    const balance2Before = await token.balanceOf(staker2.address);
     await rewards.connect(staker2).claimRewards(staker2.address, token.target, claimRewardsData);
-    const bal2After = await token.balanceOf(staker2.address);
-    expect(bal2After - bal2Before).to.equal(expected2);
+    const balance2After = await token.balanceOf(staker2.address);
+    expect(balance2After - balance2Before).to.equal(expected2);
   });
 
   it('works correctly with 0% admin fee', async function () {
@@ -190,12 +186,12 @@ describe('claimRewards', function () {
       rewards.connect(adminFeeClaimer).claimAdminFee(recipient.address, token.target),
     ).to.be.revertedWithCustomError(rewards, 'InsufficientAdminFee');
 
+    const balanceBefore = await token.balanceOf(staker1.address);
     const claimRewardsData = abi.encode(['address', 'uint256', 'bytes[]'], [NETWORK_ID, 10n, []]);
-    const balBefore = await token.balanceOf(staker1.address);
     await rewards.connect(staker1).claimRewards(staker1.address, token.target, claimRewardsData);
-    const balAfter = await token.balanceOf(staker1.address);
+    const balanceAfter = await token.balanceOf(staker1.address);
 
-    expect(balAfter - balBefore).to.equal(rewardAmount);
+    expect(balanceAfter - balanceBefore).to.equal(rewardAmount);
   });
 
   it('works correctly with near-maximum admin fee (99.99%)', async function () {
@@ -232,18 +228,18 @@ describe('claimRewards', function () {
     expect(claimable).to.equal(expectedStakerReward);
     expect(claimable).to.be.gt(0);
 
+    const stakerBalanceBefore = await token.balanceOf(staker1.address);
     const claimRewardsData = abi.encode(['address', 'uint256', 'bytes[]'], [NETWORK_ID, 10n, []]);
-    const stakerBalBefore = await token.balanceOf(staker1.address);
     await rewards.connect(staker1).claimRewards(staker1.address, token.target, claimRewardsData);
-    const stakerBalAfter = await token.balanceOf(staker1.address);
+    const stakerBalanceAfter = await token.balanceOf(staker1.address);
 
-    expect(stakerBalAfter - stakerBalBefore).to.equal(expectedStakerReward);
+    expect(stakerBalanceAfter - stakerBalanceBefore).to.equal(expectedStakerReward);
 
-    const adminBalBefore = await token.balanceOf(recipient.address);
+    const adminBalanceBefore = await token.balanceOf(recipient.address);
     await rewards.connect(adminFeeClaimer).claimAdminFee(recipient.address, token.target);
-    const adminBalAfter = await token.balanceOf(recipient.address);
+    const adminBalanceAfter = await token.balanceOf(recipient.address);
 
-    expect(adminBalAfter - adminBalBefore).to.equal(expectedAdminFee);
+    expect(adminBalanceAfter - adminBalanceBefore).to.equal(expectedAdminFee);
   });
 
   it('returns 0 for claimable when staker has no shares', async function () {
@@ -274,11 +270,11 @@ describe('claimRewards', function () {
     expect(claimable).to.equal(0);
 
     const claimRewardsData = abi.encode(['address', 'uint256', 'bytes[]'], [NETWORK_ID, 10n, []]);
-    const balBefore = await token.balanceOf(staker2.address);
+    const balanceBefore = await token.balanceOf(staker2.address);
     await rewards.connect(staker2).claimRewards(staker2.address, token.target, claimRewardsData);
-    const balAfter = await token.balanceOf(staker2.address);
+    const balanceAfter = await token.balanceOf(staker2.address);
 
-    expect(balAfter - balBefore).to.equal(0);
+    expect(balanceAfter - balanceBefore).to.equal(0);
   });
 
   it('handles rewards from different tokens independently', async function () {
@@ -326,22 +322,19 @@ describe('claimRewards', function () {
 
     const claimRewardsData = abi.encode(['address', 'uint256', 'bytes[]'], [NETWORK_ID, 10n, []]);
 
-    const bal1Before = await token.balanceOf(staker1.address);
+    const balance1Before = await token.balanceOf(staker1.address);
     await rewards.connect(staker1).claimRewards(staker1.address, token.target, claimRewardsData);
-    const bal1After = await token.balanceOf(staker1.address);
-    expect(bal1After - bal1Before).to.equal(expectedReward1);
+    const balance1After = await token.balanceOf(staker1.address);
+    expect(balance1After - balance1Before).to.equal(expectedReward1);
 
-    // Claim token2 rewards
-    const bal2Before = await token2.balanceOf(staker1.address);
+    // claim token2 rewards
+    const balance2Before = await token2.balanceOf(staker1.address);
     await rewards.connect(staker1).claimRewards(staker1.address, token2.target, claimRewardsData);
-    const bal2After = await token2.balanceOf(staker1.address);
-    expect(bal2After - bal2Before).to.equal(expectedReward2);
+    const balance2After = await token2.balanceOf(staker1.address);
+    expect(balance2After - balance2Before).to.equal(expectedReward2);
 
-    const claimable1After = await rewards.claimable(token.target, staker1.address, claimableData);
-    expect(claimable1After).to.equal(0);
-
-    const claimable2After = await rewards.claimable(token2.target, staker1.address, claimableData);
-    expect(claimable2After).to.equal(0);
+    expect(await rewards.claimable(token.target, staker1.address, claimableData)).to.equal(0);
+    expect(await rewards.claimable(token2.target, staker1.address, claimableData)).to.equal(0);
   });
 
   it('allows claiming rewards to a different recipient address', async function () {
@@ -388,8 +381,7 @@ describe('claimRewards', function () {
     expect(recipientBalAfter - recipientBalBefore).to.equal(expectedReward);
     expect(staker2BalAfter).to.equal(staker2BalBefore);
 
-    const claimableAfter = await rewards.claimable(token.target, staker1.address, claimableData);
-    expect(claimableAfter).to.equal(0);
+    expect(await rewards.claimable(token.target, staker1.address, claimableData)).to.equal(0);
   });
 
   it('supports partial claims by processing limited reward distributions', async function () {
@@ -428,13 +420,13 @@ describe('claimRewards', function () {
     // process only 2 reward distributions (maxRewards = 2)
     const partialClaimData = abi.encode(['address', 'uint256', 'bytes[]'], [NETWORK_ID, 2, []]);
 
-    const bal1Before = await token.balanceOf(staker1.address);
+    const balance1Before = await token.balanceOf(staker1.address);
     await rewards.connect(staker1).claimRewards(staker1.address, token.target, partialClaimData);
-    const bal1After = await token.balanceOf(staker1.address);
+    const balance1After = await token.balanceOf(staker1.address);
 
     const expectedPartial =
       ((rewardAmount1 + rewardAmount2) * (BigInt(ADMIN_FEE_BASE) - 500n)) / BigInt(ADMIN_FEE_BASE);
-    expect(bal1After - bal1Before).to.equal(expectedPartial);
+    expect(balance1After - balance1Before).to.equal(expectedPartial);
 
     const claimableData = abi.encode(['address', 'uint256'], [NETWORK_ID, 10n]);
     const claimableRemaining = await rewards.claimable(token.target, staker1.address, claimableData);
@@ -443,16 +435,16 @@ describe('claimRewards', function () {
 
     const fullClaimData = abi.encode(['address', 'uint256', 'bytes[]'], [NETWORK_ID, 10, []]);
 
-    const bal2Before = await token.balanceOf(staker1.address);
+    const balance2Before = await token.balanceOf(staker1.address);
     await rewards.connect(staker1).claimRewards(staker1.address, token.target, fullClaimData);
-    const bal2After = await token.balanceOf(staker1.address);
+    const balance2After = await token.balanceOf(staker1.address);
 
-    expect(bal2After - bal2Before).to.equal(expectedRemaining);
+    expect(balance2After - balance2Before).to.equal(expectedRemaining);
 
     const claimableFinal = await rewards.claimable(token.target, staker1.address, claimableData);
     expect(claimableFinal).to.equal(0);
 
-    const totalClaimed = bal1After - bal1Before + (bal2After - bal2Before);
+    const totalClaimed = balance1After - balance1Before + (balance2After - balance2Before);
     expect(totalClaimed).to.equal(totalReward);
   });
 
@@ -510,18 +502,18 @@ describe('claimRewards', function () {
     const claimableData = abi.encode(['address', 'uint256'], [NETWORK_ID, 10n]);
     const claimable = await rewards.claimable(token.target, staker1.address, claimableData);
 
-    expect(claimable).to.be.lte(expectedTotal + 1n);
+    expect(claimable).to.be.lte(expectedTotal + 1n); // small buffer to account for rounding errors
     expect(claimable).to.be.gte(expectedTotal - 1n);
     expect(claimable).to.be.gt(2000n);
 
+    const balanceBefore = await token.balanceOf(staker1.address);
+
     const claimRewardsData = abi.encode(['address', 'uint256', 'bytes[]'], [NETWORK_ID, 10n, []]);
-    const balBefore = await token.balanceOf(staker1.address);
     await rewards.connect(staker1).claimRewards(staker1.address, token.target, claimRewardsData);
-    const balAfter = await token.balanceOf(staker1.address);
 
-    expect(balAfter - balBefore).to.equal(claimable);
+    const balanceAfter = await token.balanceOf(staker1.address);
 
-    const claimableAfter = await rewards.claimable(token.target, staker1.address, claimableData);
-    expect(claimableAfter).to.equal(0);
+    expect(balanceAfter - balanceBefore).to.equal(claimable);
+    expect(await rewards.claimable(token.target, staker1.address, claimableData)).to.equal(0);
   });
 });

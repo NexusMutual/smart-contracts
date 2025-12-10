@@ -13,9 +13,8 @@ describe('claimAdminFee', function () {
     const { adminFeeClaimer, recipient } = accounts;
     const { rewards, token } = contracts;
 
-    await expect(
-      rewards.connect(adminFeeClaimer).claimAdminFee(recipient.address, token.target),
-    ).to.be.revertedWithCustomError(rewards, 'InsufficientAdminFee');
+    const claimAdminFee = rewards.connect(adminFeeClaimer).claimAdminFee(recipient.address, token.target);
+    await expect(claimAdminFee).to.be.revertedWithCustomError(rewards, 'InsufficientAdminFee');
   });
 
   it('allows ADMIN_FEE_CLAIM_ROLE to withdraw accumulated admin fees', async function () {
@@ -40,14 +39,14 @@ describe('claimAdminFee', function () {
 
     const adminFee = (totalReward * 500n) / BigInt(ADMIN_FEE_BASE);
 
-    const before = await token.balanceOf(recipient.address);
+    const balanceBefore = await token.balanceOf(recipient.address);
 
     await expect(rewards.connect(adminFeeClaimer).claimAdminFee(recipient.address, token.target))
       .to.emit(rewards, 'ClaimAdminFee')
       .withArgs(token.target, adminFee);
 
-    const after = await token.balanceOf(recipient.address);
-    expect(after - before).to.equal(adminFee);
+    const balanceAfter = await token.balanceOf(recipient.address);
+    expect(balanceAfter - balanceBefore).to.equal(adminFee);
     expect(await rewards.claimableAdminFee(token.target)).to.equal(0n);
   });
 });

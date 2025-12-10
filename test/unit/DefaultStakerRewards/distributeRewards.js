@@ -307,7 +307,7 @@ describe('distributeRewards', function () {
     expect(await rewards.rewardsLength(token.target, NETWORK_ID)).to.equal(2n);
   });
 
-  it('stores reward distribution and adminFee with eligible stake including withdrawals[nextEpoch]', async function () {
+  it('successfully distributes rewards with both activeStake and withdrawals[nextEpoch]', async function () {
     const { accounts, contracts, constants } = await loadFixture(setup);
     const { middleware } = accounts;
     const { rewards, token, vault } = contracts;
@@ -378,15 +378,15 @@ describe('distributeRewards', function () {
 
     const claimData = abi.encode(['address', 'uint256', 'bytes[]'], [NETWORK_ID, 10n, []]);
 
-    const before1 = await token.balanceOf(staker1.address);
+    const balanceBefore1 = await token.balanceOf(staker1.address);
     await rewards.connect(staker1).claimRewards(staker1.address, token.target, claimData);
-    const after1 = await token.balanceOf(staker1.address);
+    const balanceAfter1 = await token.balanceOf(staker1.address);
 
-    const before2 = await token.balanceOf(staker2.address);
+    const balanceBefore2 = await token.balanceOf(staker2.address);
     await rewards.connect(staker2).claimRewards(staker2.address, token.target, claimData);
-    const after2 = await token.balanceOf(staker2.address);
+    const balanceAfter2 = await token.balanceOf(staker2.address);
 
-    expect(after1 - before1).to.equal(expected1);
-    expect(after2 - before2).to.equal(expected2);
+    expect(balanceAfter1 - balanceBefore1).to.equal(expected1);
+    expect(balanceAfter2 - balanceBefore2).to.equal(expected2);
   });
 });

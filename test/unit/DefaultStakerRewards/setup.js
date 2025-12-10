@@ -14,9 +14,9 @@ async function setup() {
     other,
   ] = await ethers.getSigners();
 
-  const registry = await ethers.deployContract('SBMockRegistry');
-  const middlewareService = await ethers.deployContract('SBMockNetworkMiddlewareService');
-  const vault = await ethers.deployContract('SBMockVault');
+  const registry = await ethers.deployContract('DSRMockRegistry');
+  const middlewareService = await ethers.deployContract('DSRMockNetworkMiddlewareService');
+  const vault = await ethers.deployContract('DSRMockVault');
   const token = await ethers.deployContract('ERC20Mock');
 
   await registry.setEntity(vault.target, true);

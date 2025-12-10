@@ -10,7 +10,7 @@ describe('initialize', function () {
     const { defaultAdmin } = accounts;
     const { vault, middlewareService } = contracts;
 
-    const fakeRegistry = await (await ethers.getContractFactory('SBMockRegistry')).deploy();
+    const fakeRegistry = await (await ethers.getContractFactory('DSRMockRegistry')).deploy();
     await fakeRegistry.waitForDeployment();
 
     const DSR = await ethers.getContractFactory('DefaultStakerRewards');

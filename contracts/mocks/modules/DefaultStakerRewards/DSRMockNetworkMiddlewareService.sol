@@ -2,7 +2,7 @@
 pragma solidity ^0.8.28;
 
 /// @dev Minimal mock for INetworkMiddlewareService used in tests.
-contract SBMockNetworkMiddlewareService {
+contract DSRMockNetworkMiddlewareService {
     mapping(address => address) private _middlewareByNetwork;
 
     function setMiddleware(address network, address middleware_) external {

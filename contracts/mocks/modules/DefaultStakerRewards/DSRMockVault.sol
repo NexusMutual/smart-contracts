@@ -3,7 +3,7 @@ pragma solidity ^0.8.28;
 
 /// @dev Minimal Symbiotic vault mock to drive DefaultStakerRewards tests.
 /// It is NOT a full vault implementation – just a programmable state box.
-contract SBMockVault {
+contract DSRMockVault {
     // timestamp => epoch
     mapping(uint48 => uint256) private _epochAt;
 

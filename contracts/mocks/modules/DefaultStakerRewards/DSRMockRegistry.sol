@@ -2,7 +2,7 @@
 pragma solidity ^0.8.28;
 
 /// @dev Minimal mock for Symbiotic IRegistry used in tests.
-contract SBMockRegistry {
+contract DSRMockRegistry {
     mapping(address => bool) private _entities;
 
     function setEntity(address entity, bool isEntity_) external {

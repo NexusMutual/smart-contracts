@@ -74,4 +74,3 @@ await operatorVaultOptIn.connect(NEXUS_OPERATOR).optIn(VAULT_ADDRESS);
 10. Slash capital **(Nexus)**
 - In the event of an approved claim, the middleware calls `slash` on each active vault proportional to its stake in the Nexus Network.
 - After the slash, burnerRouter is called to transfer the slashed funds to the Nexus claim payout receiver to be used for claim payouts.
-

@@ -30,7 +30,7 @@ const poolAllocationRequest = [{ poolId: 1, coverAmountInAsset: coverFixture.amo
 
 const defaultAbiCoder = AbiCoder.defaultAbiCoder();
 
-describe.only('buyCoverWithRi', function () {
+describe('buyCoverWithRi', function () {
   it('should purchase new cover with ri', async function () {
     const fixture = await loadFixture(setup);
     const { cover, pool, riSigner, riPremiumDst, riProviderId } = fixture;
@@ -90,16 +90,15 @@ describe.only('buyCoverWithRi', function () {
     const poolEthBalanceBefore = await ethers.provider.getBalance(pool.target);
     const riPremiumDstEthBalanceBefore = await ethers.provider.getBalance(riPremiumDst.address);
 
+    const coverId = (await cover.getCoverDataCount()) + 1n;
     const tx = await cover
       .connect(coverBuyer)
       .buyCoverWithRi(coverParams, poolAllocationRequest, riRequest, { value: totalPremium });
-    await expect(tx).to.emit(cover, 'CoverRiAllocated').withArgs(dataEncoded, dataFormat);
+    await expect(tx).to.emit(cover, 'CoverRiAllocated').withArgs(coverId, dataEncoded, dataFormat);
 
     expect(await ethers.provider.getBalance(cover.target)).to.be.equal(coverContractBalanceBefore);
     expect(await ethers.provider.getBalance(pool.target)).to.equal(poolEthBalanceBefore + nativeCoverPremium);
     expect(await ethers.provider.getBalance(riPremiumDst.address)).to.equal(riPremiumDstEthBalanceBefore + riPremium);
-
-    const coverId = await cover.getCoverDataCount();
 
     const storedCoverData = await cover.getCoverData(coverId);
     expect(storedCoverData.productId).to.equal(productId);

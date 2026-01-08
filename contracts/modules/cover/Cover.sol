@@ -224,7 +224,7 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
       registry.getMemberId(msg.sender),
       params.productId
     );
-    emit CoverRiAllocated(coverId, riRequest.data, riRequest.dataFormat);
+    emit CoverRiAllocated(coverId, riRequest.premium, params.paymentAsset, riRequest.data, riRequest.dataFormat);
 
     return coverId;
   }

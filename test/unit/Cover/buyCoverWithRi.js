@@ -94,7 +94,9 @@ describe('buyCoverWithRi', function () {
     const tx = await cover
       .connect(coverBuyer)
       .buyCoverWithRi(coverParams, poolAllocationRequest, riRequest, { value: totalPremium });
-    await expect(tx).to.emit(cover, 'CoverRiAllocated').withArgs(coverId, dataEncoded, dataFormat);
+    await expect(tx)
+      .to.emit(cover, 'CoverRiAllocated')
+      .withArgs(coverId, riRequest.premium, coverParams.paymentAsset, dataEncoded, dataFormat);
 
     expect(await ethers.provider.getBalance(cover.target)).to.be.equal(coverContractBalanceBefore);
     expect(await ethers.provider.getBalance(pool.target)).to.equal(poolEthBalanceBefore + nativeCoverPremium);

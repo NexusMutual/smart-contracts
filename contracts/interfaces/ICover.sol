@@ -170,7 +170,7 @@ interface ICover is IStakingPoolBeacon {
     uint indexed buyerMemberId,
     uint productId
   );
-  event CoverRiAllocated(uint indexed coverId, bytes data, uint8 dataFormatVersion);
+  event CoverRiAllocated(uint indexed coverId, uint premium, uint paymentAsset, bytes data, uint8 dataFormatVersion);
 
   // Auth
   error OnlyOwnerOrApproved();

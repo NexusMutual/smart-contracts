@@ -82,7 +82,7 @@ const parseArgs = args => {
   return opts;
 };
 
-const getTenderlyToken = () => {
+const getTenderlyAccessKey = () => {
   const home = process.env.HOME;
   const tenderlyConfigPath = path.join(home, '.tenderly', 'config.yaml');
 
@@ -93,20 +93,20 @@ const getTenderlyToken = () => {
   }
 
   const config = fs.readFileSync(tenderlyConfigPath, 'utf8');
-  const { token } = yaml.parse(config);
+  const { access_key: accessKey } = yaml.parse(config);
 
-  if (!token) {
-    console.error('Tenderly token not found');
+  if (!accessKey) {
+    console.error('Tenderly access key not found');
     console.error('Please run `tenderly login` first');
     process.exit(2);
   }
 
-  return token;
+  return accessKey;
 };
 
-const createVnet = async (opts, token) => {
+const createVnet = async (opts, accessKey) => {
   const url = `${TENDERLY_API_URL}/vnets`;
-  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  const headers = { 'X-Access-Key': accessKey, 'Content-Type': 'application/json' };
   const method = 'post';
 
   const data = {
@@ -152,9 +152,9 @@ const bold = text => `\x1b[1m${text}\x1b[0m`;
 
 const main = async () => {
   const opts = parseArgs(process.argv.slice(2));
-  const token = getTenderlyToken();
+  const accessKey = getTenderlyAccessKey();
 
-  const vnet = await createVnet(opts, token);
+  const vnet = await createVnet(opts, accessKey);
   const rpcUrl = vnet.rpcs.find(rpc => rpc.name === 'Admin RPC').url;
   const chainId = vnet.virtual_network_config.chain_config.chain_id;
 

@@ -203,19 +203,6 @@ async function deployVault(vaultConfigurator, burnerRouterAddr, admin, operator)
 }
 
 /**
- * Calculates the subnetwork for a given network and identifier
- * subnetwork = address (20 bytes) || uint96 (12 bytes)
- * @see https://github.com/symbioticfi/core/blob/7cb06639c5cd656d1d212dafa2c270b5fde39306/src/contracts/libraries/Subnetwork.sol#L9
- *
- * @param {*} networkAddress
- * @param {*} identifier
- * @returns
- */
-function getSubnetwork(networkAddress, identifier) {
-  return ethers.solidityPacked(['address', 'uint96'], [networkAddress, identifier]);
-}
-
-/**
  * Helper function to deploy and verify a DefaultStakerRewards contract
  */
 async function deployDefaultStakerRewards(defaultStakerRewardsFactory, vaultAddr) {
@@ -431,11 +418,14 @@ describe('Symbiotic Integration', function () {
     console.log('Middleware slasher set to:', this.middleware.address);
   });
 
+  /**
+   * @see https://github.com/symbioticfi/core/blob/7cb06639c5cd656d1d212dafa2c270b5fde39306/src/contracts/libraries/Subnetwork.sol#L9
+   */
   it('get subnetwork 1 and 2', async function () {
-    this.subnetwork1Id = 0;
-    this.subnetwork2Id = 1;
-    this.subnetwork1 = getSubnetwork(this.network.address, this.subnetwork1Id);
-    this.subnetwork2 = getSubnetwork(this.network.address, this.subnetwork2Id);
+    this.subnetwork1Id = 1;
+    this.subnetwork2Id = 2;
+    this.subnetwork1 = ethers.solidityPacked(['address', 'uint96'], [this.network.address, this.subnetwork1Id]);
+    this.subnetwork2 = ethers.solidityPacked(['address', 'uint96'], [this.network.address, this.subnetwork2Id]);
     console.log('Subnetwork 1:', this.subnetwork1);
     console.log('Subnetwork 2:', this.subnetwork2);
   });

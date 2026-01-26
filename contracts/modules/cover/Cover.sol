@@ -191,7 +191,7 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
           "uint256 premium,",
           "uint32 period,",
           "uint8 coverAsset,",
-          "bytes32 data,",
+          "bytes data,",
           "uint8 dataFormat,",
           "uint32 deadline,",
           "uint256 nonce)"

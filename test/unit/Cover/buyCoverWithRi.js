@@ -58,9 +58,14 @@ describe('buyCoverWithRi', function () {
 
     const timestamp = await time.latest();
     const deadline = timestamp + 30 * 60;
-    const data = [{ amount: riAmount, riPoolId: 1, providerId: riProviderId }];
+
+    const data = [{ amount: riAmount, vaultId: 1, subnetworkId: 1, providerId: riProviderId }];
     const dataFormat = 1;
-    const dataEncoded = defaultAbiCoder.encode(['tuple(uint256 amount,uint256 riPoolId,uint256 providerId)[]'], [data]);
+
+    const dataEncoded = defaultAbiCoder.encode(
+      ['tuple(uint256 amount,uint256 vaultId, uint256 subnetworkId,uint256 providerId)[]'],
+      [data],
+    );
 
     const riQuote = {
       coverId: 0,
@@ -141,9 +146,12 @@ describe('buyCoverWithRi', function () {
 
     const timestamp = await time.latest();
     const deadline = timestamp + 30 * 60;
-    const data = [{ providerId: riProviderId, riPoolId: 1, amount: riAmount }];
+    const data = [{ amount: riAmount, vaultId: 1, subnetworkId: 1, providerId: riProviderId }];
     const dataFormat = 1;
-    const dataEncoded = defaultAbiCoder.encode(['tuple(uint256 amount,uint256 riPoolId,uint256 providerId)[]'], [data]);
+    const dataEncoded = defaultAbiCoder.encode(
+      ['tuple(uint256 amount,uint256 vaultId, uint256 subnetworkId,uint256 providerId)[]'],
+      [data],
+    );
 
     const riQuote = {
       coverId: 0,
@@ -203,9 +211,12 @@ describe('buyCoverWithRi', function () {
 
     const timestamp = await time.latest();
     const deadline = timestamp + 30 * 60;
-    const data = [{ providerId: riProviderId, riPoolId: 1, amount: 0 }];
+    const data = [{ amount: 0, vaultId: 1, subnetworkId: 1, providerId: riProviderId }];
     const dataFormat = 1;
-    const dataEncoded = defaultAbiCoder.encode(['tuple(uint256 amount,uint256 riPoolId,uint256 providerId)[]'], [data]);
+    const dataEncoded = defaultAbiCoder.encode(
+      ['tuple(uint256 amount,uint256 vaultId, uint256 subnetworkId,uint256 providerId)[]'],
+      [data],
+    );
 
     const riQuote = {
       coverId: 0,
@@ -263,9 +274,12 @@ describe('buyCoverWithRi', function () {
 
     const timestamp = await time.latest();
     const deadline = timestamp + 30 * 60;
-    const data = [{ providerId: riProviderId, riPoolId: 1, amount: riAmount }];
+    const data = [{ amount: riAmount, vaultId: 1, subnetworkId: 1, providerId: riProviderId }];
     const dataFormat = 1;
-    const dataEncoded = defaultAbiCoder.encode(['tuple(uint256 amount,uint256 riPoolId,uint256 providerId)[]'], [data]);
+    const dataEncoded = defaultAbiCoder.encode(
+      ['tuple(uint256 amount,uint256 vaultId, uint256 subnetworkId,uint256 providerId)[]'],
+      [data],
+    );
 
     const riQuote = {
       coverId: 0,

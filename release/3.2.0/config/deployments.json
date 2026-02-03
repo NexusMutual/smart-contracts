@@ -1,0 +1,11 @@
+{
+  "Cover": {
+    "expectedAddress": "0xcafea77A09B2A30391Dd5E9c1A8fd8cE069dAbed",
+    "salt": 176428901,
+    "constructorArgs": [
+      "0xcafea2c575550512582090AA06d0a069E7236b9e",
+      "0xcafeade1872f14adc0a03Ec7b0088b61D76ec729",
+      "0xcafeac0fF5dA0A2777d915531bfA6B29d282Ee62"
+    ]
+  }
+}

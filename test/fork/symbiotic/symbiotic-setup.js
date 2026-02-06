@@ -1,11 +1,21 @@
 /* eslint-disable max-len */
-const { ethers, network } = require('hardhat');
+const { ethers, network, nexus } = require('hardhat');
 const { expect } = require('chai');
-const { setBalance, takeSnapshot } = require('@nomicfoundation/hardhat-network-helpers');
+const { abis, addresses } = require('@nexusmutual/deployments');
+const { takeSnapshot } = require('@nomicfoundation/hardhat-network-helpers');
 
-const { revertToSnapshot, getSigner } = require('../utils');
+const { revertToSnapshot, getSigner, setERC20Balance, executeGovernorProposal, getFundedSigner } = require('../utils');
 
-const { parseEther, formatEther } = ethers;
+const { parseEther, formatEther, toQuantity, deployContract } = ethers;
+const { ContractIndexes } = nexus.constants;
+
+/**
+ * Helper to set balance, compatible with both hardhat and tenderly
+ */
+const setBalance = async (address, balance) => {
+  const networkName = network.name === 'tenderly' ? 'tenderly' : 'hardhat';
+  return ethers.provider.send(`${networkName}_setBalance`, [address, toQuantity(balance)]);
+};
 
 const ONE_DAY = 24n * 60n * 60n;
 const EPOCH_DURATION = 70n * ONE_DAY;
@@ -14,10 +24,8 @@ const CHANGE_SLASH_RECEIVER_DELAY = 3n * ONE_DAY;
 /**
  * Setup:
  *
- * 70 day epoch duration
- *
  * network address == operator address == middleware address (SAFE multisig)
- * burnerRouter contract owner == burnerRouter receiver (SAFE multisig)
+ * burnerRouter owner == burnerRouter receiver (SAFE multisig)
  *
  * 2 subnetworks, 1 operator, 4 vaults
  *
@@ -26,8 +34,11 @@ const CHANGE_SLASH_RECEIVER_DELAY = 3n * ONE_DAY;
  */
 
 // ADDRESSES
-const ADVISORY_BOARD_MULTISIG = '0x51ad1265C8702c9e96Ea61Fe4088C2e22eD4418e';
-const WSTETH_WHALE = '0x0B925eD163218f6662a35e0f0371Ac234f9E9371';
+
+// mainnet
+const SAFE_MULTISIG_NETWORK_OPERATOR_MIDDLEWARE = '0x51ad1265C8702c9e96Ea61Fe4088C2e22eD4418e';
+// TODO: change to a different Safe Address + fix slash receive assertions in symbiotic-tests.js
+const SAFE_MULTISIG_SLASH_RECEIVER = '0x51ad1265C8702c9e96Ea61Fe4088C2e22eD4418e';
 const VAULT_CONFIGURATOR = '0x29300b1d3150B4E2b12fE80BE72f365E200441EC';
 const WSTETH = '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0';
 const OPERATOR_REGISTRY = '0xAd817a6Bc954F678451A71363f04150FDD81Af9F';
@@ -36,8 +47,21 @@ const OPERATOR_VAULT_OPTIN = '0xb361894bC06cbBA7Ea8098BF0e32EB1906A5F891';
 const OPERATOR_NETWORK_OPTIN = '0x7133415b33B438843D581013f98A08704316633c';
 const NETWORK_MIDDLEWARE_SERVICE = '0xD7dC9B366c027743D90761F71858BCa83C6899Ad';
 const BURNER_ROUTER_FACTORY = '0x99F2B89fB3C363fBafD8d826E5AA77b28bAB70a0';
-const DEFAULT_STAKER_REWARDS_FACTORY = '0xFEB871581C2ab2e1EEe6f7dDC7e6246cFa087A23';
 const SLASHER_HINTS_ADDR = '0x234148646D8C1762C793FD04385AfAD94998a4C7';
+const REWARDS = '0xa13e65cA0FeFa52cCb9615108fF400EF4806866B';
+
+// hoodi testnet
+// const ADVISORY_BOARD_MULTISIG = '0x51ad1265C8702c9e96Ea61Fe4088C2e22eD4418e';
+// const WSTETH = '0x7E99eE3C66636DE415D2d7C880938F2f40f94De4';
+// const VAULT_CONFIGURATOR = '0x94c344E816A53D07fC4c7F4a18f82b6Da87CFc8f';
+// const OPERATOR_REGISTRY = '0x6F75a4ffF97326A00e52662d82EA4FdE86a2C548';
+// const NETWORK_REGISTRY = '0x7d03b7343BF8d5cEC7C0C27ecE084a20113D15C9';
+// const OPERATOR_VAULT_OPTIN = '0x95CC0a052ae33941877c9619835A233D21D57351';
+// const OPERATOR_NETWORK_OPTIN = '0x58973d16FFA900D11fC22e5e2B6840d9f7e13401';
+// const NETWORK_MIDDLEWARE_SERVICE = '0x62a1ddfD86b4c1636759d9286D3A0EC722D086e3';
+// const BURNER_ROUTER_FACTORY = '0xF619c99D166224B4AC008b14Cc67ac72C2E91D8a';
+// const SLASHER_HINTS_ADDR = '0x9C3F0Beb3A1Dfae975cE42571b7EE57dd3179351';
+// const REWARDS = '0x669971119c155961e0fB3f1693D975b52027Dc5E';
 
 // ABIS
 const VAULT_CONFIGURATOR_ABI = [
@@ -56,6 +80,7 @@ const VAULT_ABI = [
   'function redeem(address claimer,uint256 shares) external returns (uint256 withdrawnAssets,uint256 mintedShares)',
   'function claim(address recipient,uint256 epoch) external returns (uint256 amount)',
   'function withdrawalsOf(uint256 epoch,address account) external view returns (uint256)',
+  'function withdrawals(uint256 epoch) external view returns (uint256)',
   'function activeBalanceOf(address account) external view returns (uint256)',
   'function slashableBalanceOf(address account) external view returns (uint256)',
   'function totalStake() external view returns (uint256)',
@@ -112,21 +137,15 @@ const BURNER_ROUTER_ABI = [
   'function onSlash(bytes32 subnetwork, address operator, uint256 amount, uint48 captureTimestamp) external',
 ];
 
-const DEFAULT_STAKER_REWARDS_FACTORY_ABI = [
-  'function create((address vault,uint256 adminFee,address defaultAdminRoleHolder,address adminFeeClaimRoleHolder,address adminFeeSetRoleHolder) params) external returns (address)',
-];
-
-const DEFAULT_STAKER_REWARDS_ABI = [
-  'function distributeRewards(address network,address token,uint256 amount,bytes data) external',
-  'function claimRewards(address recipient,address token,bytes data) external',
-  'function claimable(address token,address account,bytes data) external view returns (uint256)',
-  'function VAULT() external view returns (address)',
-  'function rewardsLength(address token,address network) external view returns (uint256)',
-  'function lastUnclaimedReward(address account,address token,address network) external view returns (uint256)',
-];
-
 const SLASHER_HINTS_ABI = [
   'function slashHints(address slasher, bytes32 subnetwork, address operator, uint48 captureTimestamp) external view returns (bytes)',
+];
+
+const WSTETH_ABI = [
+  'function wrap(uint256 _stETHAmount) external returns (uint256)',
+  'function balanceOf(address) external view returns (uint256)',
+  'function transfer(address to, uint256 amount) external returns (bool)',
+  'function approve(address spender, uint256 amount) external returns (bool)',
 ];
 
 const { defaultAbiCoder } = ethers.AbiCoder;
@@ -203,28 +222,6 @@ async function deployVault(vaultConfigurator, burnerRouterAddr, admin, operator)
 }
 
 /**
- * Helper function to deploy and verify a DefaultStakerRewards contract
- */
-async function deployDefaultStakerRewards(defaultStakerRewardsFactory, vaultAddr) {
-  const rewardsInitParams = {
-    vault: vaultAddr,
-    adminFee: 0,
-    defaultAdminRoleHolder: ADVISORY_BOARD_MULTISIG,
-    adminFeeClaimRoleHolder: ethers.ZeroAddress,
-    adminFeeSetRoleHolder: ethers.ZeroAddress,
-  };
-
-  const defaultStakerRewardsAddr = await defaultStakerRewardsFactory.create.staticCall(rewardsInitParams);
-  await defaultStakerRewardsFactory.create(rewardsInitParams);
-  const defaultStakerRewards = await ethers.getContractAt(DEFAULT_STAKER_REWARDS_ABI, defaultStakerRewardsAddr);
-
-  const vaultFromRewards = await defaultStakerRewards.VAULT();
-  expect(vaultFromRewards).to.equal(vaultAddr);
-
-  return defaultStakerRewards;
-}
-
-/**
  * Helper function to deploy and verify a vault
  */
 async function deployAndVerifyVault(vaultNumber, operator) {
@@ -236,9 +233,13 @@ async function deployAndVerifyVault(vaultNumber, operator) {
   const slasherAddrKey = `slasher${vaultNumber}Addr`;
   const vaultAdminKey = `vault${vaultNumber}Admin`;
   const delegatorAdminKey = `delegator${vaultNumber}Admin`;
-  const defaultStakerRewardsKey = `defaultStakerRewards${vaultNumber}`;
 
-  const result = await deployVault(this.vaultConfigurator, this.burnerRouterAddr, ADVISORY_BOARD_MULTISIG, operator);
+  const result = await deployVault(
+    this.vaultConfigurator,
+    this.burnerRouterAddr,
+    SAFE_MULTISIG_NETWORK_OPERATOR_MIDDLEWARE,
+    operator,
+  );
 
   this[vaultKey] = result.vault;
   this[vaultAddrKey] = result.vaultAddr;
@@ -249,10 +250,8 @@ async function deployAndVerifyVault(vaultNumber, operator) {
 
   expect(this[vaultAddrKey]).to.not.equal(ethers.ZeroAddress);
 
-  const defaultStakerRewards = await deployDefaultStakerRewards(this.defaultStakerRewardsFactory, this[vaultAddrKey]);
-
-  this[vaultAdminKey] = this.advisoryBoard;
-  this[delegatorAdminKey] = this.advisoryBoard;
+  this[vaultAdminKey] = this.safeMultisigNetwork;
+  this[delegatorAdminKey] = this.safeMultisigNetwork;
 
   const [owner, delegator, slasher, burner] = await Promise.all([
     result.vault.owner(),
@@ -260,20 +259,16 @@ async function deployAndVerifyVault(vaultNumber, operator) {
     result.vault.slasher(),
     result.vault.burner(),
   ]);
-  expect(owner).to.equal(ADVISORY_BOARD_MULTISIG);
+  expect(owner).to.equal(SAFE_MULTISIG_NETWORK_OPERATOR_MIDDLEWARE);
   expect(delegator).to.equal(this[delegatorAddrKey]);
   expect(slasher).to.equal(this[slasherAddrKey]);
   expect(burner).to.equal(this.burnerRouterAddr);
-
-  // Deploy DefaultStakerRewards contract for this vault
-  this[defaultStakerRewardsKey] = defaultStakerRewards;
 
   console.log(`Vault ${vaultNumber} deployed at:`, this[vaultAddrKey]);
   console.log(`Vault ${vaultNumber} slasher deployed at:`, this[slasherAddrKey]);
   console.log(`Vault ${vaultNumber} delegator deployed at:`, this[delegatorAddrKey]);
   console.log(`Vault ${vaultNumber} operator:`, operator);
   console.log(`Vault ${vaultNumber} burnerRouter set to:`, burner);
-  console.log(`Vault ${vaultNumber} DefaultStakerRewards deployed at:`, defaultStakerRewards.target);
 }
 
 describe('Symbiotic Integration', function () {
@@ -292,6 +287,11 @@ describe('Symbiotic Integration', function () {
   });
 
   it('load contracts', async function () {
+    // nexus
+    this.registry = await ethers.getContractAt(abis.Registry, addresses.Registry);
+    this.governor = await ethers.getContractAt(abis.Governor, addresses.Governor);
+    this.cover = await ethers.getContractAt(abis.Cover, addresses.Cover);
+    // symbiotic
     this.vaultConfigurator = await ethers.getContractAt(VAULT_CONFIGURATOR_ABI, VAULT_CONFIGURATOR);
     this.operatorRegistry = await ethers.getContractAt(OPERATOR_REGISTRY_ABI, OPERATOR_REGISTRY);
     this.networkRegistry = await ethers.getContractAt(NETWORK_REGISTRY_ABI, NETWORK_REGISTRY);
@@ -299,17 +299,14 @@ describe('Symbiotic Integration', function () {
     this.operatorNetworkOptIn = await ethers.getContractAt(OPTIN_ABI, OPERATOR_NETWORK_OPTIN);
     this.middlewareService = await ethers.getContractAt(NETWORK_MIDDLEWARE_ABI, NETWORK_MIDDLEWARE_SERVICE);
     this.burnerRouterFactory = await ethers.getContractAt(BURNER_ROUTER_FACTORY_ABI, BURNER_ROUTER_FACTORY);
-    this.defaultStakerRewardsFactory = await ethers.getContractAt(
-      DEFAULT_STAKER_REWARDS_FACTORY_ABI,
-      DEFAULT_STAKER_REWARDS_FACTORY,
-    );
     this.slasherHints = await ethers.getContractAt(SLASHER_HINTS_ABI, SLASHER_HINTS_ADDR);
-    this.wstETH = await ethers.getContractAt('ERC20Mock', WSTETH);
+    // erc20
+    this.wstETH = await ethers.getContractAt(WSTETH_ABI, WSTETH);
   });
 
   it('load accounts and set balances', async function () {
-    const wstEthWhaleSigner = await getSigner(WSTETH_WHALE);
-    this.advisoryBoard = await getSigner(ADVISORY_BOARD_MULTISIG);
+    this.safeMultisigNetwork = await getSigner(SAFE_MULTISIG_NETWORK_OPERATOR_MIDDLEWARE);
+    this.safeSlashReceiver = await getSigner(SAFE_MULTISIG_SLASH_RECEIVER);
     [this.staker1, this.staker2, this.staker3, this.staker4, this.staker5, this.staker6, this.staker7, this.staker8] =
       await ethers.getSigners();
 
@@ -339,66 +336,134 @@ describe('Symbiotic Integration', function () {
       this.staker8 = await getSigner('0x4838B106FCe9647Bdf1E7877BF73cE8B0BAD5f97');
     }
 
+    const stakers = [
+      this.staker1,
+      this.staker2,
+      this.staker3,
+      this.staker4,
+      this.staker5,
+      this.staker6,
+      this.staker7,
+      this.staker8,
+    ];
+
+    const stakerAmounts = [
+      parseEther('20000'),
+      parseEther('10000'),
+      parseEther('10000'),
+      parseEther('10000'),
+      parseEther('10000'),
+      parseEther('10000'),
+      parseEther('10000'),
+      parseEther('10000'),
+    ];
+
+    // Set ETH balances for gas
     await Promise.all([
-      setBalance(WSTETH_WHALE, parseEther('10')),
-      setBalance(ADVISORY_BOARD_MULTISIG, parseEther('10')),
-      setBalance(this.staker1.address, parseEther('10')),
-      setBalance(this.staker2.address, parseEther('10')),
-      setBalance(this.staker3.address, parseEther('10')),
-      setBalance(this.staker4.address, parseEther('10')),
-      setBalance(this.staker5.address, parseEther('10')),
-      setBalance(this.staker6.address, parseEther('10')),
-      setBalance(this.staker7.address, parseEther('10')),
-      setBalance(this.staker8.address, parseEther('10')),
+      setBalance(SAFE_MULTISIG_NETWORK_OPERATOR_MIDDLEWARE, parseEther('10')),
+      ...stakers.map(staker => setBalance(staker.address, parseEther('10'))),
     ]);
 
-    // TODO: use ERC20 setStorage helpers instead of whales
-    await Promise.all([
-      this.wstETH.connect(wstEthWhaleSigner).transfer(this.staker1.address, parseEther('20000')),
-      this.wstETH.connect(wstEthWhaleSigner).transfer(this.staker2.address, parseEther('10000')),
-      this.wstETH.connect(wstEthWhaleSigner).transfer(this.staker3.address, parseEther('10000')),
-      this.wstETH.connect(wstEthWhaleSigner).transfer(this.staker4.address, parseEther('10000')),
-      this.wstETH.connect(wstEthWhaleSigner).transfer(this.staker5.address, parseEther('10000')),
-      this.wstETH.connect(wstEthWhaleSigner).transfer(this.staker6.address, parseEther('10000')),
-      this.wstETH.connect(wstEthWhaleSigner).transfer(this.staker7.address, parseEther('10000')),
-      this.wstETH.connect(wstEthWhaleSigner).transfer(this.staker8.address, parseEther('10000')),
+    // Set wstETH balances
+    await Promise.all(stakers.map((staker, index) => setERC20Balance(WSTETH, staker.address, stakerAmounts[index])));
+
+    const actualBalances = await Promise.all(stakers.map(staker => this.wstETH.balanceOf(staker.address)));
+
+    stakers.forEach((staker, index) => {
+      const expectedAmount = stakerAmounts[index];
+      const actualAmount = actualBalances[index];
+      expect(actualAmount).to.equal(expectedAmount);
+      console.log(
+        `Staker ${index + 1} wstETH balance: ${formatEther(actualAmount)} (expected: ${formatEther(expectedAmount)})`,
+      );
+    });
+  });
+
+  it('Impersonate AB members', async function () {
+    const boardSeats = await this.registry.ADVISORY_BOARD_SEATS();
+    this.abMembers = [];
+    for (let i = 1; i <= boardSeats; i++) {
+      const address = await this.registry.getMemberAddressBySeat(i);
+      this.abMembers.push(await getFundedSigner(address));
+    }
+  });
+
+  it('Upgrade Cover contract', async function () {
+    const coverProxy = await ethers.getContractAt('UpgradeableProxy', addresses.Cover);
+    const coverImplementationBefore = await coverProxy.implementation();
+
+    const stakingPoolImplementation = '0xcafeade1872f14adc0a03Ec7b0088b61D76ec729';
+    const coverImplementation = await deployContract('Cover', [
+      this.registry.target,
+      stakingPoolImplementation,
+      coverProxy.target,
     ]);
+
+    const coverAddress = await coverImplementation.getAddress();
+    const transactions = [
+      {
+        target: this.registry,
+        value: 0n,
+        data: this.registry.interface.encodeFunctionData('upgradeContract', [ContractIndexes.C_COVER, coverAddress]),
+      },
+    ];
+
+    await executeGovernorProposal(this.governor, this.abMembers, transactions);
+
+    const coverImplementationAfter = await coverProxy.implementation();
+    expect(coverImplementationAfter).to.not.equal(coverImplementationBefore);
+    expect(coverImplementationAfter).to.equal(coverImplementation.target);
+    console.log('Cover implementation upgraded to:', coverImplementation.target);
+
+    const governorSigner = await getFundedSigner(addresses.Governor);
+
+    // set RI rewards receiver for SYMBIOTIC_PROVIDER_ID
+    const SYMBIOTIC_PROVIDER_ID = 1;
+    await this.cover
+      .connect(governorSigner).setRiConfig(SYMBIOTIC_PROVIDER_ID, SAFE_MULTISIG_NETWORK_OPERATOR_MIDDLEWARE);
+    console.log(`ProviderId ${SYMBIOTIC_PROVIDER_ID} rewards receiver:`, SAFE_MULTISIG_NETWORK_OPERATOR_MIDDLEWARE);
+
+    // TODO:
+    // set RI quote signer
+    // const RI_QUOTE_SIGNER = '0x';
+    // await this.cover.connect(governorSigner).setRiSigner(RI_QUOTE_SIGNER);
+    // console.log(`ProviderId ${SYMBIOTIC_PROVIDER_ID} quote signer:`, RI_QUOTE_SIGNER);
   });
 
   it('deploy burner router', async function () {
     const initParams = {
-      owner: ADVISORY_BOARD_MULTISIG, // this.burnerRouterOwner
+      owner: SAFE_MULTISIG_NETWORK_OPERATOR_MIDDLEWARE, // this.burnerRouterOwner
       collateral: WSTETH,
       delay: CHANGE_SLASH_RECEIVER_DELAY,
-      globalReceiver: ADVISORY_BOARD_MULTISIG, // default receiver
+      globalReceiver: SAFE_MULTISIG_SLASH_RECEIVER, // default receiver
       networkReceivers: [
         {
-          network: ADVISORY_BOARD_MULTISIG, // Nexus network
-          receiver: ADVISORY_BOARD_MULTISIG, // Slash receiver
+          network: SAFE_MULTISIG_NETWORK_OPERATOR_MIDDLEWARE, // Nexus network
+          receiver: SAFE_MULTISIG_SLASH_RECEIVER, // Slash receiver
         },
       ],
       operatorNetworkReceivers: [
         {
-          network: ADVISORY_BOARD_MULTISIG, // Nexus network
-          operator: ADVISORY_BOARD_MULTISIG, // Nexus operator
-          receiver: ADVISORY_BOARD_MULTISIG, // Slash receiver
+          network: SAFE_MULTISIG_NETWORK_OPERATOR_MIDDLEWARE, // Nexus network
+          operator: SAFE_MULTISIG_NETWORK_OPERATOR_MIDDLEWARE, // Nexus operator
+          receiver: SAFE_MULTISIG_SLASH_RECEIVER, // Slash receiver
         },
       ],
     };
     this.burnerRouterAddr = await this.burnerRouterFactory.create.staticCall(initParams);
     await this.burnerRouterFactory.create(initParams);
-    this.burnerRouterOwner = this.advisoryBoard;
+    this.burnerRouterOwner = this.safeMultisigNetwork;
 
-    this.burnerRouter = await ethers.getContractAt(BURNER_ROUTER_ABI, this.burnerRouterAddr, this.advisoryBoard);
+    this.burnerRouter = await ethers.getContractAt(BURNER_ROUTER_ABI, this.burnerRouterAddr, this.safeMultisigNetwork);
 
     console.log('BurnerRouter deployed at:', this.burnerRouter.target);
   });
 
   it('register network/operator and set middleware slasher of Network', async function () {
     // network == operator == middleware for MVP
-    this.network = this.advisoryBoard;
-    this.operator1 = this.advisoryBoard;
-    this.middleware = this.advisoryBoard;
+    this.network = this.safeMultisigNetwork;
+    this.operator1 = this.safeMultisigNetwork;
+    this.middleware = this.safeMultisigNetwork;
 
     await Promise.all([
       this.networkRegistry.connect(this.network).registerNetwork(),
@@ -408,11 +473,8 @@ describe('Symbiotic Integration', function () {
     expect(await this.networkRegistry.isEntity(this.network.address)).to.equal(true);
     expect(await this.operatorRegistry.isEntity(this.operator1.address)).to.equal(true);
 
-    console.log('Nexus Network registered at:', this.operator1.address);
-    console.log('Operator 1 registered at:', this.operator1.address);
-
     // set middleware slasher of Network - needs to be called from registered Network address
-    await this.middlewareService.connect(this.network).setMiddleware(ADVISORY_BOARD_MULTISIG);
+    await this.middlewareService.connect(this.network).setMiddleware(this.middleware.address);
 
     expect(await this.middlewareService.middleware(this.network.address)).to.equal(this.middleware.address);
     console.log('Middleware slasher set to:', this.middleware.address);
@@ -504,7 +566,7 @@ describe('Symbiotic Integration', function () {
 
   it('network, operator and vault opt ins', async function () {
     await Promise.all([
-      this.operatorNetworkOptIn.connect(this.operator1).optIn(ADVISORY_BOARD_MULTISIG),
+      this.operatorNetworkOptIn.connect(this.operator1).optIn(this.network.address),
       this.operatorVaultOptIn.connect(this.operator1).optIn(this.vault1Addr),
       this.operatorVaultOptIn.connect(this.operator1).optIn(this.vault2Addr),
       this.operatorVaultOptIn.connect(this.operator1).optIn(this.vault3Addr),

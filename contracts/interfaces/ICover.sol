@@ -116,6 +116,8 @@ interface ICover is IStakingPoolBeacon {
 
   function getLatestEditCoverData(uint coverId) external view returns (CoverData memory);
 
+  function getRiProviderConfig(uint providerId) external view returns (RiConfig memory);
+
   function recalculateActiveCoverInAsset(uint coverAsset) external;
 
   function totalActiveCoverInAsset(uint coverAsset) external view returns (uint);

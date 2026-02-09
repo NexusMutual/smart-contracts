@@ -82,6 +82,10 @@ contract CoverGeneric is ICover {
     revert("Unsupported");
   }
 
+  function getRiProviderConfig(uint) external virtual view returns (RiConfig memory) {
+    revert("Unsupported");
+  }
+
   /* === MUTATIVE FUNCTIONS ==== */
 
   function addLegacyCover(uint, uint, uint, uint, uint, address) external virtual returns (uint) {

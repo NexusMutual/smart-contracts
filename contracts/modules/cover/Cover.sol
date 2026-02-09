@@ -691,6 +691,10 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
     return _coverData[coverReference.latestCoverId];
   }
 
+  function getRiProviderConfig(uint providerId) external override view returns (RiConfig memory) {
+    return _riProviderConfigs[providerId];
+  }
+
   /* ========== COVER ASSETS HELPERS ========== */
 
   function recalculateActiveCoverInAsset(uint coverAsset) public {

@@ -70,6 +70,23 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
   // smallest unit we can allocate is 1e18 / 100 = 1e16 = 0.01 NXM
   uint public constant NXM_PER_ALLOCATION_UNIT = ONE_NXM / ALLOCATION_UNITS_PER_NXM;
 
+  bytes32 private constant BUY_COVER_WITH_RI_TYPEHASH = keccak256(
+    abi.encodePacked(
+      "RiQuote(",
+      "uint256 coverId,",
+      "uint24 productId,",
+      "uint256 providerId,",
+      "uint256 amount,",
+      "uint256 premium,",
+      "uint32 period,",
+      "uint8 coverAsset,",
+      "bytes data,",
+      "uint8 dataFormat,",
+      "uint32 deadline,",
+      "uint256 nonce)"
+    )
+  );
+
   IPool public immutable pool;
   ITokenController public immutable tokenController;
   ICoverProducts public immutable coverProducts;
@@ -181,22 +198,7 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
     require(riPremiumDestination != address(0), InvalidRiConfig());
 
     bytes memory message = abi.encode(
-      keccak256(
-        abi.encodePacked(
-          "RiQuote(",
-          "uint256 coverId,",
-          "uint24 productId,",
-          "uint256 providerId,",
-          "uint256 amount,",
-          "uint256 premium,",
-          "uint32 period,",
-          "uint8 coverAsset,",
-          "bytes data,",
-          "uint8 dataFormat,",
-          "uint32 deadline,",
-          "uint256 nonce)"
-        )
-      ),
+      BUY_COVER_WITH_RI_TYPEHASH,
       params.coverId,
       params.productId,
       riRequest.providerId,

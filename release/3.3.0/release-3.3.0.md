@@ -18,8 +18,8 @@
   * _stakingPoolImplementation = `0xcafeade1872f14adc0a03Ec7b0088b61D76ec729`
   * _verifyingAddress = `0xcafeac0fF5dA0A2777d915531bfA6B29d282Ee62`
 * Address brute force command
-  * Address: `0xcafea77A09B2A30391Dd5E9c1A8fd8cE069dAbed`
-  * Salt: 176428901
+  * Address: `0xcafeafF1a21418f530Feb00C6BAeF07523979C05`
+  * Salt: 50026701
 ```bash
 ENABLE_OPTIMIZER=1 node scripts/create2/find-salt.js \
   -t cafea \
@@ -32,15 +32,15 @@ ENABLE_OPTIMIZER=1 node scripts/create2/find-salt.js \
 ```bash
 HARDHAT_NETWORK=mainnet ENABLE_OPTIMIZER=1 node scripts/create2/deploy.js \
   -f 0xfac7011663910F75CbE1E25539ec2D7529f93C3F \
-  -c "$(jq -c '.Cover.constructorArgs' release/3.2.0/config/deployments.json)" \
-  -a "$(jq -r '.Cover.expectedAddress' release/3.2.0/config/deployments.json)" \
-  -s "$(jq -r '.Cover.salt'            release/3.2.0/config/deployments.json)" \
+  -c "$(jq -c '.Cover.constructorArgs' release/3.3.0/config/deployments.json)" \
+  -a "$(jq -r '.Cover.expectedAddress' release/3.3.0/config/deployments.json)" \
+  -s "$(jq -r '.Cover.salt'            release/3.3.0/config/deployments.json)" \
   -k -p 1 -b 0.5 Cover
 ```
 * Verify command
 ```bash
 ENABLE_OPTIMIZER=1 npx hardhat verify --network mainnet \
-  "$(jq -r '.Cover.expectedAddress' release/3.2.0/config/deployments.json)" \
-  $(jq -r '.Cover.constructorArgs | .[]' release/3.2.0/config/deployments.json | xargs -I {} echo '"{}"' | xargs) \
+  "$(jq -r '.Cover.expectedAddress' release/3.3.0/config/deployments.json)" \
+  $(jq -r '.Cover.constructorArgs | .[]' release/3.3.0/config/deployments.json | xargs -I {} echo '"{}"' | xargs) \
   --contract contracts/modules/cover/Cover.sol:Cover
 ```

@@ -184,77 +184,51 @@ function createSlasherInitParams() {
 /**
  * Helper function to deploy a complete vault (vault + delegator + slasher)
  */
-async function deployVault(vaultConfigurator, burnerRouterAddr, admin, operator) {
+async function deployVault(vaultConfigurator, burnerRouterAddr, adminAddress, operator) {
   const vaultParams = {
     version: 1,
-    owner: admin,
-    vaultParams: createVaultInitParams(burnerRouterAddr, admin),
+    owner: adminAddress,
+    vaultParams: createVaultInitParams(burnerRouterAddr, adminAddress),
     delegatorIndex: 2, // OperatorSpecificDelegator (index 2)
-    delegatorParams: createDelegatorInitParams(admin, operator),
+    delegatorParams: createDelegatorInitParams(adminAddress, operator),
     withSlasher: true,
     slasherIndex: 0, // instant Slasher (index 0)
     slasherParams: createSlasherInitParams(),
   };
 
   const [vaultAddr, delegatorAddr, slasherAddr] = await vaultConfigurator.create.staticCall(vaultParams);
-  const [delegator, slasher] = await Promise.all([
+  await vaultConfigurator.create(vaultParams);
+
+  const [vault, delegator, slasher] = await Promise.all([
+    ethers.getContractAt(VAULT_ABI, vaultAddr),
     ethers.getContractAt(DELEGATOR_ABI, delegatorAddr),
     ethers.getContractAt(SLASHER_ABI, slasherAddr),
   ]);
-  await vaultConfigurator.create(vaultParams);
-  const vault = await ethers.getContractAt(VAULT_ABI, vaultAddr);
 
-  return { vault, vaultAddr, delegator, delegatorAddr, slasher, slasherAddr };
+  return { vault, delegator, slasher };
 }
 
 /**
- * Helper function to deploy and verify a vault
+ * Verifies that a deployed vault is wired to the expected owner, delegator, slasher and burner.
  */
-async function deployAndVerifyVault(vaultNumber, operator) {
-  const vaultKey = `vault${vaultNumber}`;
-  const vaultAddrKey = `vault${vaultNumber}Addr`;
-  const delegatorKey = `delegator${vaultNumber}`;
-  const delegatorAddrKey = `delegator${vaultNumber}Addr`;
-  const slasherKey = `slasher${vaultNumber}`;
-  const slasherAddrKey = `slasher${vaultNumber}Addr`;
-  const vaultAdminKey = `vault${vaultNumber}Admin`;
-  const delegatorAdminKey = `delegator${vaultNumber}Admin`;
-
-  const result = await deployVault(
-    this.vaultConfigurator,
-    this.burnerRouterAddr,
-    SAFE_MULTISIG_NETWORK_OPERATOR_MIDDLEWARE,
-    operator,
-  );
-
-  this[vaultKey] = result.vault;
-  this[vaultAddrKey] = result.vaultAddr;
-  this[delegatorKey] = result.delegator;
-  this[delegatorAddrKey] = result.delegatorAddr;
-  this[slasherKey] = result.slasher;
-  this[slasherAddrKey] = result.slasherAddr;
-
-  expect(this[vaultAddrKey]).to.not.equal(ethers.ZeroAddress);
-
-  this[vaultAdminKey] = this.safeMultisigNetwork;
-  this[delegatorAdminKey] = this.safeMultisigNetwork;
-
-  const [owner, delegator, slasher, burner] = await Promise.all([
-    result.vault.owner(),
-    result.vault.delegator(),
-    result.vault.slasher(),
-    result.vault.burner(),
+async function verifyVaultDeployment(vaultNumber, vaultData, expectedOwner, expectedBurner) {
+  const [ownerAddr, delegatorAddr, slasherAddr, burnerAddr] = await Promise.all([
+    vaultData.vault.owner(),
+    vaultData.vault.delegator(),
+    vaultData.vault.slasher(),
+    vaultData.vault.burner(),
   ]);
-  expect(owner).to.equal(SAFE_MULTISIG_NETWORK_OPERATOR_MIDDLEWARE);
-  expect(delegator).to.equal(this[delegatorAddrKey]);
-  expect(slasher).to.equal(this[slasherAddrKey]);
-  expect(burner).to.equal(this.burnerRouterAddr);
 
-  console.log(`Vault ${vaultNumber} deployed at:`, this[vaultAddrKey]);
-  console.log(`Vault ${vaultNumber} slasher deployed at:`, this[slasherAddrKey]);
-  console.log(`Vault ${vaultNumber} delegator deployed at:`, this[delegatorAddrKey]);
-  console.log(`Vault ${vaultNumber} operator:`, operator);
-  console.log(`Vault ${vaultNumber} burnerRouter set to:`, burner);
+  expect(vaultData.vault.target).to.not.equal(ethers.ZeroAddress);
+  expect(ownerAddr).to.equal(expectedOwner);
+  expect(delegatorAddr).to.equal(vaultData.delegator.target);
+  expect(slasherAddr).to.equal(vaultData.slasher.target);
+  expect(burnerAddr).to.equal(expectedBurner);
+
+  console.log(`Vault ${vaultNumber} deployed at:`, vaultData.vault.target);
+  console.log(`Vault ${vaultNumber} slasher deployed at:`, vaultData.slasher.target);
+  console.log(`Vault ${vaultNumber} delegator deployed at:`, vaultData.delegator.target);
+  console.log(`Vault ${vaultNumber} burner set to:`, burnerAddr);
 }
 
 describe('Symbiotic Integration', function () {
@@ -480,10 +454,49 @@ describe('Symbiotic Integration', function () {
   });
 
   it('deploy all vaults successfully', async function () {
-    await deployAndVerifyVault.call(this, 1, this.operator1.address); // Vault 1
-    await deployAndVerifyVault.call(this, 2, this.operator1.address); // Vault 2
-    await deployAndVerifyVault.call(this, 3, this.operator1.address); // Vault 3
-    await deployAndVerifyVault.call(this, 4, this.operator1.address); // Vault 4
+    const vaultAdmin = this.safeMultisigNetwork;
+    const delegatorAdmin = this.safeMultisigNetwork;
+    const operatorAddress = this.operator1.address;
+
+    const deployedVault1 = await deployVault(
+      this.vaultConfigurator,
+      this.burnerRouterAddr,
+      vaultAdmin.address,
+      operatorAddress,
+    );
+    this.vault1 = { ...deployedVault1, admin: vaultAdmin, delegatorAdmin };
+    await verifyVaultDeployment(1, this.vault1, vaultAdmin.address, this.burnerRouterAddr);
+    console.log('Vault 1 operator:', operatorAddress);
+
+    const deployedVault2 = await deployVault(
+      this.vaultConfigurator,
+      this.burnerRouterAddr,
+      vaultAdmin.address,
+      operatorAddress,
+    );
+    this.vault2 = { ...deployedVault2, admin: vaultAdmin, delegatorAdmin };
+    await verifyVaultDeployment(2, this.vault2, vaultAdmin.address, this.burnerRouterAddr);
+    console.log('Vault 2 operator:', operatorAddress);
+
+    const deployedVault3 = await deployVault(
+      this.vaultConfigurator,
+      this.burnerRouterAddr,
+      vaultAdmin.address,
+      operatorAddress,
+    );
+    this.vault3 = { ...deployedVault3, admin: vaultAdmin, delegatorAdmin };
+    await verifyVaultDeployment(3, this.vault3, vaultAdmin.address, this.burnerRouterAddr);
+    console.log('Vault 3 operator:', operatorAddress);
+
+    const deployedVault4 = await deployVault(
+      this.vaultConfigurator,
+      this.burnerRouterAddr,
+      vaultAdmin.address,
+      operatorAddress,
+    );
+    this.vault4 = { ...deployedVault4, admin: vaultAdmin, delegatorAdmin };
+    await verifyVaultDeployment(4, this.vault4, vaultAdmin.address, this.burnerRouterAddr);
+    console.log('Vault 4 operator:', operatorAddress);
   });
 
   it('stake in vaults - 2 stakers per vault', async function () {
@@ -504,32 +517,32 @@ describe('Symbiotic Integration', function () {
     const staker8Vault4Amount = parseEther('10000');
 
     await Promise.all([
-      this.wstETH.connect(this.staker1).approve(this.vault1Addr, staker1Vault1Amount),
-      this.wstETH.connect(this.staker2).approve(this.vault1Addr, staker2Vault1Amount),
-      this.wstETH.connect(this.staker3).approve(this.vault2Addr, staker3Vault2Amount),
-      this.wstETH.connect(this.staker4).approve(this.vault2Addr, staker4Vault2Amount),
-      this.wstETH.connect(this.staker5).approve(this.vault3Addr, staker5Vault3Amount),
-      this.wstETH.connect(this.staker6).approve(this.vault3Addr, staker6Vault3Amount),
-      this.wstETH.connect(this.staker7).approve(this.vault4Addr, staker7Vault4Amount),
-      this.wstETH.connect(this.staker8).approve(this.vault4Addr, staker8Vault4Amount),
+      this.wstETH.connect(this.staker1).approve(this.vault1.vault.target, staker1Vault1Amount),
+      this.wstETH.connect(this.staker2).approve(this.vault1.vault.target, staker2Vault1Amount),
+      this.wstETH.connect(this.staker3).approve(this.vault2.vault.target, staker3Vault2Amount),
+      this.wstETH.connect(this.staker4).approve(this.vault2.vault.target, staker4Vault2Amount),
+      this.wstETH.connect(this.staker5).approve(this.vault3.vault.target, staker5Vault3Amount),
+      this.wstETH.connect(this.staker6).approve(this.vault3.vault.target, staker6Vault3Amount),
+      this.wstETH.connect(this.staker7).approve(this.vault4.vault.target, staker7Vault4Amount),
+      this.wstETH.connect(this.staker8).approve(this.vault4.vault.target, staker8Vault4Amount),
     ]);
 
     await Promise.all([
-      this.vault1.connect(this.staker1).deposit(this.staker1.address, staker1Vault1Amount), // vault 1 - staker 1 & 2
-      this.vault1.connect(this.staker2).deposit(this.staker2.address, staker2Vault1Amount), // vault 1 - staker 1 & 2
-      this.vault2.connect(this.staker3).deposit(this.staker3.address, staker3Vault2Amount), // vault 2 - staker 3 & 4
-      this.vault2.connect(this.staker4).deposit(this.staker4.address, staker4Vault2Amount), // vault 2 - staker 3 & 4
-      this.vault3.connect(this.staker5).deposit(this.staker5.address, staker5Vault3Amount), // vault 3 - staker 5 & 6
-      this.vault3.connect(this.staker6).deposit(this.staker6.address, staker6Vault3Amount), // vault 3 - staker 5 & 6
-      this.vault4.connect(this.staker7).deposit(this.staker7.address, staker7Vault4Amount), // vault 4 - staker 7 & 8
-      this.vault4.connect(this.staker8).deposit(this.staker8.address, staker8Vault4Amount), // vault 4 - staker 7 & 8
+      this.vault1.vault.connect(this.staker1).deposit(this.staker1.address, staker1Vault1Amount), // vault 1 - staker 1 & 2
+      this.vault1.vault.connect(this.staker2).deposit(this.staker2.address, staker2Vault1Amount), // vault 1 - staker 1 & 2
+      this.vault2.vault.connect(this.staker3).deposit(this.staker3.address, staker3Vault2Amount), // vault 2 - staker 3 & 4
+      this.vault2.vault.connect(this.staker4).deposit(this.staker4.address, staker4Vault2Amount), // vault 2 - staker 3 & 4
+      this.vault3.vault.connect(this.staker5).deposit(this.staker5.address, staker5Vault3Amount), // vault 3 - staker 5 & 6
+      this.vault3.vault.connect(this.staker6).deposit(this.staker6.address, staker6Vault3Amount), // vault 3 - staker 5 & 6
+      this.vault4.vault.connect(this.staker7).deposit(this.staker7.address, staker7Vault4Amount), // vault 4 - staker 7 & 8
+      this.vault4.vault.connect(this.staker8).deposit(this.staker8.address, staker8Vault4Amount), // vault 4 - staker 7 & 8
     ]);
 
     const [vault1ActiveStake, vault2ActiveStake, vault3ActiveStake, vault4ActiveStake] = await Promise.all([
-      this.vault1.activeStake(),
-      this.vault2.activeStake(),
-      this.vault3.activeStake(),
-      this.vault4.activeStake(),
+      this.vault1.vault.activeStake(),
+      this.vault2.vault.activeStake(),
+      this.vault3.vault.activeStake(),
+      this.vault4.vault.activeStake(),
     ]);
 
     expect(vault1ActiveStake).to.equal(staker1Vault1Amount + staker2Vault1Amount); // 30K
@@ -554,10 +567,10 @@ describe('Symbiotic Integration', function () {
   it('network, operator and vault opt ins', async function () {
     await Promise.all([
       this.operatorNetworkOptIn.connect(this.operator1).optIn(this.network.address),
-      this.operatorVaultOptIn.connect(this.operator1).optIn(this.vault1Addr),
-      this.operatorVaultOptIn.connect(this.operator1).optIn(this.vault2Addr),
-      this.operatorVaultOptIn.connect(this.operator1).optIn(this.vault3Addr),
-      this.operatorVaultOptIn.connect(this.operator1).optIn(this.vault4Addr),
+      this.operatorVaultOptIn.connect(this.operator1).optIn(this.vault1.vault.target),
+      this.operatorVaultOptIn.connect(this.operator1).optIn(this.vault2.vault.target),
+      this.operatorVaultOptIn.connect(this.operator1).optIn(this.vault3.vault.target),
+      this.operatorVaultOptIn.connect(this.operator1).optIn(this.vault4.vault.target),
     ]);
     console.log('Operator 1 opted in vault 1, vault 2, vault 3 and vault 4');
   });
@@ -565,18 +578,18 @@ describe('Symbiotic Integration', function () {
   it('subnetwork 1 - vault 1 and vault 2 allocation', async function () {
     // vault 1: setMaxNetworkLimit and setNetworkLimit (20K to subnetwork 1, 10K left for subnetwork 2)
     const vault1Subnetwork1Stake = parseEther('20000');
-    await this.delegator1.connect(this.network).setMaxNetworkLimit(this.subnetwork1Id, vault1Subnetwork1Stake);
-    await this.delegator1.connect(this.delegator1Admin).setNetworkLimit(this.subnetwork1, vault1Subnetwork1Stake);
+    await this.vault1.delegator.connect(this.network).setMaxNetworkLimit(this.subnetwork1Id, vault1Subnetwork1Stake);
+    await this.vault1.delegator.connect(this.vault1.admin).setNetworkLimit(this.subnetwork1, vault1Subnetwork1Stake);
 
     // vault 2: setMaxNetworkLimit and setNetworkLimit (20K to subnetwork 1)
     const vault2TotalStake = parseEther('20000');
-    await this.delegator2.connect(this.network).setMaxNetworkLimit(this.subnetwork1Id, vault2TotalStake);
-    await this.delegator2.connect(this.delegator2Admin).setNetworkLimit(this.subnetwork1, vault2TotalStake);
+    await this.vault2.delegator.connect(this.network).setMaxNetworkLimit(this.subnetwork1Id, vault2TotalStake);
+    await this.vault2.delegator.connect(this.vault2.admin).setNetworkLimit(this.subnetwork1, vault2TotalStake);
 
     // verify stakes for both vaults in subnetwork 1 (both use operator1)
     const [vault1Stake, vault2Stake] = await Promise.all([
-      this.delegator1.stake(this.subnetwork1, this.operator1.address),
-      this.delegator2.stake(this.subnetwork1, this.operator1.address),
+      this.vault1.delegator.stake(this.subnetwork1, this.operator1.address),
+      this.vault2.delegator.stake(this.subnetwork1, this.operator1.address),
     ]);
 
     expect(vault1Stake).to.be.equal(vault1Subnetwork1Stake);
@@ -589,24 +602,24 @@ describe('Symbiotic Integration', function () {
   it('subnetwork 2 - vault 1, vault 3 and vault 4 allocation', async function () {
     // vault 1: allocate additional 10K to subnetwork 2
     const vault1Subnetwork2Stake = parseEther('10000');
-    await this.delegator1.connect(this.network).setMaxNetworkLimit(this.subnetwork2Id, vault1Subnetwork2Stake);
-    await this.delegator1.connect(this.delegator1Admin).setNetworkLimit(this.subnetwork2, vault1Subnetwork2Stake);
+    await this.vault1.delegator.connect(this.network).setMaxNetworkLimit(this.subnetwork2Id, vault1Subnetwork2Stake);
+    await this.vault1.delegator.connect(this.vault1.admin).setNetworkLimit(this.subnetwork2, vault1Subnetwork2Stake);
 
     // vault 3: setMaxNetworkLimit and setNetworkLimit (20K to subnetwork 2)
     const vault3TotalStake = parseEther('20000');
-    await this.delegator3.connect(this.network).setMaxNetworkLimit(this.subnetwork2Id, vault3TotalStake);
-    await this.delegator3.connect(this.delegator3Admin).setNetworkLimit(this.subnetwork2, vault3TotalStake);
+    await this.vault3.delegator.connect(this.network).setMaxNetworkLimit(this.subnetwork2Id, vault3TotalStake);
+    await this.vault3.delegator.connect(this.vault3.admin).setNetworkLimit(this.subnetwork2, vault3TotalStake);
 
     // vault 4: setMaxNetworkLimit and setNetworkLimit (20K to subnetwork 2)
     const vault4TotalStake = parseEther('20000');
-    await this.delegator4.connect(this.network).setMaxNetworkLimit(this.subnetwork2Id, vault4TotalStake);
-    await this.delegator4.connect(this.delegator4Admin).setNetworkLimit(this.subnetwork2, vault4TotalStake);
+    await this.vault4.delegator.connect(this.network).setMaxNetworkLimit(this.subnetwork2Id, vault4TotalStake);
+    await this.vault4.delegator.connect(this.vault4.admin).setNetworkLimit(this.subnetwork2, vault4TotalStake);
 
     // verify stakes for all vaults in subnetwork 2
     const [vault1StakeSubnetwork2, vault3Stake, vault4Stake] = await Promise.all([
-      this.delegator1.stake(this.subnetwork2, this.operator1.address),
-      this.delegator3.stake(this.subnetwork2, this.operator1.address),
-      this.delegator4.stake(this.subnetwork2, this.operator1.address),
+      this.vault1.delegator.stake(this.subnetwork2, this.operator1.address),
+      this.vault3.delegator.stake(this.subnetwork2, this.operator1.address),
+      this.vault4.delegator.stake(this.subnetwork2, this.operator1.address),
     ]);
 
     expect(vault1StakeSubnetwork2).to.be.equal(vault1Subnetwork2Stake);

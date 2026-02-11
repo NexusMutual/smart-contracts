@@ -66,7 +66,7 @@ describe('Symbiotic Tests', function () {
     }
 
     // capture state snapshot for logging
-    async function captureSnapshot({ vaults = [], delegators = [], subnetworks = [], operators = [] }) {
+    async function captureSnapshot({ vaults = [], subnetworks = [], operators = [] }) {
       const snapshot = {
         receiver: await this.wstETH.balanceOf(this.safeSlashReceiver.address),
         burner: await this.wstETH.balanceOf(this.burnerRouter.target),
@@ -74,7 +74,7 @@ describe('Symbiotic Tests', function () {
       };
 
       for (let i = 0; i < vaults.length; i++) {
-        const vault = vaults[i];
+        const { vault, delegator } = vaults[i];
         const vaultName = `vault${i + 1}`;
         const [activeStake, totalStake, currentEpoch, currentEpochStart, nextEpochStart] = await Promise.all([
           vault.activeStake(),
@@ -95,12 +95,12 @@ describe('Symbiotic Tests', function () {
         };
 
         // capture delegated stakes for each subnetwork
-        if (delegators[i] && subnetworks.length > 0 && operators.length > 0) {
+        if (delegator && subnetworks.length > 0 && operators.length > 0) {
           for (const subnetwork of subnetworks) {
             for (const operator of operators) {
               const [delegated, limit] = await Promise.all([
-                delegators[i].stake(subnetwork, operator.address),
-                delegators[i].networkLimit(subnetwork),
+                delegator.stake(subnetwork, operator.address),
+                delegator.networkLimit(subnetwork),
               ]);
               const key = `${subnetwork.slice(0, 10)}...${operator.address.slice(0, 8)}`;
               snapshot.vaults[vaultName].delegated[key] = { delegated, limit };
@@ -179,7 +179,6 @@ describe('Symbiotic Tests', function () {
     it('slash both vaults with only active stake', async function () {
       const before = await captureSnapshot.call(this, {
         vaults: [this.vault1, this.vault2],
-        delegators: [this.delegator1, this.delegator2],
         subnetworks: [this.subnetwork1],
         operators: [this.operator1],
       });
@@ -201,26 +200,26 @@ describe('Symbiotic Tests', function () {
       const captureTimestamp = (await time.latest()) - 5; // must be w/in current epoch & not now
 
       const hints1 = await this.slasherHints.slashHints.staticCall(
-        this.slasher1.target,
+        this.vault1.slasher.target,
         this.subnetwork1,
         this.operator1.address,
         captureTimestamp,
       );
 
       // slash 2000 wstETH from vault 1
-      await this.slasher1
+      await this.vault1.slasher
         .connect(this.middleware)
         .slash(this.subnetwork1, this.operator1.address, amountToSlashVault1, captureTimestamp, hints1 || '0x');
 
       const hints2 = await this.slasherHints.slashHints.staticCall(
-        this.slasher2.target,
+        this.vault2.slasher.target,
         this.subnetwork1,
         this.operator1.address,
         captureTimestamp,
       );
 
       // slash 2000 wstETH from vault 2
-      await this.slasher2
+      await this.vault2.slasher
         .connect(this.middleware)
         .slash(this.subnetwork1, this.operator1.address, amountToSlashVault2, captureTimestamp, hints2 || '0x');
 
@@ -234,7 +233,6 @@ describe('Symbiotic Tests', function () {
 
       const after = await captureSnapshot.call(this, {
         vaults: [this.vault1, this.vault2],
-        delegators: [this.delegator1, this.delegator2],
         subnetworks: [this.subnetwork1],
         operators: [this.operator1],
       });
@@ -251,14 +249,14 @@ describe('Symbiotic Tests', function () {
 
       // verify delegated stake formula: delegatedStake = min(activeStake, networkLimit)
       const [networkLimit1Sub1, networkLimit2Sub1, networkLimit1Sub2] = await Promise.all([
-        this.delegator1.networkLimit(this.subnetwork1),
-        this.delegator2.networkLimit(this.subnetwork1),
-        this.delegator1.networkLimit(this.subnetwork2),
+        this.vault1.delegator.networkLimit(this.subnetwork1),
+        this.vault2.delegator.networkLimit(this.subnetwork1),
+        this.vault1.delegator.networkLimit(this.subnetwork2),
       ]);
 
-      const delegatedVault1Sub1 = await this.delegator1.stake(this.subnetwork1, this.operator1.address);
-      const delegatedVault2Sub1 = await this.delegator2.stake(this.subnetwork1, this.operator1.address);
-      const delegatedVault1Sub2 = await this.delegator1.stake(this.subnetwork2, this.operator1.address);
+      const delegatedVault1Sub1 = await this.vault1.delegator.stake(this.subnetwork1, this.operator1.address);
+      const delegatedVault2Sub1 = await this.vault2.delegator.stake(this.subnetwork1, this.operator1.address);
+      const delegatedVault1Sub2 = await this.vault1.delegator.stake(this.subnetwork2, this.operator1.address);
 
       expect(delegatedVault1Sub1).to.equal(BigIntMath.min(after.vaults.vault1.activeStake, networkLimit1Sub1));
       expect(delegatedVault2Sub1).to.equal(BigIntMath.min(after.vaults.vault2.activeStake, networkLimit2Sub1));
@@ -266,23 +264,22 @@ describe('Symbiotic Tests', function () {
     });
 
     it('slash vault with active + queued withdrawal states', async function () {
-      const staker4InitialBalance = await this.vault2.activeBalanceOf(this.staker4.address);
+      const staker4InitialBalance = await this.vault2.vault.activeBalanceOf(this.staker4.address);
       const staker4WithdrawAmount = parseEther('5000');
-      const epochN = await this.vault2.currentEpoch();
+      const epochN = await this.vault2.vault.currentEpoch();
       const claimEpoch = epochN + 1n;
 
       // staker4 withdraws, stake queued for withdrawal on nextEpoch
-      await this.vault2.connect(this.staker4).withdraw(this.staker4.address, staker4WithdrawAmount);
+      await this.vault2.vault.connect(this.staker4).withdraw(this.staker4.address, staker4WithdrawAmount);
 
       // advance to next epoch
-      await time.setNextBlockTimestamp(await this.vault2.nextEpochStart());
+      await time.setNextBlockTimestamp(await this.vault2.vault.nextEpochStart());
       await ethers.provider.send('evm_mine', []);
-      expect(await this.vault2.currentEpoch()).to.equal(claimEpoch);
+      expect(await this.vault2.vault.currentEpoch()).to.equal(claimEpoch);
 
       // capture START snapshot
       const before = await captureSnapshot.call(this, {
         vaults: [this.vault1, this.vault2],
-        delegators: [this.delegator1, this.delegator2],
         subnetworks: [this.subnetwork1],
         operators: [this.operator1],
       });
@@ -292,14 +289,14 @@ describe('Symbiotic Tests', function () {
       });
 
       // captureTimestamp must be in PREVIOUS epoch so withdrawals[currentEpoch] is slashable
-      const currentEpochStart = await this.vault2.currentEpochStart();
+      const currentEpochStart = await this.vault2.vault.currentEpochStart();
       const prevEpochCaptureTs = currentEpochStart - 1n;
       expect(prevEpochCaptureTs).to.be.lt(currentEpochStart);
 
       const [staker3Active, staker4Active, staker4Queued] = await Promise.all([
-        this.vault2.activeBalanceOf(this.staker3.address),
-        this.vault2.activeBalanceOf(this.staker4.address),
-        this.vault2.withdrawalsOf(claimEpoch, this.staker4.address),
+        this.vault2.vault.activeBalanceOf(this.staker3.address),
+        this.vault2.vault.activeBalanceOf(this.staker4.address),
+        this.vault2.vault.withdrawalsOf(claimEpoch, this.staker4.address),
       ]);
 
       // verify expected state before slash
@@ -309,7 +306,7 @@ describe('Symbiotic Tests', function () {
       expect(staker4Queued).to.be.equal(staker4WithdrawAmount);
 
       const hints2 = await this.slasherHints.slashHints.staticCall(
-        this.slasher2.target,
+        this.vault2.slasher.target,
         this.subnetwork1,
         this.operator1.address,
         prevEpochCaptureTs,
@@ -317,7 +314,7 @@ describe('Symbiotic Tests', function () {
 
       // slash vault 2 using previous epoch timestamp
       const amountToSlash = parseEther('9000'); // 50% of remaining stake (18000 * 0.5 = 9000)
-      await this.slasher2
+      await this.vault2.slasher
         .connect(this.middleware)
         .slash(this.subnetwork1, this.operator1.address, amountToSlash, prevEpochCaptureTs, hints2 || '0x');
 
@@ -328,10 +325,10 @@ describe('Symbiotic Tests', function () {
         vault2TotalStakeAfterSlash,
         burnerRouter,
       ] = await Promise.all([
-        this.vault2.activeBalanceOf(this.staker3.address),
-        this.vault2.activeBalanceOf(this.staker4.address),
-        this.vault2.withdrawalsOf(claimEpoch, this.staker4.address),
-        this.vault2.totalStake(),
+        this.vault2.vault.activeBalanceOf(this.staker3.address),
+        this.vault2.vault.activeBalanceOf(this.staker4.address),
+        this.vault2.vault.withdrawalsOf(claimEpoch, this.staker4.address),
+        this.vault2.vault.totalStake(),
         this.wstETH.balanceOf(this.burnerRouter.target),
       ]);
 
@@ -389,15 +386,14 @@ describe('Symbiotic Tests', function () {
       expect(staker4QueuedActualShare).to.equal(staker4QueuedExpectedShare);
 
       // verify delegator stake post-slash: delegatedStake = min(activeStake, networkLimit)
-      const vault2ActiveStake = await this.vault2.activeStake();
-      const delegatedStake = await this.delegator2.stake(this.subnetwork1, this.operator1.address);
-      const networkLimit = await this.delegator2.networkLimit(this.subnetwork1);
+      const vault2ActiveStake = await this.vault2.vault.activeStake();
+      const delegatedStake = await this.vault2.delegator.stake(this.subnetwork1, this.operator1.address);
+      const networkLimit = await this.vault2.delegator.networkLimit(this.subnetwork1);
       expect(delegatedStake).to.equal(BigIntMath.min(vault2ActiveStake, networkLimit));
 
       // capture END snapshot
       const after = await captureSnapshot.call(this, {
         vaults: [this.vault1, this.vault2],
-        delegators: [this.delegator1, this.delegator2],
         subnetworks: [this.subnetwork1],
         operators: [this.operator1],
       });
@@ -410,29 +406,28 @@ describe('Symbiotic Tests', function () {
 
     it('slash vault with active + queued + claim-eligible states', async function () {
       const staker2FirstWithdraw = parseEther('3000');
-      const epochN = await this.vault1.currentEpoch();
+      const epochN = await this.vault1.vault.currentEpoch();
       const epochNPlus1 = epochN + 1n;
       const epochNPlus2 = epochN + 2n;
 
       // epochN: staker2 withdraws (will be claimable in epochNPlus2)
-      await this.vault1.connect(this.staker2).withdraw(this.staker2.address, staker2FirstWithdraw);
+      await this.vault1.vault.connect(this.staker2).withdraw(this.staker2.address, staker2FirstWithdraw);
 
       // advance to epochNPlus1
-      await time.increaseTo(await this.vault1.nextEpochStart());
-      expect(await this.vault1.currentEpoch()).to.equal(epochNPlus1);
+      await time.increaseTo(await this.vault1.vault.nextEpochStart());
+      expect(await this.vault1.vault.currentEpoch()).to.equal(epochNPlus1);
 
       // epochNPlus1: staker2 makes second withdrawal
       const staker2SecondWithdraw = parseEther('3000');
-      await this.vault1.connect(this.staker2).withdraw(this.staker2.address, staker2SecondWithdraw);
+      await this.vault1.vault.connect(this.staker2).withdraw(this.staker2.address, staker2SecondWithdraw);
 
       // advance to epochNPlus2: first withdrawal now claim-eligible, second is slashable
-      await time.increaseTo(await this.vault1.nextEpochStart());
-      expect(await this.vault1.currentEpoch()).to.equal(epochNPlus2);
+      await time.increaseTo(await this.vault1.vault.nextEpochStart());
+      expect(await this.vault1.vault.currentEpoch()).to.equal(epochNPlus2);
 
       // capture START snapshot
       const before = await captureSnapshot.call(this, {
         vaults: [this.vault1],
-        delegators: [this.delegator1],
         subnetworks: [this.subnetwork1],
         operators: [this.operator1],
       });
@@ -442,14 +437,14 @@ describe('Symbiotic Tests', function () {
       });
 
       const [staker1Active, staker2Active, staker2QueuedEpoch3, staker2ClaimEligibleEpoch2] = await Promise.all([
-        this.vault1.activeBalanceOf(this.staker1.address),
-        this.vault1.activeBalanceOf(this.staker2.address),
-        this.vault1.withdrawalsOf(epochNPlus2, this.staker2.address),
-        this.vault1.withdrawalsOf(epochNPlus1, this.staker2.address),
+        this.vault1.vault.activeBalanceOf(this.staker1.address),
+        this.vault1.vault.activeBalanceOf(this.staker2.address),
+        this.vault1.vault.withdrawalsOf(epochNPlus2, this.staker2.address),
+        this.vault1.vault.withdrawalsOf(epochNPlus1, this.staker2.address),
       ]);
 
       // use previous epoch captureTimestamp so withdrawals[currentEpoch] is slashable
-      const currentEpochStart = await this.vault1.currentEpochStart();
+      const currentEpochStart = await this.vault1.vault.currentEpochStart();
       const previousEpochCaptureTs = currentEpochStart - 1n;
       expect(previousEpochCaptureTs).to.be.lt(currentEpochStart);
 
@@ -459,7 +454,7 @@ describe('Symbiotic Tests', function () {
       expect(amountToSlash).to.be.lte(slashableFundsBefore);
 
       const hints1 = await this.slasherHints.slashHints.staticCall(
-        this.slasher1.target,
+        this.vault1.slasher.target,
         this.subnetwork1,
         this.operator1.address,
         previousEpochCaptureTs,
@@ -467,7 +462,7 @@ describe('Symbiotic Tests', function () {
 
       // slash: activeStake + withdrawal[currentEpoch] is slashable
       // withdrawal[previousEpoch] which is now claim-eligible is NOT slashable
-      await this.slasher1
+      await this.vault1.slasher
         .connect(this.middleware)
         .slash(this.subnetwork1, ADVISORY_BOARD_MULTISIG, amountToSlash, previousEpochCaptureTs, hints1 || '0x');
 
@@ -479,11 +474,11 @@ describe('Symbiotic Tests', function () {
         vault1TotalStakeAfterSlash,
         burnerMid,
       ] = await Promise.all([
-        this.vault1.activeBalanceOf(this.staker1.address),
-        this.vault1.activeBalanceOf(this.staker2.address),
-        this.vault1.withdrawalsOf(epochNPlus2, this.staker2.address),
-        this.vault1.withdrawalsOf(epochNPlus1, this.staker2.address),
-        this.vault1.totalStake(),
+        this.vault1.vault.activeBalanceOf(this.staker1.address),
+        this.vault1.vault.activeBalanceOf(this.staker2.address),
+        this.vault1.vault.withdrawalsOf(epochNPlus2, this.staker2.address),
+        this.vault1.vault.withdrawalsOf(epochNPlus1, this.staker2.address),
+        this.vault1.vault.totalStake(),
         this.wstETH.balanceOf(this.burnerRouter.target),
       ]);
 
@@ -545,20 +540,19 @@ describe('Symbiotic Tests', function () {
       expect(staker2QueuedActualShare).to.equal(staker2QueuedExpectedShare);
 
       // verify delegator stake post-slash: delegatedStake = min(activeStake, networkLimit)
-      const vault1ActiveStakeAfter = await this.vault1.activeStake();
-      const delegatedSub1 = await this.delegator1.stake(this.subnetwork1, this.operator1.address);
-      const limitSub1 = await this.delegator1.networkLimit(this.subnetwork1);
+      const vault1ActiveStakeAfter = await this.vault1.vault.activeStake();
+      const delegatedSub1 = await this.vault1.delegator.stake(this.subnetwork1, this.operator1.address);
+      const limitSub1 = await this.vault1.delegator.networkLimit(this.subnetwork1);
       expect(delegatedSub1).to.equal(BigIntMath.min(vault1ActiveStakeAfter, limitSub1));
 
       // also check subnetwork2 if vault1 is cross-allocated
-      const delegatedSub2 = await this.delegator1.stake(this.subnetwork2, this.operator1.address);
-      const limitSub2 = await this.delegator1.networkLimit(this.subnetwork2);
+      const delegatedSub2 = await this.vault1.delegator.stake(this.subnetwork2, this.operator1.address);
+      const limitSub2 = await this.vault1.delegator.networkLimit(this.subnetwork2);
       expect(delegatedSub2).to.equal(BigIntMath.min(vault1ActiveStakeAfter, limitSub2));
 
       // capture END snapshot
       const after = await captureSnapshot.call(this, {
         vaults: [this.vault1],
-        delegators: [this.delegator1],
         subnetworks: [this.subnetwork1],
         operators: [this.operator1],
       });
@@ -569,12 +563,12 @@ describe('Symbiotic Tests', function () {
       });
 
       // staker2 claims epochNPlus1 withdrawal and verifies full unslashed amount
-      await time.setNextBlockTimestamp(await this.vault1.nextEpochStart());
+      await time.setNextBlockTimestamp(await this.vault1.vault.nextEpochStart());
       await ethers.provider.send('evm_mine', []);
-      expect(await this.vault1.currentEpoch()).to.equal(epochNPlus2 + 1n);
+      expect(await this.vault1.vault.currentEpoch()).to.equal(epochNPlus2 + 1n);
 
       const staker2WstEthBefore = await this.wstETH.balanceOf(this.staker2.address);
-      await this.vault1.connect(this.staker2).claim(this.staker2.address, epochNPlus1, { gasLimit: 21e6 });
+      await this.vault1.vault.connect(this.staker2).claim(this.staker2.address, epochNPlus1, { gasLimit: 21e6 });
       const staker2WstEthAfter = await this.wstETH.balanceOf(this.staker2.address);
       const staker2ClaimedAmount = staker2WstEthAfter - staker2WstEthBefore;
 
@@ -586,14 +580,16 @@ describe('Symbiotic Tests', function () {
       const staker4WithdrawAmount = parseEther('500');
 
       // Vault 2: Create withdrawal first (will become claim-eligible after 2 epochs)
-      await this.vault2.connect(this.staker4).withdraw(this.staker4.address, staker4WithdrawAmount, { gasLimit: 21e6 });
-      const vault2EpochN = await this.vault2.currentEpoch();
+      await this.vault2.vault
+        .connect(this.staker4)
+        .withdraw(this.staker4.address, staker4WithdrawAmount, { gasLimit: 21e6 });
+      const vault2EpochN = await this.vault2.vault.currentEpoch();
       const vault2ClaimEligibleEpoch = vault2EpochN + 1n;
 
       // Advance vault 2 by 1 epoch (withdrawal becomes queued)
-      await time.setNextBlockTimestamp(await this.vault2.nextEpochStart());
+      await time.setNextBlockTimestamp(await this.vault2.vault.nextEpochStart());
       await ethers.provider.send('evm_mine', []);
-      expect(await this.vault2.currentEpoch()).to.equal(vault2ClaimEligibleEpoch);
+      expect(await this.vault2.vault.currentEpoch()).to.equal(vault2ClaimEligibleEpoch);
 
       // Capture Vault2 timestamp while withdrawal is still queued (before it becomes claim-eligible)
       // Use current block timestamp which is valid for slashing
@@ -601,13 +597,15 @@ describe('Symbiotic Tests', function () {
       const vault2CaptureTimestamp = BigInt(vault2Block.timestamp);
 
       // Advance vault 2 by another epoch (withdrawal becomes claim-eligible)
-      await time.setNextBlockTimestamp(await this.vault2.nextEpochStart());
+      await time.setNextBlockTimestamp(await this.vault2.vault.nextEpochStart());
       await ethers.provider.send('evm_mine', []);
-      expect(await this.vault2.currentEpoch()).to.equal(vault2ClaimEligibleEpoch + 1n);
+      expect(await this.vault2.vault.currentEpoch()).to.equal(vault2ClaimEligibleEpoch + 1n);
 
       // Vault 1: Create withdrawal (will be queued in next epoch)
-      await this.vault1.connect(this.staker1).withdraw(this.staker1.address, staker1WithdrawAmount, { gasLimit: 21e6 });
-      const vault1EpochN = await this.vault1.currentEpoch();
+      await this.vault1.vault
+        .connect(this.staker1)
+        .withdraw(this.staker1.address, staker1WithdrawAmount, { gasLimit: 21e6 });
+      const vault1EpochN = await this.vault1.vault.currentEpoch();
       const vault1QueuedEpoch = vault1EpochN + 1n;
 
       // IMPORTANT: Capture timestamp BEFORE advancing epoch
@@ -617,14 +615,13 @@ describe('Symbiotic Tests', function () {
       const vault1CaptureTimestamp = BigInt(vault1Block.timestamp);
 
       // Advance vault 1 to next epoch (withdrawal becomes queued in current epoch)
-      await time.setNextBlockTimestamp(await this.vault1.nextEpochStart());
+      await time.setNextBlockTimestamp(await this.vault1.vault.nextEpochStart());
       await ethers.provider.send('evm_mine', []);
-      expect(await this.vault1.currentEpoch()).to.equal(vault1QueuedEpoch);
+      expect(await this.vault1.vault.currentEpoch()).to.equal(vault1QueuedEpoch);
 
       // capture START snapshot
       const before = await captureSnapshot.call(this, {
         vaults: [this.vault1, this.vault2],
-        delegators: [this.delegator1, this.delegator2],
         subnetworks: [this.subnetwork1],
         operators: [this.operator1],
       });
@@ -634,21 +631,24 @@ describe('Symbiotic Tests', function () {
       });
 
       // verify vault 1 has queued withdrawals (slashable)
-      const staker1Queued = await this.vault1.withdrawalsOf(vault1QueuedEpoch, this.staker1.address);
+      const staker1Queued = await this.vault1.vault.withdrawalsOf(vault1QueuedEpoch, this.staker1.address);
       expect(staker1Queued).to.be.gt(0n);
       expect(staker1Queued).to.equal(staker1WithdrawAmount);
 
       // verify vault 2 has claim-eligible withdrawals (NOT slashable)
-      const staker4ClaimEligible = await this.vault2.withdrawalsOf(vault2ClaimEligibleEpoch, this.staker4.address);
+      const staker4ClaimEligible = await this.vault2.vault.withdrawalsOf(
+        vault2ClaimEligibleEpoch,
+        this.staker4.address,
+      );
       expect(staker4ClaimEligible).to.be.gt(0n);
       expect(staker4ClaimEligible).to.equal(staker4WithdrawAmount);
 
       // verify vault 2 has NO queued withdrawals in current epoch
-      const vault2CurrentEpoch = await this.vault2.currentEpoch();
+      const vault2CurrentEpoch = await this.vault2.vault.currentEpoch();
       const vault2NextEpoch = vault2CurrentEpoch + 1n;
       const [staker4CurrentQueued, staker4NextQueued] = await Promise.all([
-        this.vault2.withdrawalsOf(vault2CurrentEpoch, this.staker4.address),
-        this.vault2.withdrawalsOf(vault2NextEpoch, this.staker4.address),
+        this.vault2.vault.withdrawalsOf(vault2CurrentEpoch, this.staker4.address),
+        this.vault2.vault.withdrawalsOf(vault2NextEpoch, this.staker4.address),
       ]);
       expect(staker4CurrentQueued).to.equal(0n, 'Vault2 should have no queued withdrawals in current epoch');
       expect(staker4NextQueued).to.equal(0n, 'Vault2 should have no queued withdrawals in next epoch');
@@ -657,7 +657,7 @@ describe('Symbiotic Tests', function () {
       // This ensures captureEpoch = currentEpoch - 1, so Vault.onSlash includes withdrawals[currentEpoch]
 
       // Calculate ACTUAL slashable amounts using our helper (mirrors Vault.onSlash logic)
-      const vault1ActualSlashable = await getActualSlashableStake.call(this, this.vault1, vault1CaptureTimestamp);
+      const vault1ActualSlashable = await getActualSlashableStake.call(this, this.vault1.vault, vault1CaptureTimestamp);
 
       // Verify our helper matches expected values:
       // Vault 1: active + queued (withdrawal is currently queued at capture time)
@@ -681,38 +681,39 @@ describe('Symbiotic Tests', function () {
       // execute slashes with vault-specific capture timestamps
       const [hints1, hints2] = await Promise.all([
         this.slasherHints.slashHints.staticCall(
-          this.slasher1.target,
+          this.vault1.slasher.target,
           this.subnetwork1,
           this.operator1.address,
           vault1CaptureTimestamp,
         ),
         this.slasherHints.slashHints.staticCall(
-          this.slasher2.target,
+          this.vault2.slasher.target,
           this.subnetwork1,
           this.operator1.address,
           vault2CaptureTimestamp,
         ),
       ]);
 
-      await this.slasher1
+      await this.vault1.slasher
         .connect(this.middleware)
         .slash(this.subnetwork1, this.operator1.address, slashVault1Amount, vault1CaptureTimestamp, hints1 || '0x', {
           gasLimit: 21e6,
         });
 
-      await this.slasher2
+      await this.vault2.slasher
         .connect(this.middleware)
         .slash(this.subnetwork1, this.operator1.address, slashVault2Amount, vault2CaptureTimestamp, hints2 || '0x', {
           gasLimit: 21e6,
         });
 
-      // Check actual vault balances after slash to determine real slashed amounts
-      const [vault1ActiveAfterSlash, vault2ActiveAfterSlash] = await Promise.all([
-        this.vault1.activeStake(),
-        this.vault2.activeStake(),
+      // Check vault balances after slash to determine real slashed amounts.
+      // In this scenario vault1 can slash from active + queued, so use totalStake deltas.
+      const [vault1TotalAfterSlash, vault2TotalAfterSlash] = await Promise.all([
+        this.vault1.vault.totalStake(),
+        this.vault2.vault.totalStake(),
       ]);
-      const actualVault1Slashed = before.vaults.vault1.activeStake - vault1ActiveAfterSlash;
-      const actualVault2Slashed = before.vaults.vault2.activeStake - vault2ActiveAfterSlash;
+      const actualVault1Slashed = before.vaults.vault1.totalStake - vault1TotalAfterSlash;
+      const actualVault2Slashed = before.vaults.vault2.totalStake - vault2TotalAfterSlash;
       const actualTotalSlashed = actualVault1Slashed + actualVault2Slashed;
 
       // verify token flow: burner router received slashed tokens
@@ -732,7 +733,6 @@ describe('Symbiotic Tests', function () {
 
       const after = await captureSnapshot.call(this, {
         vaults: [this.vault1, this.vault2],
-        delegators: [this.delegator1, this.delegator2],
         subnetworks: [this.subnetwork1],
         operators: [this.operator1],
       });
@@ -743,7 +743,10 @@ describe('Symbiotic Tests', function () {
       });
 
       // KEY VERIFICATION: Vault 2's claim-eligible withdrawal is NOT slashed
-      const staker4ClaimEligibleAfter = await this.vault2.withdrawalsOf(vault2ClaimEligibleEpoch, this.staker4.address);
+      const staker4ClaimEligibleAfter = await this.vault2.vault.withdrawalsOf(
+        vault2ClaimEligibleEpoch,
+        this.staker4.address,
+      );
       expect(staker4ClaimEligibleAfter).to.equal(
         staker4ClaimEligible,
         'Claim-eligible withdrawal must remain untouched',
@@ -765,20 +768,22 @@ describe('Symbiotic Tests', function () {
 
       // delegator sanity checks
       const [delegated1, limit1, delegated2, limit2] = await Promise.all([
-        this.delegator1.stake(this.subnetwork1, this.operator1.address),
-        this.delegator1.networkLimit(this.subnetwork1),
-        this.delegator2.stake(this.subnetwork1, this.operator1.address),
-        this.delegator2.networkLimit(this.subnetwork1),
+        this.vault1.delegator.stake(this.subnetwork1, this.operator1.address),
+        this.vault1.delegator.networkLimit(this.subnetwork1),
+        this.vault2.delegator.stake(this.subnetwork1, this.operator1.address),
+        this.vault2.delegator.networkLimit(this.subnetwork1),
       ]);
 
       expect(delegated1).to.equal(BigIntMath.min(after.vaults.vault1.activeStake, limit1));
       expect(delegated2).to.equal(BigIntMath.min(after.vaults.vault2.activeStake, limit2));
 
       // verify staker4 can claim full claim-eligible amount (unslashed)
-      await time.setNextBlockTimestamp(await this.vault2.nextEpochStart());
+      await time.setNextBlockTimestamp(await this.vault2.vault.nextEpochStart());
       await ethers.provider.send('evm_mine', []);
       const staker4WstEthBefore = await this.wstETH.balanceOf(this.staker4.address);
-      await this.vault2.connect(this.staker4).claim(this.staker4.address, vault2ClaimEligibleEpoch, { gasLimit: 21e6 });
+      await this.vault2.vault
+        .connect(this.staker4)
+        .claim(this.staker4.address, vault2ClaimEligibleEpoch, { gasLimit: 21e6 });
       const staker4WstEthAfter = await this.wstETH.balanceOf(this.staker4.address);
       expect(staker4WstEthAfter - staker4WstEthBefore).to.equal(
         staker4ClaimEligible,
@@ -787,27 +792,26 @@ describe('Symbiotic Tests', function () {
     });
 
     it('multi-epoch slash sequence with state transitions', async function () {
-      const epochN = await this.vault1.currentEpoch();
+      const epochN = await this.vault1.vault.currentEpoch();
       const epochNPlus1 = epochN + 1n;
       const epochNPlus2 = epochN + 2n;
 
       // staker1 withdraws to create queued state
       const staker1WithdrawAmount = parseEther('800');
-      await this.vault1.connect(this.staker1).withdraw(this.staker1.address, staker1WithdrawAmount);
+      await this.vault1.vault.connect(this.staker1).withdraw(this.staker1.address, staker1WithdrawAmount);
 
       // advance to next epoch, capture timestamp just before
-      const nextEpochStart = await this.vault1.nextEpochStart();
+      const nextEpochStart = await this.vault1.vault.nextEpochStart();
       await time.increaseTo(Number(nextEpochStart - 10n));
       const captureTsEpochN = BigInt(await time.latest());
       await time.increaseTo(Number(nextEpochStart));
 
-      expect(await this.vault1.currentEpoch()).to.equal(epochNPlus1);
-      expect(captureTsEpochN).to.be.lt(await this.vault1.currentEpochStart());
+      expect(await this.vault1.vault.currentEpoch()).to.equal(epochNPlus1);
+      expect(captureTsEpochN).to.be.lt(await this.vault1.vault.currentEpochStart());
 
       // capture START snapshot (Epoch N+1, first slash)
       const beforeFirstSlash = await captureSnapshot.call(this, {
         vaults: [this.vault1],
-        delegators: [this.delegator1],
         subnetworks: [this.subnetwork1],
         operators: [this.operator1],
       });
@@ -817,30 +821,29 @@ describe('Symbiotic Tests', function () {
       });
 
       // verify queued state
-      const staker1QueuedEpochNPlus1 = await this.vault1.withdrawalsOf(epochNPlus1, this.staker1.address);
+      const staker1QueuedEpochNPlus1 = await this.vault1.vault.withdrawalsOf(epochNPlus1, this.staker1.address);
       expect(staker1QueuedEpochNPlus1).to.equal(staker1WithdrawAmount);
 
       // calculate first slash amount
-      const staker1ActiveBefore1 = await this.vault1.activeBalanceOf(this.staker1.address);
+      const staker1ActiveBefore1 = await this.vault1.vault.activeBalanceOf(this.staker1.address);
       const slashable1 = staker1ActiveBefore1 + staker1QueuedEpochNPlus1;
       const firstSlashAmount = slashable1 / 2n;
 
       // execute first slash
       const hints1 = await this.slasherHints.slashHints.staticCall(
-        this.slasher1.target,
+        this.vault1.slasher.target,
         this.subnetwork1,
         this.operator1.address,
         captureTsEpochN,
       );
 
-      await this.slasher1
+      await this.vault1.slasher
         .connect(this.middleware)
         .slash(this.subnetwork1, this.operator1.address, firstSlashAmount, captureTsEpochN, hints1 || '0x');
 
       // capture state after first slash
       const afterFirstSlash = await captureSnapshot.call(this, {
         vaults: [this.vault1],
-        delegators: [this.delegator1],
         subnetworks: [this.subnetwork1],
         operators: [this.operator1],
       });
@@ -860,24 +863,23 @@ describe('Symbiotic Tests', function () {
 
       // delegator sanity check
       const [delegated1, limit1] = await Promise.all([
-        this.delegator1.stake(this.subnetwork1, this.operator1.address),
-        this.delegator1.networkLimit(this.subnetwork1),
+        this.vault1.delegator.stake(this.subnetwork1, this.operator1.address),
+        this.vault1.delegator.networkLimit(this.subnetwork1),
       ]);
       expect(delegated1).to.equal(BigIntMath.min(afterFirstSlash.vaults.vault1.activeStake, limit1));
 
       // advance to epoch N+2: first withdrawal becomes claim-eligible
-      const nextEpochStart2 = await this.vault1.nextEpochStart();
+      const nextEpochStart2 = await this.vault1.vault.nextEpochStart();
       await time.increaseTo(Number(nextEpochStart2 - 10n));
       const captureTsEpochNPlus1 = BigInt(await time.latest());
       await time.increaseTo(Number(nextEpochStart2));
 
-      expect(await this.vault1.currentEpoch()).to.equal(epochNPlus2);
-      expect(captureTsEpochNPlus1).to.be.lt(await this.vault1.currentEpochStart());
+      expect(await this.vault1.vault.currentEpoch()).to.equal(epochNPlus2);
+      expect(captureTsEpochNPlus1).to.be.lt(await this.vault1.vault.currentEpochStart());
 
       // capture START snapshot for second slash (Epoch N+2)
       const beforeSecondSlash = await captureSnapshot.call(this, {
         vaults: [this.vault1],
-        delegators: [this.delegator1],
         subnetworks: [this.subnetwork1],
         operators: [this.operator1],
       });
@@ -887,32 +889,31 @@ describe('Symbiotic Tests', function () {
       });
 
       // verify claim-eligible withdrawal exists (not slashable)
-      const staker1ClaimEligible = await this.vault1.withdrawalsOf(epochNPlus1, this.staker1.address);
-      const staker1QueuedEpochNPlus2 = await this.vault1.withdrawalsOf(epochNPlus2, this.staker1.address);
+      const staker1ClaimEligible = await this.vault1.vault.withdrawalsOf(epochNPlus1, this.staker1.address);
+      const staker1QueuedEpochNPlus2 = await this.vault1.vault.withdrawalsOf(epochNPlus2, this.staker1.address);
       expect(staker1ClaimEligible).to.be.gt(0n);
       expect(staker1QueuedEpochNPlus2).to.equal(0n);
 
       // calculate second slash amount
-      const staker1ActiveBefore2 = await this.vault1.activeBalanceOf(this.staker1.address);
+      const staker1ActiveBefore2 = await this.vault1.vault.activeBalanceOf(this.staker1.address);
       const slashable2 = staker1ActiveBefore2 + staker1QueuedEpochNPlus2;
       const secondSlashAmount = slashable2 / 2n;
 
       // execute second slash
       const hints2 = await this.slasherHints.slashHints.staticCall(
-        this.slasher1.target,
+        this.vault1.slasher.target,
         this.subnetwork1,
         this.operator1.address,
         captureTsEpochNPlus1,
       );
 
-      await this.slasher1
+      await this.vault1.slasher
         .connect(this.middleware)
         .slash(this.subnetwork1, this.operator1.address, secondSlashAmount, captureTsEpochNPlus1, hints2 || '0x');
 
       // capture state after second slash
       const afterSecondSlash = await captureSnapshot.call(this, {
         vaults: [this.vault1],
-        delegators: [this.delegator1],
         subnetworks: [this.subnetwork1],
         operators: [this.operator1],
       });
@@ -923,11 +924,11 @@ describe('Symbiotic Tests', function () {
       });
 
       // verify claim-eligible amount unchanged (key invariant)
-      const staker1ClaimEligibleAfter = await this.vault1.withdrawalsOf(epochNPlus1, this.staker1.address);
+      const staker1ClaimEligibleAfter = await this.vault1.vault.withdrawalsOf(epochNPlus1, this.staker1.address);
       expect(staker1ClaimEligibleAfter).to.equal(staker1ClaimEligible);
 
       // verify active balance decreased
-      const staker1ActiveAfter2 = await this.vault1.activeBalanceOf(this.staker1.address);
+      const staker1ActiveAfter2 = await this.vault1.vault.activeBalanceOf(this.staker1.address);
       expect(staker1ActiveAfter2).to.be.lt(staker1ActiveBefore2);
 
       // verify token flow
@@ -936,8 +937,8 @@ describe('Symbiotic Tests', function () {
 
       // delegator sanity check
       const [delegated2, limit2] = await Promise.all([
-        this.delegator1.stake(this.subnetwork1, this.operator1.address),
-        this.delegator1.networkLimit(this.subnetwork1),
+        this.vault1.delegator.stake(this.subnetwork1, this.operator1.address),
+        this.vault1.delegator.networkLimit(this.subnetwork1),
       ]);
       expect(delegated2).to.equal(BigIntMath.min(afterSecondSlash.vaults.vault1.activeStake, limit2));
 
@@ -955,32 +956,31 @@ describe('Symbiotic Tests', function () {
 
       // staker1 claims the claim-eligible amount
       const staker1WstEthBefore = await this.wstETH.balanceOf(this.staker1.address);
-      await this.vault1.connect(this.staker1).claim(this.staker1.address, epochNPlus1);
+      await this.vault1.vault.connect(this.staker1).claim(this.staker1.address, epochNPlus1);
       const staker1WstEthAfter = await this.wstETH.balanceOf(this.staker1.address);
       expect(staker1WstEthAfter - staker1WstEthBefore).to.equal(staker1ClaimEligible);
     });
 
     it('queued withdrawal flows through slash and claim correctly', async function () {
       const staker4WithdrawAmount = parseEther('500');
-      const epochN = await this.vault2.currentEpoch();
+      const epochN = await this.vault2.vault.currentEpoch();
       const claimEpoch = epochN + 1n;
 
       // staker4 withdraws
-      await this.vault2.connect(this.staker4).withdraw(this.staker4.address, staker4WithdrawAmount);
+      await this.vault2.vault.connect(this.staker4).withdraw(this.staker4.address, staker4WithdrawAmount);
 
       // advance to epoch N+1, capture timestamp just before
-      const epochNPlus1Start = await this.vault2.nextEpochStart();
+      const epochNPlus1Start = await this.vault2.vault.nextEpochStart();
       await time.increaseTo(Number(epochNPlus1Start - 10n));
       const epochNCaptureTs = BigInt(await time.latest());
       await time.increaseTo(Number(epochNPlus1Start));
 
-      expect(await this.vault2.currentEpoch()).to.equal(claimEpoch);
-      expect(epochNCaptureTs).to.be.lt(await this.vault2.currentEpochStart());
+      expect(await this.vault2.vault.currentEpoch()).to.equal(claimEpoch);
+      expect(epochNCaptureTs).to.be.lt(await this.vault2.vault.currentEpochStart());
 
       // capture START snapshot
       const before = await captureSnapshot.call(this, {
         vaults: [this.vault1, this.vault2],
-        delegators: [this.delegator1, this.delegator2],
         subnetworks: [this.subnetwork1],
         operators: [this.operator1],
       });
@@ -990,11 +990,11 @@ describe('Symbiotic Tests', function () {
       });
 
       // verify queued withdrawal
-      const staker4QueuedBefore = await this.vault2.withdrawalsOf(claimEpoch, this.staker4.address);
+      const staker4QueuedBefore = await this.vault2.vault.withdrawalsOf(claimEpoch, this.staker4.address);
       expect(staker4QueuedBefore).to.be.equal(staker4WithdrawAmount);
 
       // calculate slash amount
-      const slashable = await this.slasher2.slashableStake(
+      const slashable = await this.vault2.slasher.slashableStake(
         this.subnetwork1,
         this.operator1.address,
         epochNCaptureTs,
@@ -1004,18 +1004,18 @@ describe('Symbiotic Tests', function () {
 
       // execute slash
       const hints = await this.slasherHints.slashHints.staticCall(
-        this.slasher2.target,
+        this.vault2.slasher.target,
         this.subnetwork1,
         this.operator1.address,
         epochNCaptureTs,
       );
 
-      await this.slasher2
+      await this.vault2.slasher
         .connect(this.middleware)
         .slash(this.subnetwork1, this.operator1.address, slashAmount, epochNCaptureTs, hints || '0x');
 
       // verify queued withdrawal was slashed
-      const staker4QueuedAfter = await this.vault2.withdrawalsOf(claimEpoch, this.staker4.address);
+      const staker4QueuedAfter = await this.vault2.vault.withdrawalsOf(claimEpoch, this.staker4.address);
       expect(staker4QueuedAfter).to.be.lt(staker4QueuedBefore);
       const queuedSlashed = staker4QueuedBefore - staker4QueuedAfter;
       expect(queuedSlashed).to.be.gt(0n);
@@ -1026,7 +1026,6 @@ describe('Symbiotic Tests', function () {
       // capture END snapshot
       const after = await captureSnapshot.call(this, {
         vaults: [this.vault1, this.vault2],
-        delegators: [this.delegator1, this.delegator2],
         subnetworks: [this.subnetwork1],
         operators: [this.operator1],
       });
@@ -1042,18 +1041,18 @@ describe('Symbiotic Tests', function () {
 
       // delegator sanity check
       const [delegated, limit] = await Promise.all([
-        this.delegator2.stake(this.subnetwork1, this.operator1.address),
-        this.delegator2.networkLimit(this.subnetwork1),
+        this.vault2.delegator.stake(this.subnetwork1, this.operator1.address),
+        this.vault2.delegator.networkLimit(this.subnetwork1),
       ]);
       expect(delegated).to.equal(BigIntMath.min(after.vaults.vault2.activeStake, limit));
 
       // advance to claim epoch
-      await time.increaseTo(Number(await this.vault2.nextEpochStart()));
-      expect(await this.vault2.currentEpoch()).to.equal(epochN + 2n);
+      await time.increaseTo(Number(await this.vault2.vault.nextEpochStart()));
+      expect(await this.vault2.vault.currentEpoch()).to.equal(epochN + 2n);
 
       // staker4 claims reduced amount
       const staker4WstEthBefore = await this.wstETH.balanceOf(this.staker4.address);
-      await this.vault2.connect(this.staker4).claim(this.staker4.address, claimEpoch);
+      await this.vault2.vault.connect(this.staker4).claim(this.staker4.address, claimEpoch);
       const staker4WstEthAfter = await this.wstETH.balanceOf(this.staker4.address);
       expect(staker4WstEthAfter - staker4WstEthBefore).to.equal(staker4QueuedAfter);
 
@@ -1082,7 +1081,7 @@ describe('Symbiotic Tests', function () {
       await time.increase(1000);
 
       // get slashable amount at capture time
-      const slashableBefore = await this.slasher3.slashableStake(
+      const slashableBefore = await this.vault3.slasher.slashableStake(
         this.subnetwork2,
         this.operator1.address,
         captureTimestamp,
@@ -1093,7 +1092,6 @@ describe('Symbiotic Tests', function () {
       // capture START snapshot
       const before = await captureSnapshot.call(this, {
         vaults: [this.vault1, this.vault2, this.vault3],
-        delegators: [this.delegator1, this.delegator2, this.delegator3],
         subnetworks: [this.subnetwork1, this.subnetwork2],
         operators: [this.operator1],
       });
@@ -1105,12 +1103,14 @@ describe('Symbiotic Tests', function () {
 
       // vault 3 has 20K allocated to subnetwork2, reduce it to 100 ETH
       const reducedAllocation = parseEther('100');
-      await this.delegator3.connect(this.delegator3Admin).setNetworkLimit(this.subnetwork2, reducedAllocation);
+      await this.vault3.delegator
+        .connect(this.vault3.delegatorAdmin)
+        .setNetworkLimit(this.subnetwork2, reducedAllocation);
 
       // verify current delegated stake is now reduced
-      const vault3ActiveStakeNow = await this.vault3.activeStake();
+      const vault3ActiveStakeNow = await this.vault3.vault.activeStake();
       const expectedCurrentStake = BigIntMath.min(vault3ActiveStakeNow, reducedAllocation);
-      const stakeAfterReduction = await this.delegator3.stake(this.subnetwork2, this.operator1.address);
+      const stakeAfterReduction = await this.vault3.delegator.stake(this.subnetwork2, this.operator1.address);
       expect(stakeAfterReduction).to.equal(expectedCurrentStake);
 
       // step 3: Slash using the OLD captureTimestamp for amount > current stake but <= old snapshot
@@ -1127,14 +1127,14 @@ describe('Symbiotic Tests', function () {
 
       // get hints for slash
       const hints = await this.slasherHints.slashHints.staticCall(
-        this.slasher3.target,
+        this.vault3.slasher.target,
         this.subnetwork2,
         this.operator1.address,
         captureTimestamp,
       );
 
       // execute slash using old captureTimestamp (should succeed despite exceeding current limit)
-      await this.slasher3
+      await this.vault3.slasher
         .connect(this.middleware)
         .slash(this.subnetwork2, this.operator1.address, slashAmount, captureTimestamp, hints || '0x');
 
@@ -1144,7 +1144,6 @@ describe('Symbiotic Tests', function () {
       // capture END snapshot
       const after = await captureSnapshot.call(this, {
         vaults: [this.vault1, this.vault2, this.vault3],
-        delegators: [this.delegator1, this.delegator2, this.delegator3],
         subnetworks: [this.subnetwork1, this.subnetwork2],
         operators: [this.operator1],
       });
@@ -1211,14 +1210,14 @@ describe('Symbiotic Tests', function () {
       const amountToSlash = parseEther('150');
 
       const [beforeVaultStake, beforeDelegatedStake, beforeNewOpReceiverBalance] = await Promise.all([
-        this.vault1.activeStake(),
-        this.delegator1.stake(this.subnetwork1, this.operator1.address),
+        this.vault1.vault.activeStake(),
+        this.vault1.delegator.stake(this.subnetwork1, this.operator1.address),
         this.wstETH.balanceOf(newOpReceiver),
       ]);
 
       // slash
       const captureTimestamp = await time.latest();
-      await this.slasher1
+      await this.vault1.slasher
         .connect(this.middleware)
         .slash(this.subnetwork1, ADVISORY_BOARD_MULTISIG, amountToSlash, captureTimestamp, '0x');
 
@@ -1226,8 +1225,8 @@ describe('Symbiotic Tests', function () {
       await this.burnerRouter.triggerTransfer(newOpReceiver);
 
       const [afterVaultStake, afterDelegatedStake, afterNewOpReceiverBalance] = await Promise.all([
-        this.vault1.activeStake(),
-        this.delegator1.stake(this.subnetwork1, this.operator1.address),
+        this.vault1.vault.activeStake(),
+        this.vault1.delegator.stake(this.subnetwork1, this.operator1.address),
         this.wstETH.balanceOf(newOpReceiver),
       ]);
 
@@ -1246,8 +1245,8 @@ describe('Symbiotic Tests', function () {
       expect(await this.middlewareService.middleware(this.network.address)).to.equal(this.newMiddleware.address);
 
       const [beforeVaultStake, beforeDelegatedStake, beforeReceiverBalance] = await Promise.all([
-        this.vault1.activeStake(),
-        this.delegator1.stake(this.subnetwork1, this.operator1.address),
+        this.vault1.vault.activeStake(),
+        this.vault1.delegator.stake(this.subnetwork1, this.operator1.address),
         this.wstETH.balanceOf(this.newMiddleware),
       ]);
 
@@ -1255,7 +1254,7 @@ describe('Symbiotic Tests', function () {
       const captureTimestamp = await time.latest();
 
       // slash via new middleware slasher
-      await this.slasher1
+      await this.vault1.slasher
         .connect(this.newMiddleware)
         .slash(this.subnetwork1, ADVISORY_BOARD_MULTISIG, amountToSlash, captureTimestamp, '0x');
 
@@ -1263,8 +1262,8 @@ describe('Symbiotic Tests', function () {
       await this.burnerRouter.triggerTransfer(this.newMiddleware.address);
 
       const [afterVaultStake, afterDelegatedStake, afterReceiverBalance] = await Promise.all([
-        this.vault1.activeStake(),
-        this.delegator1.stake(this.subnetwork1, this.operator1.address),
+        this.vault1.vault.activeStake(),
+        this.vault1.delegator.stake(this.subnetwork1, this.operator1.address),
         this.wstETH.balanceOf(this.newMiddleware),
       ]);
 

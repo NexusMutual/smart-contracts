@@ -40,7 +40,8 @@ describe('Cover - Cover Ri', function () {
     this.coverProducts = await ethers.getContractAt(abis.CoverProducts, addresses.CoverProducts);
     this.pool = await ethers.getContractAt(abis.Pool, addresses.Pool);
     this.safeTracker = await ethers.getContractAt(abis.SafeTracker, addresses.SafeTracker);
-    // this.assessment = await ethers.getContractAt(abis.Assessment, addresses.Assessment); // instances created later
+    this.assessments = await ethers.getContractAt(abis.Assessments, addresses.Assessments);
+    this.claims = await ethers.getContractAt(abis.Claims, addresses.Claims);
     this.stakingNFT = await ethers.getContractAt(abis.StakingNFT, addresses.StakingNFT);
     this.stakingProducts = await ethers.getContractAt(abis.StakingProducts, addresses.StakingProducts);
     this.swapOperator = await ethers.getContractAt(abis.SwapOperator, addresses.SwapOperator);
@@ -103,9 +104,12 @@ describe('Cover - Cover Ri', function () {
         data: this.registry.interface.encodeFunctionData('upgradeContract', [ContractIndexes.C_COVER, coverAddress]),
       },
     ];
-    console.log(1);
 
     await executeGovernorProposal(this.governor, this.abMembers, transactions);
+
+    const coverProxy = await ethers.getContractAt('UpgradeableProxy', addresses.Cover);
+    expect(await coverProxy.implementation()).to.be.equal(coverAddress);
+    this.cover = await ethers.getContractAt('Cover', addresses.Cover);
   });
 
   it('Compares storage of upgrade Cover contract', async function () {

@@ -2,7 +2,7 @@
 
 ## Github PR
 
-* [feat: Cover ](https://github.com/NexusMutual/smart-contracts/pull/1504)
+* [feat: add data and deadline to buyCoverWithRi signature](https://github.com/NexusMutual/smart-contracts/pull/1504)
 
 ## Contracts to be upgraded
 

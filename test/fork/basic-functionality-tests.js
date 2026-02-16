@@ -17,15 +17,13 @@ const {
 
 const { deployContract, formatEther, ZeroAddress, MaxUint256, parseEther, parseUnits } = ethers;
 const { ContractIndexes, AssessmentOutcome, AssessmentStatus } = nexus.constants;
-const { signRiQuote } = nexus.signing;
+const { signRiQuote, encodeRiData } = nexus.signing;
 
 const CLAIM_DEPOSIT = parseEther('0.05');
 
 // eslint-disable-next-line no-unused-vars
 let custodyProductId, custodyCoverId, protocolProductId, protocolCoverId, riCoverId;
 let poolId, trancheId, tokenId;
-
-const defaultAbiCoder = ethers.AbiCoder.defaultAbiCoder();
 
 describe('basic functionality tests', function () {
   before(async function () {
@@ -702,11 +700,7 @@ describe('basic functionality tests', function () {
     const deadline = Math.floor(Date.now() / 1000) + 48 * 3600;
     const data = [{ amount: amount / 2n, vaultId: 1, subnetworkId: 1, providerId: 1 }];
     const dataFormat = 1;
-
-    const dataEncoded = defaultAbiCoder.encode(
-      ['tuple(uint256 amount,uint256 vaultId, uint256 subnetworkId,uint256 providerId)[]'],
-      [data],
-    );
+    const dataEncoded = encodeRiData(data, dataFormat);
 
     const riSigningData = {
       coverId: 0,

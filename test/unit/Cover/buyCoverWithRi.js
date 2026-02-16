@@ -4,8 +4,8 @@ const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers'
 
 const { setup } = require('./setup');
 
-const { signRiQuote } = nexus.signing;
-const { parseEther, ZeroAddress, AbiCoder } = ethers;
+const { signRiQuote, encodeRiData } = nexus.signing;
+const { parseEther, ZeroAddress } = ethers;
 
 const coverFixture = {
   productId: 0n,
@@ -27,8 +27,6 @@ const riCoverFixture = {
 };
 
 const poolAllocationRequest = [{ poolId: 1, coverAmountInAsset: coverFixture.amount }];
-
-const defaultAbiCoder = AbiCoder.defaultAbiCoder();
 
 describe('buyCoverWithRi', function () {
   it('should purchase new cover with ri', async function () {
@@ -61,11 +59,7 @@ describe('buyCoverWithRi', function () {
 
     const data = [{ amount: riAmount, vaultId: 1, subnetworkId: 1, providerId: riProviderId }];
     const dataFormat = 1;
-
-    const dataEncoded = defaultAbiCoder.encode(
-      ['tuple(uint256 amount,uint256 vaultId, uint256 subnetworkId,uint256 providerId)[]'],
-      [data],
-    );
+    const dataEncoded = encodeRiData(data, dataFormat);
 
     const riQuote = {
       coverId: 0,
@@ -148,10 +142,7 @@ describe('buyCoverWithRi', function () {
     const deadline = timestamp + 30 * 60;
     const data = [{ amount: riAmount, vaultId: 1, subnetworkId: 1, providerId: riProviderId }];
     const dataFormat = 1;
-    const dataEncoded = defaultAbiCoder.encode(
-      ['tuple(uint256 amount,uint256 vaultId, uint256 subnetworkId,uint256 providerId)[]'],
-      [data],
-    );
+    const dataEncoded = encodeRiData(data, dataFormat);
 
     const riQuote = {
       coverId: 0,
@@ -213,10 +204,7 @@ describe('buyCoverWithRi', function () {
     const deadline = timestamp + 30 * 60;
     const data = [{ amount: 0, vaultId: 1, subnetworkId: 1, providerId: riProviderId }];
     const dataFormat = 1;
-    const dataEncoded = defaultAbiCoder.encode(
-      ['tuple(uint256 amount,uint256 vaultId, uint256 subnetworkId,uint256 providerId)[]'],
-      [data],
-    );
+    const dataEncoded = encodeRiData(data, dataFormat);
 
     const riQuote = {
       coverId: 0,
@@ -276,10 +264,7 @@ describe('buyCoverWithRi', function () {
     const deadline = timestamp + 30 * 60;
     const data = [{ amount: riAmount, vaultId: 1, subnetworkId: 1, providerId: riProviderId }];
     const dataFormat = 1;
-    const dataEncoded = defaultAbiCoder.encode(
-      ['tuple(uint256 amount,uint256 vaultId, uint256 subnetworkId,uint256 providerId)[]'],
-      [data],
-    );
+    const dataEncoded = encodeRiData(data, dataFormat);
 
     const riQuote = {
       coverId: 0,

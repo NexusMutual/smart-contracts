@@ -70,6 +70,23 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
   // smallest unit we can allocate is 1e18 / 100 = 1e16 = 0.01 NXM
   uint public constant NXM_PER_ALLOCATION_UNIT = ONE_NXM / ALLOCATION_UNITS_PER_NXM;
 
+  bytes32 private constant BUY_COVER_WITH_RI_TYPEHASH = keccak256(
+    abi.encodePacked(
+      "RiQuote(",
+      "uint256 coverId,",
+      "uint24 productId,",
+      "uint256 providerId,",
+      "uint256 amount,",
+      "uint256 premium,",
+      "uint32 period,",
+      "uint8 coverAsset,",
+      "bytes data,",
+      "uint8 dataFormat,",
+      "uint32 deadline,",
+      "uint256 nonce)"
+    )
+  );
+
   IPool public immutable pool;
   ITokenController public immutable tokenController;
   ICoverProducts public immutable coverProducts;
@@ -165,6 +182,8 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
     RiRequest memory riRequest
   ) external payable onlyMember returns (uint coverId) {
 
+    require(riRequest.deadline > block.timestamp, SignatureExpired());
+
     if (params.coverId != 0) {
       require(coverNFT.isApprovedOrOwner(msg.sender, params.coverId), OnlyOwnerOrApproved());
     } else {
@@ -179,19 +198,7 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
     require(riPremiumDestination != address(0), InvalidRiConfig());
 
     bytes memory message = abi.encode(
-      keccak256(
-        abi.encodePacked(
-          "RiQuote(",
-          "uint256 coverId,",
-          "uint24 productId,",
-          "uint256 providerId,",
-          "uint256 amount,",
-          "uint256 premium,",
-          "uint32 period,",
-          "uint8 coverAsset,",
-          "uint256 nonce)"
-        )
-      ),
+      BUY_COVER_WITH_RI_TYPEHASH,
       params.coverId,
       params.productId,
       riRequest.providerId,
@@ -199,6 +206,9 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
       riRequest.premium,
       params.period,
       params.coverAsset,
+      keccak256(riRequest.data),
+      riRequest.dataFormat,
+      riRequest.deadline,
       nonce
     );
 
@@ -216,6 +226,7 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
       registry.getMemberId(msg.sender),
       params.productId
     );
+    emit CoverRiAllocated(coverId, riRequest.premium, params.paymentAsset, riRequest.data, riRequest.dataFormat);
 
     return coverId;
   }
@@ -680,6 +691,10 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
   function getLatestEditCoverData(uint coverId) external override view returns (CoverData memory) {
     CoverReference memory coverReference = getCoverReference(coverId);
     return _coverData[coverReference.latestCoverId];
+  }
+
+  function getRiProviderConfig(uint providerId) external override view returns (RiConfig memory) {
+    return _riProviderConfigs[providerId];
   }
 
   /* ========== COVER ASSETS HELPERS ========== */

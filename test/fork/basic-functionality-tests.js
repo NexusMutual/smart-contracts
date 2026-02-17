@@ -17,11 +17,12 @@ const {
 
 const { deployContract, formatEther, ZeroAddress, MaxUint256, parseEther, parseUnits } = ethers;
 const { ContractIndexes, AssessmentOutcome, AssessmentStatus } = nexus.constants;
+const { signRiQuote, encodeRiData } = nexus.signing;
 
 const CLAIM_DEPOSIT = parseEther('0.05');
 
 // eslint-disable-next-line no-unused-vars
-let custodyProductId, custodyCoverId, protocolProductId, protocolCoverId;
+let custodyProductId, custodyCoverId, protocolProductId, protocolCoverId, riCoverId;
 let poolId, trancheId, tokenId;
 
 describe('basic functionality tests', function () {
@@ -97,6 +98,36 @@ describe('basic functionality tests', function () {
     expect(currentKycAuth).to.be.equal(this.kycAuthSigner.address);
   });
 
+  it('switch ri signer', async function () {
+    this.riSigner = ethers.Wallet.createRandom().connect(ethers.provider);
+
+    const txs = [
+      {
+        target: this.cover.target,
+        data: await this.cover.interface.encodeFunctionData('setRiSigner', [this.riSigner.address]),
+        value: 0,
+      },
+    ];
+    await executeGovernorProposal(this.governor, this.abMembers, txs);
+
+    const currentRiSigner = await this.cover.riSigner();
+    expect(currentRiSigner).to.be.equal(this.riSigner.address);
+  });
+
+  it('add ri config', async function () {
+    this.riPremiumDst = ethers.Wallet.createRandom().connect(ethers.provider);
+
+    const txs = [
+      {
+        target: this.cover.target,
+        data: await this.cover.interface.encodeFunctionData('setRiConfig', [1, this.riPremiumDst.address]),
+        value: 0,
+      },
+    ];
+
+    await executeGovernorProposal(this.governor, this.abMembers, txs);
+  });
+
   it('Add new members', async function () {
     const JOINING_FEE = ethers.parseEther('0.002');
     const { chainId } = await ethers.provider.getNetwork();
@@ -112,7 +143,7 @@ describe('basic functionality tests', function () {
     const [member] = this.members;
     const nxmIn = parseEther('1');
     const minEthOut = parseEther('0.022');
-    const maxEthOut = parseEther('0.024');
+    const maxEthOut = parseEther('0.025');
 
     await this.nxm.connect(member).approve(this.tokenController, nxmIn);
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -595,6 +626,123 @@ describe('basic functionality tests', function () {
     const requestedAmount = parseUnits('1000', 6);
 
     await this.claims.connect(coverBuyer).submitClaim(protocolCoverId, requestedAmount, ipfsMetaData, {
+      value: CLAIM_DEPOSIT,
+      gasPrice: 0,
+    });
+
+    const claimsCountAfter = await this.claims.getClaimsCount();
+
+    expect(claimsCountAfter).to.equal(claimsCountBefore + 1n);
+
+    const ipfsHashFor = ethers.solidityPackedKeccak256(['string'], ['happy-path-accept']);
+    const ipfsHashAgainst = ethers.solidityPackedKeccak256(['string'], ['happy-path-deny']);
+
+    await this.assessments.connect(this.assessors[0]).castVote(claimId, true, ipfsHashFor); // accept
+    await this.assessments.connect(this.assessors[1]).castVote(claimId, true, ipfsHashFor); // accept
+    await this.assessments.connect(this.assessors[2]).castVote(claimId, true, ipfsHashFor); // accept
+    await this.assessments.connect(this.assessors[3]).castVote(claimId, false, ipfsHashAgainst); // deny
+
+    // advance time past voting and cooldown periods
+    const assessment = await this.assessments.getAssessment(claimId);
+    const cooldownEndTime = assessment.votingEnd + assessment.cooldownPeriod + 24n * 60n * 60n;
+    await time.increaseTo(cooldownEndTime);
+
+    // claim ACCEPTED
+    const { status, outcome } = await this.claims.getClaimDetails(claimId);
+    expect(status).to.equal(AssessmentStatus.Finalized);
+    expect(outcome).to.equal(AssessmentOutcome.Accepted);
+
+    const claimDepositAmount = await this.claims.CLAIM_DEPOSIT_IN_ETH();
+    const claimantEthBalanceBefore = await ethers.provider.getBalance(coverBuyer.address);
+    const claimantUsdcBalanceBefore = await this.usdc.balanceOf(coverBuyer.address);
+
+    // redeem claim payout
+    const redeemTx = this.claims.connect(coverBuyer).redeemClaimPayout(claimId, { gasPrice: 0 });
+    await expect(redeemTx).to.emit(this.claims, 'ClaimPayoutRedeemed');
+
+    // Verify balances after redemption
+    const claimantEthBalanceAfter = await ethers.provider.getBalance(coverBuyer.address);
+    const claimantUsdcBalanceAfter = await this.usdc.balanceOf(coverBuyer.address);
+
+    expect(claimantEthBalanceAfter).to.be.equal(claimantEthBalanceBefore + claimDepositAmount);
+    expect(claimantUsdcBalanceAfter).to.be.equal(claimantUsdcBalanceBefore + requestedAmount);
+  });
+
+  it('Buy cover with Ri', async function () {
+    const coverBuyer = this.members[1];
+    const coverBuyerAddress = coverBuyer.address;
+
+    const coverAsset = await this.pool.getAssetId(Addresses.USDC_ADDRESS);
+    const amount = parseUnits('1000000', 6);
+    const commissionRatio = '500'; // 5%
+
+    const coverCountBefore = await this.cover.getCoverDataCount();
+
+    await this.usdc.connect(coverBuyer).approve(this.cover.target, amount);
+
+    const maxPremiumInAsset = (amount * 260n) / 10000n;
+
+    const coverBuyParams = {
+      coverId: 0,
+      owner: coverBuyerAddress,
+      productId: protocolProductId,
+      coverAsset,
+      amount: amount / 2n,
+      period: 3600 * 24 * 30, // 30 days
+      maxPremiumInAsset: maxPremiumInAsset / 2n,
+      paymentAsset: coverAsset,
+      payWithNXM: false,
+      commissionRatio,
+      commissionDestination: coverBuyerAddress,
+      ipfsData: '',
+    };
+
+    const deadline = Math.floor(Date.now() / 1000) + 48 * 3600;
+    const data = [{ amount: amount / 2n, vaultId: 1, subnetworkId: 1, providerId: 1 }];
+    const dataFormat = 1;
+    const dataEncoded = encodeRiData(data, dataFormat);
+
+    const riSigningData = {
+      coverId: 0,
+      productId: protocolProductId,
+      providerId: 1,
+      amount: amount / 2n,
+      premium: maxPremiumInAsset / 2n,
+      period: 3600 * 24 * 30, // 30 days
+      coverAsset,
+      nonce: 0,
+      data: dataEncoded,
+      dataFormat,
+      deadline,
+    };
+
+    await this.cover.connect(coverBuyer).buyCoverWithRi(coverBuyParams, [{ poolId, coverAmountInAsset: amount / 2n }], {
+      providerId: 1,
+      amount: amount / 2n,
+      premium: maxPremiumInAsset / 2n,
+      deadline,
+      data: dataEncoded,
+      dataFormat,
+      signature: await signRiQuote(this.riSigner, this.cover, riSigningData),
+    });
+
+    console.log('Bought..');
+    const coverCountAfter = await this.cover.getCoverDataCount();
+    riCoverId = coverCountAfter;
+
+    expect(coverCountAfter).to.be.equal(coverCountBefore + 1n);
+  });
+
+  it('Submit claim for cover with Ri and process the assessment', async function () {
+    const coverBuyer = this.members[1];
+    const claimId = await this.claims.getClaimsCount();
+    const claimsCountBefore = claimId;
+
+    // submit claim
+    const ipfsMetaData = ethers.solidityPackedKeccak256(['string'], ['Happy path ETH claim proof']);
+    const requestedAmount = parseUnits('500000', 6);
+
+    await this.claims.connect(coverBuyer).submitClaim(riCoverId, requestedAmount, ipfsMetaData, {
       value: CLAIM_DEPOSIT,
       gasPrice: 0,
     });

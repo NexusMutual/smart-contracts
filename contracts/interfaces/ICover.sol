@@ -69,6 +69,9 @@ struct RiRequest {
   uint amount;
   uint premium;
   bytes signature;
+  bytes data;
+  uint8 dataFormat;
+  uint32 deadline;
 }
 
 interface ICover is IStakingPoolBeacon {
@@ -112,6 +115,8 @@ interface ICover is IStakingPoolBeacon {
   function getPoolAllocations(uint coverId) external view returns (PoolAllocation[] memory);
 
   function getLatestEditCoverData(uint coverId) external view returns (CoverData memory);
+
+  function getRiProviderConfig(uint providerId) external view returns (RiConfig memory);
 
   function recalculateActiveCoverInAsset(uint coverAsset) external;
 
@@ -167,6 +172,7 @@ interface ICover is IStakingPoolBeacon {
     uint indexed buyerMemberId,
     uint productId
   );
+  event CoverRiAllocated(uint indexed coverId, uint premium, uint paymentAsset, bytes data, uint8 dataFormatVersion);
 
   // Auth
   error OnlyOwnerOrApproved();
@@ -204,6 +210,7 @@ interface ICover is IStakingPoolBeacon {
 
   // Ri
   error InvalidSignature();
+  error SignatureExpired();
   error WrongCoverEditEntrypoint();
   error RiAmountIsZero();
   error InvalidRiConfig();

@@ -94,7 +94,10 @@ const DELEGATOR_ABI = [
   'function maxNetworkLimit(bytes32 subnetwork) external view returns (uint256)',
 ];
 
-const OPTIN_ABI = ['function optIn(address where) external'];
+const OPTIN_ABI = [
+  'function optIn(address where) external',
+  'function isOptedIn(address who,address where) external view returns (bool)',
+];
 
 const NETWORK_MIDDLEWARE_ABI = [
   'function setMiddleware(address middleware) external',
@@ -572,6 +575,15 @@ describe('Symbiotic Integration', function () {
       this.operatorVaultOptIn.connect(this.operator1).optIn(this.vault3.vault.target),
       this.operatorVaultOptIn.connect(this.operator1).optIn(this.vault4.vault.target),
     ]);
+
+    expect(await this.operatorVaultOptIn.isOptedIn(this.operator1.address, this.vault1Addr)).to.equal(true);
+    expect(await this.operatorVaultOptIn.isOptedIn(this.operator1.address, this.vault2Addr)).to.equal(true);
+    expect(await this.operatorVaultOptIn.isOptedIn(this.operator1.address, this.vault3Addr)).to.equal(true);
+    expect(await this.operatorVaultOptIn.isOptedIn(this.operator1.address, this.vault4Addr)).to.equal(true);
+    expect(
+      await this.operatorNetworkOptIn.isOptedIn(this.operator1.address, SAFE_MULTISIG_NETWORK_OPERATOR_MIDDLEWARE),
+    ).to.equal(true);
+
     console.log('Operator 1 opted in vault 1, vault 2, vault 3 and vault 4');
   });
 

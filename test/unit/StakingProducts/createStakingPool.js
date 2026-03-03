@@ -8,7 +8,7 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
 const product = {
-  productId: 200,
+  productId: 201,
   weight: 100,
   initialPrice: '500',
   targetPrice: '500',
@@ -35,7 +35,7 @@ async function createStakingPoolSetup() {
     useFixedPrice: false,
   };
 
-  const productId = initialProducts.length;
+  const productId = product.productId;
   const productParam = { ...coverProductTemplate, initialPriceRatio: coverProductTemplate.initialPriceRatio };
 
   await coverProducts.setProduct(productParam, productId);
@@ -173,8 +173,7 @@ describe('createStakingPool', function () {
     }
   });
 
-  // TODO: currently this test is messed up
-  it.skip('should fail to create a new pool called from pooled staking - Not a member', async function () {
+  it('should fail to create a new pool called from pooled staking - Not a member', async function () {
     const fixture = await loadFixture(createStakingPoolSetup);
     const { coverProducts, stakingProducts } = fixture;
     const { initialPoolFee, maxPoolFee, ipfsDescriptionHash } = newPoolFixture;
@@ -204,7 +203,7 @@ describe('createStakingPool', function () {
         ipfsDescriptionHash,
       ),
     )
-      .to.be.revertedWithCustomError(stakingProducts, 'PoolNotAllowedForThisProduct')
+      .to.be.revertedWithCustomError(coverProducts, 'PoolNotAllowedForThisProduct')
       .withArgs(0);
   });
 

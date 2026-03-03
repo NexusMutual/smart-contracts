@@ -52,8 +52,26 @@ describe('recalculateEffectiveWeight', function () {
     }
   });
 
-  // TODO: implement once https://github.com/NexusMutual/smart-contracts/issues/842 is sorted out
-  it.skip('effective weight should be > target when allocations are greater than capacity', async function () {});
+  it('effective weight should be > target when allocations are greater than capacity', async function () {
+    const fixture = await loadFixture(setup);
+    const { stakingProducts } = fixture;
+    const [staker] = fixture.accounts.members;
+    const productId = 0n;
+    const { timestamp: start } = await ethers.provider.getBlock('latest');
+
+    await setStakedProducts.call(fixture, { productIds: [productId], targetWeight: 10n });
+    await depositTo.call(fixture, { staker, amount: parseEther('100') });
+    await allocateCapacity.call(fixture, { amount: parseEther('20'), productId });
+    await burnStake.call(fixture, { start, amount: parseEther('10') });
+
+    await stakingProducts.recalculateEffectiveWeights(fixture.poolId, [productId]);
+
+    const stakedProduct = await stakingProducts.getProduct(fixture.poolId, productId);
+    expect(stakedProduct.lastEffectiveWeight).to.be.greaterThan(stakedProduct.targetWeight);
+    expect(await stakingProducts.getTotalEffectiveWeight(fixture.poolId)).to.be.greaterThan(
+      await stakingProducts.getTotalTargetWeight(fixture.poolId),
+    );
+  });
 
   it('should calculate effective weight properly when decreasing target weight', async function () {
     const fixture = await loadFixture(setup);

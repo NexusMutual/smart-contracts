@@ -46,14 +46,10 @@ describe('cancelOrder', function () {
       ...orderDetailsFixture,
       owner: limitOrderOwner.address,
     };
-    const { signature, digest } = await signLimitOrder(
-      limitOrderOwner,
-      limitOrders.target,
-      {
-        orderDetails,
-        executionDetails,
-      },
-    );
+    const { signature, digest } = await signLimitOrder(limitOrderOwner, limitOrders.target, {
+      orderDetails,
+      executionDetails,
+    });
 
     const tx = await limitOrders.connect(limitOrderOwner).cancelOrder(
       {
@@ -88,14 +84,10 @@ describe('cancelOrder', function () {
       owner: limitOrderOwner.address,
     };
 
-    const { signature } = await signLimitOrder(
-      limitOrderOwner,
-      limitOrders.target,
-      {
-        orderDetails,
-        executionDetails,
-      },
-    );
+    const { signature } = await signLimitOrder(limitOrderOwner, limitOrders.target, {
+      orderDetails,
+      executionDetails,
+    });
 
     const tx = limitOrders.connect(notOwner).cancelOrder(
       {
@@ -129,14 +121,10 @@ describe('cancelOrder', function () {
       owner: limitOrderOwner.address,
     };
 
-    const { signature } = await signLimitOrder(
-      notOwner,
-      limitOrders.target,
-      {
-        orderDetails,
-        executionDetails,
-      },
-    );
+    const { signature } = await signLimitOrder(notOwner, limitOrders.target, {
+      orderDetails,
+      executionDetails,
+    });
 
     const tx = limitOrders.connect(notOwner).cancelOrder(
       {
@@ -168,14 +156,10 @@ describe('cancelOrder', function () {
       ...orderDetailsFixture,
       owner: limitOrderOwner.address,
     };
-    const { signature } = await signLimitOrder(
-      limitOrderOwner,
-      limitOrders.target,
-      {
-        orderDetails,
-        executionDetails,
-      },
-    );
+    const { signature } = await signLimitOrder(limitOrderOwner, limitOrders.target, {
+      orderDetails,
+      executionDetails,
+    });
 
     await limitOrders.connect(limitOrderOwner).cancelOrder(
       {

@@ -36,14 +36,10 @@ describe('getOrderId', function () {
       commissionRatio: 0,
       commissionDestination: ZeroAddress,
     };
-    const { digest } = await signLimitOrder(
-      limitOrderOwner,
-      limitOrders.target,
-      {
-        orderDetails,
-        executionDetails,
-      },
-    );
+    const { digest } = await signLimitOrder(limitOrderOwner, limitOrders.target, {
+      orderDetails,
+      executionDetails,
+    });
 
     const orderId = await limitOrders.getOrderId(
       {

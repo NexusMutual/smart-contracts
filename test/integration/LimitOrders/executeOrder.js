@@ -6,50 +6,8 @@ const setup = require('../setup');
 
 const { parseEther, ZeroAddress, MaxUint256 } = ethers;
 const { calculatePremium, calculateRewards } = nexus.protocol;
+const { signLimitOrder } = nexus.signing;
 const { PoolAsset } = nexus.constants;
-
-async function signLimitOrder(contractAddress, params, signer) {
-  const { chainId } = await ethers.provider.getNetwork();
-
-  const domain = {
-    name: 'NexusMutualLimitOrders',
-    version: '1.0.0',
-    chainId,
-    verifyingContract: contractAddress,
-  };
-
-  const types = {
-    ExecuteOrder: [
-      { name: 'orderDetails', type: 'OrderDetails' },
-      { name: 'executionDetails', type: 'ExecutionDetails' },
-    ],
-    OrderDetails: [
-      { name: 'coverId', type: 'uint256' },
-      { name: 'productId', type: 'uint24' },
-      { name: 'amount', type: 'uint96' },
-      { name: 'period', type: 'uint32' },
-      { name: 'paymentAsset', type: 'uint8' },
-      { name: 'coverAsset', type: 'uint8' },
-      { name: 'owner', type: 'address' },
-      { name: 'ipfsData', type: 'string' },
-      { name: 'commissionRatio', type: 'uint16' },
-      { name: 'commissionDestination', type: 'address' },
-    ],
-    ExecutionDetails: [
-      { name: 'buyer', type: 'address' },
-      { name: 'notExecutableBefore', type: 'uint256' },
-      { name: 'executableUntil', type: 'uint256' },
-      { name: 'renewableUntil', type: 'uint256' },
-      { name: 'renewablePeriodBeforeExpiration', type: 'uint256' },
-      { name: 'maxPremiumInAsset', type: 'uint256' },
-    ],
-  };
-
-  const digest = ethers.TypedDataEncoder.hash(domain, types, params);
-  const signature = await signer.signTypedData(domain, types, params);
-
-  return { digest, signature };
-}
 
 const stakedProductParamTemplate = {
   productId: 1,
@@ -135,11 +93,7 @@ describe('LimitOrders - executeOrder', function () {
       owner: coverBuyer.address,
     };
 
-    const { signature, digest } = await signLimitOrder(
-      limitOrders.target,
-      { orderDetails, executionDetails },
-      coverBuyer,
-    );
+    const { signature, digest } = await signLimitOrder(coverBuyer, limitOrders.target, { orderDetails, executionDetails });
 
     const tx = await limitOrders
       .connect(orderSettler)
@@ -232,11 +186,7 @@ describe('LimitOrders - executeOrder', function () {
       feeDestination: orderSettler.address,
     };
 
-    const { signature, digest } = await signLimitOrder(
-      limitOrders.target,
-      { orderDetails, executionDetails },
-      coverBuyer,
-    );
+    const { signature, digest } = await signLimitOrder(coverBuyer, limitOrders.target, { orderDetails, executionDetails });
 
     // execute order
     const tx = await limitOrders
@@ -320,11 +270,7 @@ describe('LimitOrders - executeOrder', function () {
       owner: coverBuyer.address,
     };
 
-    const { signature, digest } = await signLimitOrder(
-      limitOrders.target,
-      { orderDetails, executionDetails },
-      coverBuyer,
-    );
+    const { signature, digest } = await signLimitOrder(coverBuyer, limitOrders.target, { orderDetails, executionDetails });
 
     // execute order
     const tx = await limitOrders

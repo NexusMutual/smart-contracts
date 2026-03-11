@@ -2,9 +2,8 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { ZeroAddress, parseEther } = ethers;
 
-const { daysToSeconds } = require('../utils').helpers;
-const { increaseTime } = require('../utils').evm;
-const { getTranches } = require('./helpers');
+const { increaseTime } = require('../../utils/evm');
+const { getTranches, daysToSeconds } = require('./helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
@@ -161,7 +160,7 @@ describe('setPoolFee', function () {
     expect(rewardsSharesSupplyAfter).to.equal(expectedRewardsShareSupplyAfter);
   });
 
-  it('emits and PoolFeeChanged', async function () {
+  it('emits a PoolFeeChanged event', async function () {
     const fixture = await loadFixture(setPoolFeeSetup);
     const { stakingPool } = fixture;
     const manager = fixture.accounts.defaultSender;

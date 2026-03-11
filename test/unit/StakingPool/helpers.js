@@ -1,101 +1,13 @@
-const { ethers } = require('hardhat');
+const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
 
-const { setNextBlockTime, mineNextBlock } = require('../utils').evm;
-const { daysToSeconds } = require('../utils').helpers;
-const { divCeil } = require('../utils').bnMath;
+const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
+const { BigIntMath } = nexus.helpers;
+const { divCeil } = BigIntMath;
 
 const { parseEther } = ethers;
 
-/* eslint-disable no-extend-native */
-if (!ethers.BigNumber) {
-  Object.defineProperty(BigInt.prototype, 'add', {
-    value: function (v) {
-      return this + BigInt(v);
-    },
-  });
-  Object.defineProperty(BigInt.prototype, 'sub', {
-    value: function (v) {
-      return this - BigInt(v);
-    },
-  });
-  Object.defineProperty(BigInt.prototype, 'mul', {
-    value: function (v) {
-      return this * BigInt(v);
-    },
-  });
-  Object.defineProperty(BigInt.prototype, 'div', {
-    value: function (v) {
-      return this / BigInt(v);
-    },
-  });
-  Object.defineProperty(BigInt.prototype, 'mod', {
-    value: function (v) {
-      return this % BigInt(v);
-    },
-  });
-  Object.defineProperty(BigInt.prototype, 'pow', {
-    value: function (v) {
-      return this ** BigInt(v);
-    },
-  });
-  Object.defineProperty(BigInt.prototype, 'and', {
-    value: function (v) {
-      return this & BigInt(v);
-    },
-  });
-  Object.defineProperty(BigInt.prototype, 'or', {
-    value: function (v) {
-      return this | BigInt(v);
-    },
-  });
-  Object.defineProperty(BigInt.prototype, 'xor', {
-    value: function (v) {
-      return this ^ BigInt(v);
-    },
-  });
-  Object.defineProperty(BigInt.prototype, 'shl', {
-    value: function (v) {
-      return this << BigInt(v);
-    },
-  });
-  Object.defineProperty(BigInt.prototype, 'shr', {
-    value: function (v) {
-      return this >> BigInt(v);
-    },
-  });
-  Object.defineProperty(BigInt.prototype, 'isZero', {
-    value: function () {
-      return this === 0n;
-    },
-  });
-  Object.defineProperty(BigInt.prototype, 'gte', {
-    value: function (v) {
-      return this >= BigInt(v);
-    },
-  });
-  Object.defineProperty(BigInt.prototype, 'lte', {
-    value: function (v) {
-      return this <= BigInt(v);
-    },
-  });
-  Object.defineProperty(BigInt.prototype, 'gt', {
-    value: function (v) {
-      return this > BigInt(v);
-    },
-  });
-  Object.defineProperty(BigInt.prototype, 'lt', {
-    value: function (v) {
-      return this < BigInt(v);
-    },
-  });
-  Object.defineProperty(BigInt.prototype, 'eq', {
-    value: function (v) {
-      return this === BigInt(v);
-    },
-  });
-}
-/* eslint-enable no-extend-native */
+const daysToSeconds = days => days * 24 * 60 * 60;
 
 const TRANCHE_DURATION = daysToSeconds(91);
 const BUCKET_DURATION = daysToSeconds(28);
@@ -157,7 +69,7 @@ function roundUpToNearestAllocationUnit(amount, nxmPerAllocationUnit) {
 }
 
 function calculateFirstTrancheId(timestamp, period, gracePeriod) {
-  return Math.floor((timestamp + period + gracePeriod) / (91 * 24 * 3600));
+  return Math.floor((timestamp + period + gracePeriod) / TRANCHE_DURATION);
 }
 
 async function getCurrentTrancheId() {
@@ -249,6 +161,7 @@ module.exports = {
   calculateStakeAndRewardsWithdrawAmounts,
   moveTimeToNextBucket,
   moveTimeToNextTranche,
+  daysToSeconds,
   TRANCHE_DURATION,
   BUCKET_DURATION,
   MAX_ACTIVE_TRANCHES,

@@ -2,9 +2,10 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
-const { DIVIDE_BY_ZERO } = require('../utils').errors;
 
 const { MaxUint256, parseEther } = ethers;
+
+const DIVIDE_BY_ZERO = 0x12;
 
 describe('Multicall unit tests', function () {
   it('should bubble up empty custom error signatures', async function () {
@@ -63,7 +64,7 @@ describe('Multicall unit tests', function () {
     const { multicall } = fixture;
     for (let size = 0; size <= 2048; size += 16) {
       const reason = 'A'.repeat(size);
-      await multicall.returndataSizeTest(reason);
+      await expect(multicall.returndataSizeTest(reason)).to.not.be.reverted;
     }
   });
 

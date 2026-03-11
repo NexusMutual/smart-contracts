@@ -1,5 +1,5 @@
 const { expect } = require('chai');
-const { ethers } = require('hardhat');
+const { ethers, nexus } = require('hardhat');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const {
@@ -13,12 +13,13 @@ const {
   BUCKET_DURATION,
   moveTimeToNextBucket,
   moveTimeToNextTranche,
+  daysToSeconds,
 } = require('./helpers');
 const setup = require('./setup');
 
-const { divCeil } = require('../utils').bnMath;
-const { increaseTime } = require('../utils').evm;
-const { daysToSeconds } = require('../utils').helpers;
+const { BigIntMath } = nexus.helpers;
+const { divCeil } = BigIntMath;
+const { increaseTime } = require('../../utils/evm');
 
 const { ZeroAddress } = ethers;
 const { parseEther } = ethers;
@@ -210,7 +211,7 @@ describe('requestAllocation', function () {
       GLOBAL_CAPACITY_RATIO,
       coverProductTemplate.capacityReductionRatio,
     );
-    const expectedPremium = buyCoverParamsTemplate.amount.mul(initialPrice).div(INITIAL_PRICE_DENOMINATOR);
+    const expectedPremium = (buyCoverParamsTemplate.amount * BigInt(initialPrice)) / BigInt(INITIAL_PRICE_DENOMINATOR);
     const priceBump = calculatePriceBump(
       buyCoverParamsTemplate.amount,
       fixture.config.PRICE_BUMP_RATIO,
@@ -224,7 +225,7 @@ describe('requestAllocation', function () {
 
     const updatedProduct = await stakingProducts.getProduct(poolId, productId);
     expect(await cover.lastPremium()).to.be.equal(expectedPremium);
-    expect(updatedProduct.bumpedPrice).to.be.equal(initialPrice.add(priceBump));
+    expect(updatedProduct.bumpedPrice).to.be.equal(initialPrice + BigInt(priceBump));
   });
 
   it('should correctly calculate the premium and price for a very small cover', async function () {
@@ -256,12 +257,11 @@ describe('requestAllocation', function () {
 
       // cover purchases below NXM_PER_ALLOCATION_UNIT are charged at NXM_PER_ALLOCATION_UNIT rate
       expect(await cover.lastPremium()).to.be.equal(
-        roundUpToNearestAllocationUnit(amount, NXM_PER_ALLOCATION_UNIT)
-          .mul(initialPrice)
-          .div(INITIAL_PRICE_DENOMINATOR)
-          .div(periodsInYear),
+        (roundUpToNearestAllocationUnit(amount, NXM_PER_ALLOCATION_UNIT) * BigInt(initialPrice)) /
+          BigInt(INITIAL_PRICE_DENOMINATOR) /
+          BigInt(periodsInYear),
       );
-      expect(product.bumpedPrice).to.be.equal(initialPrice.add(priceBump));
+      expect(product.bumpedPrice).to.be.equal(initialPrice + BigInt(priceBump));
     }
   });
 
@@ -279,10 +279,10 @@ describe('requestAllocation', function () {
       GLOBAL_CAPACITY_RATIO,
       coverProductTemplate.capacityReductionRatio,
     );
-    const expectedPremium = buyCoverParamsTemplate.amount
-      .mul(initialPrice)
-      .div(INITIAL_PRICE_DENOMINATOR)
-      .div(periodsInYear);
+    const expectedPremium =
+      (buyCoverParamsTemplate.amount * BigInt(initialPrice)) /
+      BigInt(INITIAL_PRICE_DENOMINATOR) /
+      BigInt(periodsInYear);
     const priceBump = calculatePriceBump(
       buyCoverParamsTemplate.amount,
       fixture.config.PRICE_BUMP_RATIO,
@@ -296,7 +296,7 @@ describe('requestAllocation', function () {
 
       const product = await stakingProducts.getProduct(poolId, productId);
       expect(await cover.lastPremium()).to.be.equal(expectedPremium);
-      expect(product.bumpedPrice).to.be.equal(initialPrice.add(priceBump));
+      expect(product.bumpedPrice).to.be.equal(initialPrice + BigInt(priceBump));
     }
   });
 
@@ -309,20 +309,20 @@ describe('requestAllocation', function () {
     const expectedPrice = BigInt(initialPrice) - PRICE_CHANGE_PER_DAY * BigInt(daysForward);
     await increaseTime(daysToSeconds(daysForward));
     await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, 0, stakingPool.address);
-    const expectedPremium = buyCoverParamsTemplate.amount
-      .mul(expectedPrice)
-      .div(INITIAL_PRICE_DENOMINATOR)
-      .div(periodsInYear);
+    const expectedPremium =
+      (buyCoverParamsTemplate.amount * BigInt(expectedPrice)) /
+      BigInt(INITIAL_PRICE_DENOMINATOR) /
+      BigInt(periodsInYear);
     expect(await cover.lastPremium()).to.be.equal(expectedPremium);
     {
       const product = await stakingProducts.getProduct(poolId, productId);
       const daysForward = 50;
       await increaseTime(daysToSeconds(daysForward));
       await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, 0, stakingPool.address);
-      const expectedPremium = buyCoverParamsTemplate.amount
-        .mul(product.targetPrice)
-        .div(INITIAL_PRICE_DENOMINATOR)
-        .div(periodsInYear);
+      const expectedPremium =
+        (buyCoverParamsTemplate.amount * BigInt(product.targetPrice)) /
+        BigInt(INITIAL_PRICE_DENOMINATOR) /
+        BigInt(periodsInYear);
       expect(await cover.lastPremium()).to.be.equal(expectedPremium);
     }
   });
@@ -336,20 +336,20 @@ describe('requestAllocation', function () {
     const expectedPrice = BigInt(initialPrice) - PRICE_CHANGE_PER_DAY * BigInt(daysForward);
     await increaseTime(daysToSeconds(daysForward));
     await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, 0, stakingPool.address);
-    const expectedPremium = buyCoverParamsTemplate.amount
-      .mul(expectedPrice)
-      .div(INITIAL_PRICE_DENOMINATOR)
-      .div(periodsInYear);
+    const expectedPremium =
+      (buyCoverParamsTemplate.amount * BigInt(expectedPrice)) /
+      BigInt(INITIAL_PRICE_DENOMINATOR) /
+      BigInt(periodsInYear);
     expect(await cover.lastPremium()).to.be.equal(expectedPremium);
     {
       const product = await stakingProducts.getProduct(poolId, productId);
       const daysForward = 100;
       await increaseTime(daysToSeconds(daysForward));
       await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, 0, stakingPool.address);
-      const expectedPremium = buyCoverParamsTemplate.amount
-        .mul(product.targetPrice)
-        .div(INITIAL_PRICE_DENOMINATOR)
-        .div(periodsInYear);
+      const expectedPremium =
+        (buyCoverParamsTemplate.amount * BigInt(product.targetPrice)) /
+        BigInt(INITIAL_PRICE_DENOMINATOR) /
+        BigInt(periodsInYear);
       expect(await cover.lastPremium()).to.be.equal(expectedPremium);
     }
   });
@@ -362,7 +362,7 @@ describe('requestAllocation', function () {
       fixture.config;
     const GLOBAL_CAPACITY_DENOMINATOR = 10000n;
 
-    const amount = stakedNxmAmount.mul(GLOBAL_CAPACITY_RATIO).div(GLOBAL_CAPACITY_DENOMINATOR);
+    const amount = (stakedNxmAmount * BigInt(GLOBAL_CAPACITY_RATIO)) / BigInt(GLOBAL_CAPACITY_DENOMINATOR);
     const buyCoverParams = { ...buyCoverParamsTemplate, amount };
 
     const { totalCapacity } = await stakingPool.getActiveTrancheCapacities(
@@ -403,7 +403,7 @@ describe('requestAllocation', function () {
 
     // get active allocations
     const activeAllocations = await stakingPool.getActiveAllocations(productId);
-    const totalActiveAllocations = activeAllocations.reduce((acc, allocation) => acc.add(allocation), 0n);
+    const totalActiveAllocations = activeAllocations.reduce((acc, allocation) => acc + BigInt(allocation), 0n);
 
     expect(totalActiveAllocations).to.be.equal(totalCapacity);
     expect(await cover.lastPremium()).to.be.equal(expectedPremium);
@@ -466,10 +466,9 @@ describe('requestAllocation', function () {
     {
       const trancheAllocationGroup = await stakingPool.trancheAllocationGroups(productId, groupId);
       expect(
-        trancheAllocationGroup.shr(
-          currentTrancheIndexInGroup * TRANCHE_ALLOCATION_DATA_GROUP_SIZE + LAST_BUCKET_ID_DATA_GROUP_SIZE,
-        ),
-      ).to.equal(amount.div(NXM_PER_ALLOCATION_UNIT));
+        trancheAllocationGroup >>
+          BigInt(currentTrancheIndexInGroup * TRANCHE_ALLOCATION_DATA_GROUP_SIZE + LAST_BUCKET_ID_DATA_GROUP_SIZE),
+      ).to.equal(amount / BigInt(NXM_PER_ALLOCATION_UNIT));
     }
   });
 
@@ -499,7 +498,7 @@ describe('requestAllocation', function () {
 
     for (let i = 0; i < groupCount; i++) {
       const trancheAllocationGroup = await stakingPool.trancheAllocationGroups(productId, firstGroupId + i);
-      expect(trancheAllocationGroup.and(LAST_BUCKET_ID_MASK)).to.equal(currentBucketId);
+      expect(trancheAllocationGroup & BigInt(LAST_BUCKET_ID_MASK)).to.equal(currentBucketId);
     }
   });
 
@@ -531,8 +530,8 @@ describe('requestAllocation', function () {
 
     {
       const expiringCoverBuckets = await stakingPool.expiringCoverBuckets(productId, targetBucketId, groupId);
-      expect(expiringCoverBuckets.shr(currentTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)).to.equal(
-        amount.div(NXM_PER_ALLOCATION_UNIT),
+      expect(expiringCoverBuckets >> BigInt(currentTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)).to.equal(
+        amount / BigInt(NXM_PER_ALLOCATION_UNIT),
       );
     }
   });
@@ -579,18 +578,17 @@ describe('requestAllocation', function () {
     {
       const trancheAllocationGroup = await stakingPool.trancheAllocationGroups(productId, trancheGroupId);
       expect(
-        trancheAllocationGroup.shr(
-          currentTrancheIndexInGroup * TRANCHE_ALLOCATION_DATA_GROUP_SIZE + LAST_BUCKET_ID_DATA_GROUP_SIZE,
-        ),
-      ).to.equal(amount.div(NXM_PER_ALLOCATION_UNIT));
+        trancheAllocationGroup >>
+          BigInt(currentTrancheIndexInGroup * TRANCHE_ALLOCATION_DATA_GROUP_SIZE + LAST_BUCKET_ID_DATA_GROUP_SIZE),
+      ).to.equal(amount / BigInt(NXM_PER_ALLOCATION_UNIT));
 
       const expiringCoverBuckets = await stakingPool.expiringCoverBuckets(productId, targetBucketId, bucketGroupId);
-      expect(expiringCoverBuckets.shr(currentBucketIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)).to.equal(
-        amount.div(NXM_PER_ALLOCATION_UNIT),
+      expect(expiringCoverBuckets >> BigInt(currentBucketIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)).to.equal(
+        amount / BigInt(NXM_PER_ALLOCATION_UNIT),
       );
 
       const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId);
-      expect(coverTrancheAllocations.and(MaxUint32)).to.equal(amount.div(NXM_PER_ALLOCATION_UNIT));
+      expect(coverTrancheAllocations & BigInt(MaxUint32)).to.equal(amount / BigInt(NXM_PER_ALLOCATION_UNIT));
     }
 
     // Deallocate
@@ -614,7 +612,7 @@ describe('requestAllocation', function () {
       const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId);
       // coverTrancheAllocations for allocationId is not updated as it is not needed
       // allocationId can't be used again for future allocations
-      expect(coverTrancheAllocations.and(MaxUint32)).to.equal(0);
+      expect(coverTrancheAllocations & BigInt(MaxUint32)).to.equal(0);
     }
   });
 
@@ -633,12 +631,12 @@ describe('requestAllocation', function () {
       .map((e, i) => currentTrancheId + i);
 
     const depositPerTranche = parseEther('10');
-    const maxAllocationPerTranche = depositPerTranche
-      .mul(GLOBAL_CAPACITY_RATIO)
-      .div(GLOBAL_CAPACITY_DENOMINATOR)
-      .div(NXM_PER_ALLOCATION_UNIT);
+    const maxAllocationPerTranche =
+      (depositPerTranche * BigInt(GLOBAL_CAPACITY_RATIO)) /
+      BigInt(GLOBAL_CAPACITY_DENOMINATOR) /
+      BigInt(NXM_PER_ALLOCATION_UNIT);
 
-    const allocationAmount = depositPerTranche.mul(6); // should fully allocate 3 tranches
+    const allocationAmount = depositPerTranche * BigInt(6); // should fully allocate 3 tranches
 
     const { productId } = allocationRequestParams;
 
@@ -674,7 +672,7 @@ describe('requestAllocation', function () {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
 
       for (let i = 0; i < tranches.length; i++) {
-        expect(activeAllocations[i]).to.equal(maxAllocationPerTranche.mul(2));
+        expect(activeAllocations[i]).to.equal(maxAllocationPerTranche * BigInt(2));
       }
     }
   });
@@ -695,8 +693,8 @@ describe('requestAllocation', function () {
     await stakingPool.connect(user).depositTo(parseEther('10'), currentTrancheId + 1, 0, ZeroAddress);
     await stakingPool.connect(user).depositTo(parseEther('10'), currentTrancheId + 2, 0, ZeroAddress);
 
-    const allocationAmount = depositAmount.mul(3);
-    const allocationAmountInNXMUnit = allocationAmount.div(NXM_PER_ALLOCATION_UNIT);
+    const allocationAmount = depositAmount * BigInt(3);
+    const allocationAmountInNXMUnit = allocationAmount / BigInt(NXM_PER_ALLOCATION_UNIT);
     const { productId } = allocationRequestParams;
 
     const allocationId1 = await stakingPool.getNextAllocationId();
@@ -714,14 +712,14 @@ describe('requestAllocation', function () {
 
     {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
-      expect(activeAllocations[0]).to.equal(allocationAmountInNXMUnit.mul(2).div(3));
-      expect(activeAllocations[1]).to.equal(allocationAmountInNXMUnit.div(3));
+      expect(activeAllocations[0]).to.equal((allocationAmountInNXMUnit * BigInt(2)) / BigInt(3));
+      expect(activeAllocations[1]).to.equal(allocationAmountInNXMUnit / BigInt(3));
       expect(activeAllocations[2]).to.equal(0);
 
       const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId1);
-      expect(coverTrancheAllocations.and(MaxUint32)).to.equal(allocationAmountInNXMUnit.mul(2).div(3));
-      expect(coverTrancheAllocations.shr(32)).to.equal(allocationAmountInNXMUnit.div(3));
-      expect(coverTrancheAllocations.shr(64)).to.equal(0);
+      expect(coverTrancheAllocations & BigInt(MaxUint32)).to.equal((allocationAmountInNXMUnit * BigInt(2)) / BigInt(3));
+      expect(coverTrancheAllocations >> BigInt(32)).to.equal(allocationAmountInNXMUnit / BigInt(3));
+      expect(coverTrancheAllocations >> BigInt(64)).to.equal(0);
     }
 
     const allocationId2 = await stakingPool.getNextAllocationId();
@@ -736,19 +734,23 @@ describe('requestAllocation', function () {
 
     {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
-      expect(activeAllocations[0]).to.equal(allocationAmountInNXMUnit.mul(2).div(3));
-      expect(activeAllocations[1]).to.equal(allocationAmountInNXMUnit.mul(2).div(3));
-      expect(activeAllocations[2]).to.equal(allocationAmountInNXMUnit.mul(2).div(3));
+      expect(activeAllocations[0]).to.equal((allocationAmountInNXMUnit * BigInt(2)) / BigInt(3));
+      expect(activeAllocations[1]).to.equal((allocationAmountInNXMUnit * BigInt(2)) / BigInt(3));
+      expect(activeAllocations[2]).to.equal((allocationAmountInNXMUnit * BigInt(2)) / BigInt(3));
 
       const coverTrancheAllocations1 = await stakingPool.coverTrancheAllocations(allocationId1);
-      expect(coverTrancheAllocations1.and(MaxUint32)).to.equal(allocationAmountInNXMUnit.mul(2).div(3));
-      expect(coverTrancheAllocations1.shr(32)).to.equal(allocationAmountInNXMUnit.div(3));
-      expect(coverTrancheAllocations1.shr(64)).to.equal(0);
+      expect(coverTrancheAllocations1 & BigInt(MaxUint32)).to.equal(
+        (allocationAmountInNXMUnit * BigInt(2)) / BigInt(3),
+      );
+      expect(coverTrancheAllocations1 >> BigInt(32)).to.equal(allocationAmountInNXMUnit / BigInt(3));
+      expect(coverTrancheAllocations1 >> BigInt(64)).to.equal(0);
 
       const coverTrancheAllocations2 = await stakingPool.coverTrancheAllocations(allocationId2);
-      expect(coverTrancheAllocations2.and(MaxUint32)).to.equal(0);
-      expect(coverTrancheAllocations2.shr(32).and(MaxUint32)).to.equal(allocationAmountInNXMUnit.div(3));
-      expect(coverTrancheAllocations2.shr(64)).to.equal(allocationAmountInNXMUnit.mul(2).div(3));
+      expect(coverTrancheAllocations2 & BigInt(MaxUint32)).to.equal(0);
+      expect((coverTrancheAllocations2 >> BigInt(32)) & BigInt(MaxUint32)).to.equal(
+        allocationAmountInNXMUnit / BigInt(3),
+      );
+      expect(coverTrancheAllocations2 >> BigInt(64)).to.equal((allocationAmountInNXMUnit * BigInt(2)) / BigInt(3));
     }
   });
 
@@ -797,23 +799,23 @@ describe('requestAllocation', function () {
     });
 
     {
-      const amountProduct1InNXM = amountProduct1.div(NXM_PER_ALLOCATION_UNIT);
+      const amountProduct1InNXM = amountProduct1 / BigInt(NXM_PER_ALLOCATION_UNIT);
       const activeAllocationsProduct1 = await stakingPool.getActiveAllocations(productId1);
       expect(activeAllocationsProduct1[0]).to.equal(amountProduct1InNXM);
 
       const expiringCoverBuckets1 = await stakingPool.expiringCoverBuckets(productId1, targetBucketId, groupId);
-      expect(expiringCoverBuckets1.shr(currentTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)).to.equal(
-        amountProduct1InNXM,
-      );
+      expect(
+        expiringCoverBuckets1 >> BigInt(currentTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE),
+      ).to.equal(amountProduct1InNXM);
 
-      const amountProduct2InNXM = amountProduct2.div(NXM_PER_ALLOCATION_UNIT);
+      const amountProduct2InNXM = amountProduct2 / BigInt(NXM_PER_ALLOCATION_UNIT);
       const activeAllocationsProduct2 = await stakingPool.getActiveAllocations(productId2);
       expect(activeAllocationsProduct2[0]).to.equal(amountProduct2InNXM);
 
       const expiringCoverBuckets2 = await stakingPool.expiringCoverBuckets(productId2, targetBucketId, groupId);
-      expect(expiringCoverBuckets2.shr(currentTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)).to.equal(
-        amountProduct2InNXM,
-      );
+      expect(
+        expiringCoverBuckets2 >> BigInt(currentTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE),
+      ).to.equal(amountProduct2InNXM);
     }
   });
 
@@ -877,12 +879,12 @@ describe('requestAllocation', function () {
       const lastBlock = await ethers.provider.getBlock('latest');
       const rewardStreamPeriod = expirationBucket * BUCKET_DURATION - lastBlock.timestamp;
 
-      const rewards = premium.mul(rewardRatio).div(REWARDS_DENOMINATOR);
-      const expectedRewardPerSecond = rewards.div(rewardStreamPeriod);
-      const expectedRewards = expectedRewardPerSecond.mul(rewardStreamPeriod);
+      const rewards = (premium * BigInt(rewardRatio)) / BigInt(REWARDS_DENOMINATOR);
+      const expectedRewardPerSecond = rewards / BigInt(rewardStreamPeriod);
+      const expectedRewards = expectedRewardPerSecond * BigInt(rewardStreamPeriod);
 
       const tcBalanceAfter = await nxm.balanceOf(tokenController.address);
-      expect(tcBalanceAfter).to.equal(tcBalanceBefore.add(expectedRewards));
+      expect(tcBalanceAfter).to.equal(tcBalanceBefore + BigInt(expectedRewards));
 
       const rewardPerSecond = await stakingPool.getRewardPerSecond();
       expect(rewardPerSecond).to.equal(expectedRewardPerSecond);
@@ -903,18 +905,18 @@ describe('requestAllocation', function () {
       const lastBlock = await ethers.provider.getBlock('latest');
       const rewardStreamPeriod = expirationBucket * BUCKET_DURATION - lastBlock.timestamp;
 
-      const rewards = premium.mul(rewardRatio).div(REWARDS_DENOMINATOR);
-      const expectedRewardPerSecond = rewards.div(rewardStreamPeriod);
-      const expectedRewards = expectedRewardPerSecond.mul(rewardStreamPeriod);
+      const rewards = (premium * BigInt(rewardRatio)) / BigInt(REWARDS_DENOMINATOR);
+      const expectedRewardPerSecond = rewards / BigInt(rewardStreamPeriod);
+      const expectedRewards = expectedRewardPerSecond * BigInt(rewardStreamPeriod);
 
       const tcBalanceAfter = await nxm.balanceOf(tokenController.address);
-      expect(tcBalanceAfter).to.equal(tcBalanceBefore.add(expectedRewards));
+      expect(tcBalanceAfter).to.equal(tcBalanceBefore + BigInt(expectedRewards));
 
       const rewardPerSecond = await stakingPool.getRewardPerSecond();
-      expect(rewardPerSecond).to.equal(previousRewardPerSecond.add(expectedRewardPerSecond));
+      expect(rewardPerSecond).to.equal(previousRewardPerSecond + BigInt(expectedRewardPerSecond));
 
       const rewardPerSecondCut = await stakingPool.rewardPerSecondCut(expirationBucket);
-      expect(rewardPerSecondCut).to.equal(previousRewardBuckets.add(expectedRewardPerSecond));
+      expect(rewardPerSecondCut).to.equal(previousRewardBuckets + BigInt(expectedRewardPerSecond));
     }
   });
 
@@ -955,13 +957,13 @@ describe('requestAllocation', function () {
     const firstAllocationBlock = await ethers.provider.getBlock('latest');
     const rewardStreamPeriod = expirationBucket * BUCKET_DURATION - firstAllocationBlock.timestamp;
 
-    const rewards = premium.mul(rewardRatio).div(REWARDS_DENOMINATOR);
-    const expectedRewardPerSecond = rewards.div(rewardStreamPeriod);
-    const expectedRewards = expectedRewardPerSecond.mul(rewardStreamPeriod);
+    const rewards = (premium * BigInt(rewardRatio)) / BigInt(REWARDS_DENOMINATOR);
+    const expectedRewardPerSecond = rewards / BigInt(rewardStreamPeriod);
+    const expectedRewards = expectedRewardPerSecond * BigInt(rewardStreamPeriod);
 
     {
       const tcBalanceAfter = await nxm.balanceOf(tokenController.address);
-      expect(tcBalanceAfter).to.equal(tcBalanceBefore.add(expectedRewards));
+      expect(tcBalanceAfter).to.equal(tcBalanceBefore + BigInt(expectedRewards));
 
       const rewardPerSecond = await stakingPool.getRewardPerSecond();
       expect(rewardPerSecond).to.equal(expectedRewardPerSecond);
@@ -980,13 +982,12 @@ describe('requestAllocation', function () {
     });
 
     const secondAllocationBlock = await ethers.provider.getBlock('latest');
-    const expectedBurnedRewards = expectedRewardPerSecond.mul(
-      expirationBucket * BUCKET_DURATION - secondAllocationBlock.timestamp,
-    );
+    const expectedBurnedRewards =
+      expectedRewardPerSecond * BigInt(expirationBucket * BUCKET_DURATION - secondAllocationBlock.timestamp);
 
     {
       const tcBalanceAfter = await nxm.balanceOf(tokenController.address);
-      expect(tcBalanceAfter).to.equal(tcBalanceBefore.add(expectedRewards).sub(expectedBurnedRewards));
+      expect(tcBalanceAfter).to.equal(tcBalanceBefore + BigInt(expectedRewards) - BigInt(expectedBurnedRewards));
 
       const rewardPerSecond = await stakingPool.getRewardPerSecond();
       expect(rewardPerSecond).to.equal(0);
@@ -996,7 +997,7 @@ describe('requestAllocation', function () {
     }
   });
 
-  it('revers if insufficient capacity', async function () {
+  it('reverts if insufficient capacity', async function () {
     const fixture = await loadFixture(requestAllocationSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
@@ -1010,11 +1011,13 @@ describe('requestAllocation', function () {
     await stakingPool.connect(user).depositTo(depositAmount, currentTrancheId + 1, 0, ZeroAddress);
     await stakingPool.connect(user).depositTo(depositAmount, currentTrancheId + 2, 0, ZeroAddress);
 
-    let maxAllocationAmount = depositAmount.mul(6);
+    let maxAllocationAmount = depositAmount * BigInt(6);
 
     // exceed max allocation
     await expect(
-      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmount.add(1), allocationRequestParams),
+      stakingPool
+        .connect(fixture.coverSigner)
+        .requestAllocation(maxAllocationAmount + BigInt(1), allocationRequestParams),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
     {
@@ -1022,12 +1025,14 @@ describe('requestAllocation', function () {
 
       await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount, allocationRequestParams);
 
-      maxAllocationAmount = maxAllocationAmount.sub(allocationAmount);
+      maxAllocationAmount = maxAllocationAmount - BigInt(allocationAmount);
     }
 
     // exceed max allocation
     await expect(
-      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmount.add(1), allocationRequestParams),
+      stakingPool
+        .connect(fixture.coverSigner)
+        .requestAllocation(maxAllocationAmount + BigInt(1), allocationRequestParams),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
     {
@@ -1035,12 +1040,14 @@ describe('requestAllocation', function () {
 
       await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount, allocationRequestParams);
 
-      maxAllocationAmount = maxAllocationAmount.sub(allocationAmount);
+      maxAllocationAmount = maxAllocationAmount - BigInt(allocationAmount);
     }
 
     // exceed max allocation
     await expect(
-      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmount.add(1), allocationRequestParams),
+      stakingPool
+        .connect(fixture.coverSigner)
+        .requestAllocation(maxAllocationAmount + BigInt(1), allocationRequestParams),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
     {
@@ -1048,7 +1055,7 @@ describe('requestAllocation', function () {
 
       await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount, allocationRequestParams);
 
-      maxAllocationAmount = maxAllocationAmount.sub(allocationAmount);
+      maxAllocationAmount = maxAllocationAmount - BigInt(allocationAmount);
     }
 
     // exceed max allocation
@@ -1086,8 +1093,8 @@ describe('requestAllocation', function () {
 
     {
       const expiringCoverBuckets = await stakingPool.expiringCoverBuckets(productId, targetBucketId, groupId);
-      expect(expiringCoverBuckets.shr(currentTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)).to.equal(
-        amount.div(NXM_PER_ALLOCATION_UNIT),
+      expect(expiringCoverBuckets >> BigInt(currentTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)).to.equal(
+        amount / BigInt(NXM_PER_ALLOCATION_UNIT),
       );
     }
 
@@ -1115,8 +1122,8 @@ describe('requestAllocation', function () {
 
     {
       const expiringCoverBuckets = await stakingPool.expiringCoverBuckets(productId, secondTargetBucketId, groupId);
-      expect(expiringCoverBuckets.shr(currentTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)).to.equal(
-        secondAllocationAmount.div(NXM_PER_ALLOCATION_UNIT),
+      expect(expiringCoverBuckets >> BigInt(currentTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)).to.equal(
+        secondAllocationAmount / BigInt(NXM_PER_ALLOCATION_UNIT),
       );
     }
 
@@ -1130,18 +1137,18 @@ describe('requestAllocation', function () {
 
     {
       const firstExpiringCoverBuckets = await stakingPool.expiringCoverBuckets(productId, targetBucketId, groupId);
-      expect(firstExpiringCoverBuckets.shr(currentTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)).to.equal(
-        thirdAllocationAmount.div(NXM_PER_ALLOCATION_UNIT),
-      );
+      expect(
+        firstExpiringCoverBuckets >> BigInt(currentTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE),
+      ).to.equal(thirdAllocationAmount / BigInt(NXM_PER_ALLOCATION_UNIT));
 
       const secondExpiringCoverBuckets = await stakingPool.expiringCoverBuckets(
         productId,
         secondTargetBucketId,
         groupId,
       );
-      expect(secondExpiringCoverBuckets.shr(currentTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)).to.equal(
-        secondAllocationAmount.add(fourthAllocationAmount).div(NXM_PER_ALLOCATION_UNIT),
-      );
+      expect(
+        secondExpiringCoverBuckets >> BigInt(currentTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE),
+      ).to.equal((secondAllocationAmount + fourthAllocationAmount) / BigInt(NXM_PER_ALLOCATION_UNIT));
     }
   });
 
@@ -1171,12 +1178,12 @@ describe('requestAllocation', function () {
 
     {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
-      expect(activeAllocations[0]).to.equal(amount.div(NXM_PER_ALLOCATION_UNIT));
+      expect(activeAllocations[0]).to.equal(amount / BigInt(NXM_PER_ALLOCATION_UNIT));
     }
 
     const secondAllocationBlock = await ethers.provider.getBlock('latest');
 
-    const secondAllocationAmount = amount.div(2);
+    const secondAllocationAmount = amount / BigInt(2);
     // decrease amount to half
     await stakingPool.connect(fixture.coverSigner).requestDeallocation({
       allocationId: nextAllocationId,
@@ -1190,7 +1197,7 @@ describe('requestAllocation', function () {
 
     {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
-      expect(activeAllocations[0]).to.equal(secondAllocationAmount.div(NXM_PER_ALLOCATION_UNIT));
+      expect(activeAllocations[0]).to.equal(secondAllocationAmount / BigInt(NXM_PER_ALLOCATION_UNIT));
     }
 
     const thirdAllocationAmount = secondAllocationAmount;
@@ -1201,7 +1208,7 @@ describe('requestAllocation', function () {
     {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
       expect(activeAllocations[0]).to.equal(
-        secondAllocationAmount.add(thirdAllocationAmount).div(NXM_PER_ALLOCATION_UNIT),
+        (secondAllocationAmount + thirdAllocationAmount) / BigInt(NXM_PER_ALLOCATION_UNIT),
       );
     }
 
@@ -1212,9 +1219,9 @@ describe('requestAllocation', function () {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
 
       expect(activeAllocations[0]).to.equal(
-        secondAllocationAmount.add(thirdAllocationAmount).div(NXM_PER_ALLOCATION_UNIT),
+        (secondAllocationAmount + thirdAllocationAmount) / BigInt(NXM_PER_ALLOCATION_UNIT),
       );
-      expect(activeAllocations[1]).to.equal(fourthAllocationAmount.div(NXM_PER_ALLOCATION_UNIT));
+      expect(activeAllocations[1]).to.equal(fourthAllocationAmount / BigInt(NXM_PER_ALLOCATION_UNIT));
     }
 
     const fifthAllocationAmount = parseEther('40');
@@ -1224,12 +1231,12 @@ describe('requestAllocation', function () {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
 
       expect(activeAllocations[0]).to.equal(
-        secondAllocationAmount.add(thirdAllocationAmount).div(NXM_PER_ALLOCATION_UNIT),
+        (secondAllocationAmount + thirdAllocationAmount) / BigInt(NXM_PER_ALLOCATION_UNIT),
       );
       expect(activeAllocations[1]).to.equal(
-        fourthAllocationAmount.add(fifthAllocationAmount.div(2)).div(NXM_PER_ALLOCATION_UNIT),
+        (fourthAllocationAmount + fifthAllocationAmount / 2n) / BigInt(NXM_PER_ALLOCATION_UNIT),
       );
-      expect(activeAllocations[2]).to.equal(fifthAllocationAmount.div(2).div(NXM_PER_ALLOCATION_UNIT));
+      expect(activeAllocations[2]).to.equal(fifthAllocationAmount / BigInt(2) / BigInt(NXM_PER_ALLOCATION_UNIT));
     }
   });
 
@@ -1269,13 +1276,13 @@ describe('requestAllocation', function () {
 
     {
       const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId);
-      expect(coverTrancheAllocations.and(MaxUint32)).to.equal(amount.div(NXM_PER_ALLOCATION_UNIT));
+      expect(coverTrancheAllocations & BigInt(MaxUint32)).to.equal(amount / BigInt(NXM_PER_ALLOCATION_UNIT));
       expect(await stakingPool.coverTrancheAllocations(otherAllocationId)).to.equal(otherAllocations);
     }
 
     const { timestamp: firstAllocationTimestamp } = await ethers.provider.getBlock('latest');
 
-    const secondAllocationAmount = amount.div(2);
+    const secondAllocationAmount = amount / BigInt(2);
     const secondAllocationId = await stakingPool.getNextAllocationId();
     // decrease amount to half
     await stakingPool.connect(fixture.coverSigner).requestDeallocation({
@@ -1290,7 +1297,9 @@ describe('requestAllocation', function () {
 
     {
       const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(secondAllocationId);
-      expect(coverTrancheAllocations.and(MaxUint32)).to.equal(secondAllocationAmount.div(NXM_PER_ALLOCATION_UNIT));
+      expect(coverTrancheAllocations & BigInt(MaxUint32)).to.equal(
+        secondAllocationAmount / BigInt(NXM_PER_ALLOCATION_UNIT),
+      );
       expect(await stakingPool.coverTrancheAllocations(otherAllocationId)).to.equal(otherAllocations);
     }
 
@@ -1312,7 +1321,9 @@ describe('requestAllocation', function () {
 
     {
       const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(thirdAllocationId);
-      expect(coverTrancheAllocations.and(MaxUint32)).to.equal(thirdAllocationAmount.div(NXM_PER_ALLOCATION_UNIT));
+      expect(coverTrancheAllocations & BigInt(MaxUint32)).to.equal(
+        thirdAllocationAmount / BigInt(NXM_PER_ALLOCATION_UNIT),
+      );
       expect(await stakingPool.coverTrancheAllocations(otherAllocationId)).to.equal(otherAllocations);
     }
 
@@ -1330,12 +1341,16 @@ describe('requestAllocation', function () {
     });
     await stakingPool
       .connect(fixture.coverSigner)
-      .requestAllocation(thirdAllocationAmount.add(fourthAllocationIncreaseAmount), allocationRequestParams);
+      .requestAllocation(thirdAllocationAmount + BigInt(fourthAllocationIncreaseAmount), allocationRequestParams);
 
     {
       const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(fourthAllocationId);
-      expect(coverTrancheAllocations.and(MaxUint32)).to.equal(thirdAllocationAmount.div(NXM_PER_ALLOCATION_UNIT));
-      expect(coverTrancheAllocations.shr(32)).to.equal(fourthAllocationIncreaseAmount.div(NXM_PER_ALLOCATION_UNIT));
+      expect(coverTrancheAllocations & BigInt(MaxUint32)).to.equal(
+        thirdAllocationAmount / BigInt(NXM_PER_ALLOCATION_UNIT),
+      );
+      expect(coverTrancheAllocations >> BigInt(32)).to.equal(
+        fourthAllocationIncreaseAmount / BigInt(NXM_PER_ALLOCATION_UNIT),
+      );
       expect(await stakingPool.coverTrancheAllocations(otherAllocationId)).to.equal(otherAllocations);
     }
 
@@ -1355,18 +1370,20 @@ describe('requestAllocation', function () {
     await stakingPool
       .connect(fixture.coverSigner)
       .requestAllocation(
-        thirdAllocationAmount.add(fourthAllocationIncreaseAmount).add(fifthAllocationIncreaseAmount),
+        thirdAllocationAmount + BigInt(fourthAllocationIncreaseAmount) + BigInt(fifthAllocationIncreaseAmount),
         allocationRequestParams,
       );
 
     {
       const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(fifthAllocationId);
-      expect(coverTrancheAllocations.and(MaxUint32)).to.equal(thirdAllocationAmount.div(NXM_PER_ALLOCATION_UNIT));
-      expect(coverTrancheAllocations.shr(32).and(MaxUint32)).to.equal(
-        fourthAllocationIncreaseAmount.add(fifthAllocationIncreaseAmount.div(2)).div(NXM_PER_ALLOCATION_UNIT),
+      expect(coverTrancheAllocations & BigInt(MaxUint32)).to.equal(
+        thirdAllocationAmount / BigInt(NXM_PER_ALLOCATION_UNIT),
       );
-      expect(coverTrancheAllocations.shr(64)).to.equal(
-        fifthAllocationIncreaseAmount.div(2).div(NXM_PER_ALLOCATION_UNIT),
+      expect((coverTrancheAllocations >> BigInt(32)) & BigInt(MaxUint32)).to.equal(
+        (fourthAllocationIncreaseAmount + fifthAllocationIncreaseAmount / 2n) / BigInt(NXM_PER_ALLOCATION_UNIT),
+      );
+      expect(coverTrancheAllocations >> BigInt(64)).to.equal(
+        fifthAllocationIncreaseAmount / BigInt(2) / BigInt(NXM_PER_ALLOCATION_UNIT),
       );
       expect(await stakingPool.coverTrancheAllocations(otherAllocationId)).to.equal(otherAllocations);
     }
@@ -1386,18 +1403,20 @@ describe('requestAllocation', function () {
     // add capacity to three tranches
     await stakingPool.connect(user).depositTo(depositAmount, currentTrancheId, 0, ZeroAddress);
 
-    let maxAllocationAmount = depositAmount.mul(GLOBAL_CAPACITY_RATIO).div(GLOBAL_CAPACITY_DENOMINATOR);
+    let maxAllocationAmount = (depositAmount * BigInt(GLOBAL_CAPACITY_RATIO)) / BigInt(GLOBAL_CAPACITY_DENOMINATOR);
 
     // exceed max allocation
     await expect(
-      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmount.add(1), allocationRequestParams),
+      stakingPool
+        .connect(fixture.coverSigner)
+        .requestAllocation(maxAllocationAmount + BigInt(1), allocationRequestParams),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
     const newGlobalCapacityRatio = 30000;
-    maxAllocationAmount = depositAmount.mul(newGlobalCapacityRatio).div(GLOBAL_CAPACITY_DENOMINATOR);
+    maxAllocationAmount = (depositAmount * BigInt(newGlobalCapacityRatio)) / BigInt(GLOBAL_CAPACITY_DENOMINATOR);
 
     await expect(
-      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmount.add(1), {
+      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmount + BigInt(1), {
         ...allocationRequestParams,
         capacityRatio: newGlobalCapacityRatio,
       }),
@@ -1428,17 +1447,15 @@ describe('requestAllocation', function () {
     // add capacity to three tranches
     await stakingPool.connect(user).depositTo(depositAmount, currentTrancheId, 0, ZeroAddress);
 
-    const maxAllocationAmountProduct1 = depositAmount
-      .mul(GLOBAL_CAPACITY_RATIO)
-      .mul(product1Weight)
-      .div(WEIGHT_DENOMINATOR)
-      .div(GLOBAL_CAPACITY_DENOMINATOR);
+    const maxAllocationAmountProduct1 =
+      (depositAmount * BigInt(GLOBAL_CAPACITY_RATIO) * BigInt(product1Weight)) /
+      BigInt(WEIGHT_DENOMINATOR) /
+      BigInt(GLOBAL_CAPACITY_DENOMINATOR);
 
-    const maxAllocationAmountProduct3 = depositAmount
-      .mul(GLOBAL_CAPACITY_RATIO)
-      .mul(product3Weight)
-      .div(WEIGHT_DENOMINATOR)
-      .div(GLOBAL_CAPACITY_DENOMINATOR);
+    const maxAllocationAmountProduct3 =
+      (depositAmount * BigInt(GLOBAL_CAPACITY_RATIO) * BigInt(product3Weight)) /
+      BigInt(WEIGHT_DENOMINATOR) /
+      BigInt(GLOBAL_CAPACITY_DENOMINATOR);
 
     // exceed max allocation given product1 weight is bigger than product 3
     await expect(
@@ -1471,22 +1488,23 @@ describe('requestAllocation', function () {
     // add capacity to three tranches
     await stakingPool.connect(user).depositTo(depositAmount, currentTrancheId, 0, ZeroAddress);
 
-    const maxAllocationAmount = depositAmount
-      .mul(GLOBAL_CAPACITY_RATIO)
-      .mul(CAPACITY_REDUCTION_DENOMINATOR.sub(capacityReductionRatio))
-      .div(CAPACITY_REDUCTION_DENOMINATOR)
-      .div(GLOBAL_CAPACITY_DENOMINATOR);
+    const maxAllocationAmount =
+      (depositAmount *
+        BigInt(GLOBAL_CAPACITY_RATIO) *
+        BigInt(CAPACITY_REDUCTION_DENOMINATOR - BigInt(capacityReductionRatio))) /
+      BigInt(CAPACITY_REDUCTION_DENOMINATOR) /
+      BigInt(GLOBAL_CAPACITY_DENOMINATOR);
 
     // exceed max allocation
     await expect(
-      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmount.add(1), {
+      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmount + BigInt(1), {
         ...allocationRequestParams,
         capacityReductionRatio,
       }),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
     await expect(
-      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmount.add(1), {
+      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmount + BigInt(1), {
         ...allocationRequestParams,
         capacityReductionRatio: 0,
       }),
@@ -1526,13 +1544,13 @@ describe('requestAllocation', function () {
 
     // calculate rewards
     const rewardStreamPeriod = BigInt(expirationBucket) * BigInt(BUCKET_DURATION) - BigInt(timestamp);
-    const rewards = premium.mul(rewardRatio).div(REWARDS_DENOMINATOR);
-    const expectedRewardPerSecond = rewards.div(rewardStreamPeriod);
-    const expectedRewards = expectedRewardPerSecond.mul(rewardStreamPeriod);
+    const rewards = (premium * BigInt(rewardRatio)) / BigInt(REWARDS_DENOMINATOR);
+    const expectedRewardPerSecond = rewards / BigInt(rewardStreamPeriod);
+    const expectedRewards = expectedRewardPerSecond * BigInt(rewardStreamPeriod);
 
     // validate that rewards increased
     const stakingPoolRewardAfter = await tokenController.stakingPoolNXMBalances(poolId);
-    expect(stakingPoolRewardAfter.rewards).to.be.equal(stakingPoolRewardBefore.rewards.add(expectedRewards));
+    expect(stakingPoolRewardAfter.rewards).to.be.equal(stakingPoolRewardBefore.rewards + BigInt(expectedRewards));
   });
 
   it('accounts for carried over allocations filling all capacity', async function () {
@@ -1618,7 +1636,7 @@ describe('requestAllocation', function () {
 
     // expect all available capacity to be used
     const midAllocations = await stakingPool.getActiveAllocations(productId);
-    const expectedTrancheAllocation = firstCoverAmount.div(NXM_PER_ALLOCATION_UNIT);
+    const expectedTrancheAllocation = firstCoverAmount / BigInt(NXM_PER_ALLOCATION_UNIT);
     const expectedAllocations = [0n, 0n, 0n, 0n, expectedTrancheAllocation, 0n, 0n, 0n];
     expect(midAllocations).to.be.deep.equal(expectedAllocations);
 
@@ -1634,7 +1652,7 @@ describe('requestAllocation', function () {
 
     await expect(
       stakingPool.connect(fixture.coverSigner).requestAllocation(
-        maxCoverAmount.add(1), // slightly over the limit
+        maxCoverAmount + BigInt(1), // slightly over the limit
         secondAllocationRequest,
       ),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
@@ -1669,7 +1687,7 @@ describe('requestAllocation', function () {
     {
       const allocations = await stakingPool.getActiveAllocations(productId);
       const allocatedAmount = allocations.reduce((acc, allocation) => acc + allocation, 0n);
-      expect(allocatedAmount).to.be.equal(amount.div(NXM_PER_ALLOCATION_UNIT));
+      expect(allocatedAmount).to.be.equal(amount / BigInt(NXM_PER_ALLOCATION_UNIT));
     }
 
     await moveTimeToNextBucket(1);

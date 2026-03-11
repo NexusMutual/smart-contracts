@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 
-const { increaseTime, mineNextBlock, setNextBlockTime } = require('../utils').evm;
+const { increaseTime, mineNextBlock, setNextBlockTime } = require('../../utils/evm');
 const {
   getTranches,
   calculateStakeShares,
@@ -159,8 +159,8 @@ describe('withdraw', function () {
     expect(depositBefore.stakeShares).to.be.equal(expectedShares);
     expect(depositAfter.stakeShares).to.be.equal(0);
 
-    expect(userBalanceAfter).to.be.equal(userBalanceBefore.add(depositAmount));
-    expect(tcBalanceAfter).to.be.equal(tcBalanceBefore.sub(depositAmount));
+    expect(userBalanceAfter).to.be.equal(userBalanceBefore + depositAmount);
+    expect(tcBalanceAfter).to.be.equal(tcBalanceBefore - depositAmount);
   });
 
   it('transfers nxm stake and rewards from token controller to nft owner', async function () {
@@ -198,13 +198,12 @@ describe('withdraw', function () {
     const userBalanceAfter = await nxm.balanceOf(user.address);
 
     const { accNxmPerRewardShareAtExpiry } = await stakingPool.getExpiredTranche(firstActiveTrancheId);
-    const rewardsWithdrawn = deposit.rewardsShares
-      .mul(accNxmPerRewardShareAtExpiry.sub(deposit.lastAccNxmPerRewardShare))
-      .div(parseEther('1'))
-      .add(deposit.pendingRewards);
+    const rewardsWithdrawn =
+      (deposit.rewardsShares * (accNxmPerRewardShareAtExpiry - deposit.lastAccNxmPerRewardShare)) / parseEther('1') +
+      deposit.pendingRewards;
 
-    expect(tcBalanceAfter).to.be.equal(tcBalanceBefore.sub(rewardsWithdrawn).sub(amount));
-    expect(userBalanceAfter).to.be.equal(userBalanceBefore.add(rewardsWithdrawn).add(amount));
+    expect(tcBalanceAfter).to.be.equal(tcBalanceBefore - rewardsWithdrawn - amount);
+    expect(userBalanceAfter).to.be.equal(userBalanceBefore + rewardsWithdrawn + amount);
   });
 
   it('allows to withdraw only rewards', async function () {
@@ -264,23 +263,23 @@ describe('withdraw', function () {
 
     const { accNxmPerRewardShareAtExpiry } = await stakingPool.getExpiredTranche(firstActiveTrancheId);
 
-    const expectedUserRewardsWithdrawn = depositBefore.rewardsShares
-      .mul(accNxmPerRewardShareAtExpiry.sub(depositBefore.lastAccNxmPerRewardShare))
-      .div(parseEther('1'))
-      .add(depositBefore.pendingRewards);
+    const expectedUserRewardsWithdrawn =
+      (depositBefore.rewardsShares * (accNxmPerRewardShareAtExpiry - depositBefore.lastAccNxmPerRewardShare)) /
+        parseEther('1') +
+      depositBefore.pendingRewards;
 
-    const expectedManagerRewardsWithdrawn = managerDepositBefore.rewardsShares
-      .mul(accNxmPerRewardShareAtExpiry.sub(depositBefore.lastAccNxmPerRewardShare))
-      .div(parseEther('1'))
-      .add(managerDepositBefore.pendingRewards);
+    const expectedManagerRewardsWithdrawn =
+      (managerDepositBefore.rewardsShares * (accNxmPerRewardShareAtExpiry - depositBefore.lastAccNxmPerRewardShare)) /
+        parseEther('1') +
+      managerDepositBefore.pendingRewards;
 
-    const expectedRewardsWithdrawn = expectedUserRewardsWithdrawn.add(expectedManagerRewardsWithdrawn);
-    const rewardsMinted = tcBalanceBefore.sub(tcBalanceInitial);
+    const expectedRewardsWithdrawn = expectedUserRewardsWithdrawn + expectedManagerRewardsWithdrawn;
+    const rewardsMinted = tcBalanceBefore - tcBalanceInitial;
 
-    expect(userBalanceAfter).to.be.eq(userBalanceBefore.add(expectedUserRewardsWithdrawn));
-    expect(managerBalanceAfter).to.be.eq(managerBalanceBefore.add(expectedManagerRewardsWithdrawn));
-    expect(tcBalanceAfter).to.be.eq(tcBalanceInitial.add(1)); // add 1 because of round error
-    expect(expectedRewardsWithdrawn).to.be.eq(rewardsMinted.sub(1)); // sub 1 because of round error
+    expect(userBalanceAfter).to.be.eq(userBalanceBefore + expectedUserRewardsWithdrawn);
+    expect(managerBalanceAfter).to.be.eq(managerBalanceBefore + expectedManagerRewardsWithdrawn);
+    expect(tcBalanceAfter).to.be.eq(tcBalanceInitial + 1n); // add 1 because of round error
+    expect(expectedRewardsWithdrawn).to.be.eq(rewardsMinted - 1n); // sub 1 because of round error
   });
 
   it('allows to withdraw stake only if tranche is expired', async function () {
@@ -380,12 +379,12 @@ describe('withdraw', function () {
         tranche,
       );
 
-      rewardsWithdrawn = rewardsWithdrawn.add(rewards);
-      stakeWithdrawn = stakeWithdrawn.add(stake);
+      rewardsWithdrawn = rewardsWithdrawn + rewards;
+      stakeWithdrawn = stakeWithdrawn + stake;
     }
 
-    expect(userBalanceAfter).to.be.eq(userBalanceBefore.add(rewardsWithdrawn).add(stakeWithdrawn));
-    expect(tcBalanceAfter).to.be.eq(tcBalanceBefore.sub(rewardsWithdrawn).sub(stakeWithdrawn));
+    expect(userBalanceAfter).to.be.eq(userBalanceBefore + rewardsWithdrawn + stakeWithdrawn);
+    expect(tcBalanceAfter).to.be.eq(tcBalanceBefore - rewardsWithdrawn - stakeWithdrawn);
   });
 
   it('update tranches', async function () {
@@ -472,7 +471,7 @@ describe('withdraw', function () {
     const randomUserBalanceAfter = await nxm.balanceOf(randomUser.address);
 
     expect(randomUserBalanceAfter).to.eq(randomUserBalanceBefore);
-    expect(userBalanceAfter).to.eq(userBalanceBefore.add(stake));
+    expect(userBalanceAfter).to.eq(userBalanceBefore + stake);
   });
 
   it('allows withdrawing rewards multiple times', async function () {
@@ -502,7 +501,7 @@ describe('withdraw', function () {
 
     const poolId = initializeParams.poolId;
     const lastTokenId = await stakingNFT.totalSupply();
-    const [aliceTokenId, bobTokenId] = [lastTokenId.add(1), lastTokenId.add(2)];
+    const [aliceTokenId, bobTokenId] = [lastTokenId + 1n, lastTokenId + 2n];
 
     // creates 2 deposits at the same time: one for alice, one for bob
     await stakingPool
@@ -541,7 +540,7 @@ describe('withdraw', function () {
     await stakingPool.connect(coverSigner).requestAllocation(amount, allocationRequest);
 
     const { rewards: rewardsMintedAfter } = await tokenController.stakingPoolNXMBalances(poolId);
-    const actualRewardsMinted = rewardsMintedAfter.sub(rewardsMintedBefore);
+    const actualRewardsMinted = rewardsMintedAfter - rewardsMintedBefore;
 
     // advance time and withdraw rewards
     const withdrawStake = false;
@@ -562,31 +561,29 @@ describe('withdraw', function () {
     const secondAccNxmPerRewardShare = await stakingPool.getAccNxmPerRewardsShare();
     const { rewards: rewardsLeft } = await tokenController.stakingPoolNXMBalances(poolId);
 
-    const rewardPerSecond = premium.div(rewardStreamPeriod);
-    const expectedRewardsMinted = rewardPerSecond.mul(rewardStreamPeriod);
+    const rewardPerSecond = premium / BigInt(rewardStreamPeriod);
+    const expectedRewardsMinted = rewardPerSecond * BigInt(rewardStreamPeriod);
 
     const aliceBalanceAfter = await nxm.balanceOf(alice.address);
     const bobBalanceAfter = await nxm.balanceOf(bob.address);
     const managerBalanceAfter = await nxm.balanceOf(manager.address);
 
-    const aliceRewards = aliceBalanceAfter.sub(aliceBalanceBefore);
-    const bobRewards = bobBalanceAfter.sub(bobBalanceBefore);
-    const managerRewards = managerBalanceAfter.sub(managerBalanceBefore);
+    const aliceRewards = aliceBalanceAfter - aliceBalanceBefore;
+    const bobRewards = bobBalanceAfter - bobBalanceBefore;
+    const managerRewards = managerBalanceAfter - managerBalanceBefore;
 
     const managerDeposit = await stakingPool.getDeposit(0, lastTrancheId);
     const rewardShareSupply = await stakingPool.getRewardsSharesSupply();
-    const expectedManagerRewards = expectedRewardsMinted.mul(managerDeposit.rewardsShares).div(rewardShareSupply);
+    const expectedManagerRewards = (expectedRewardsMinted * managerDeposit.rewardsShares) / rewardShareSupply;
 
-    const aliceFirstWithdraw = firstAccNxmPerRewardShare.mul(aliceDeposit.rewardsShares).div(WeiPerEther);
-    const aliceSecondWithdraw = secondAccNxmPerRewardShare
-      .sub(firstAccNxmPerRewardShare)
-      .mul(aliceDeposit.rewardsShares)
-      .div(WeiPerEther);
-    const expectedAliceRewards = aliceFirstWithdraw.add(aliceSecondWithdraw);
+    const aliceFirstWithdraw = (firstAccNxmPerRewardShare * aliceDeposit.rewardsShares) / WeiPerEther;
+    const aliceSecondWithdraw =
+      ((secondAccNxmPerRewardShare - firstAccNxmPerRewardShare) * aliceDeposit.rewardsShares) / WeiPerEther;
+    const expectedAliceRewards = aliceFirstWithdraw + aliceSecondWithdraw;
 
-    const expectedBobRewards = expectedRewardsMinted.mul(aliceDeposit.rewardsShares).div(rewardShareSupply);
-    const expectedWithdrawnRewards = expectedBobRewards.add(expectedAliceRewards).add(expectedManagerRewards);
-    const expectedLeftRewards = expectedRewardsMinted.sub(expectedWithdrawnRewards);
+    const expectedBobRewards = (expectedRewardsMinted * aliceDeposit.rewardsShares) / rewardShareSupply;
+    const expectedWithdrawnRewards = expectedBobRewards + expectedAliceRewards + expectedManagerRewards;
+    const expectedLeftRewards = expectedRewardsMinted - expectedWithdrawnRewards;
 
     expect(managerRewards).to.eq(expectedManagerRewards);
     expect(aliceRewards).to.eq(expectedAliceRewards);
@@ -611,7 +608,7 @@ describe('withdraw', function () {
       const { firstActiveTrancheId: currentTranche } = await getTranches();
 
       await stakingPool.connect(user).depositTo(
-        amount.mul(i * 5 + 1),
+        amount * BigInt(i * 5 + 1),
         currentTranche,
         i === 0 ? 0 : tokenId, // Only create new position for the first tranche
         destination,
@@ -699,8 +696,8 @@ describe('withdraw', function () {
           destination,
         );
 
-        stakeSharesSupply = stakeSharesSupply.add(stakeShares);
-        activeStake = activeStake.add(amount);
+        stakeSharesSupply = stakeSharesSupply + stakeShares;
+        activeStake = activeStake + amount;
       }
 
       trancheIds.push(currentTranche + t);
@@ -712,7 +709,7 @@ describe('withdraw', function () {
     await generateRewards(stakingPool, coverSigner, undefined, undefined, allocationAmount);
 
     const tcBalanceAfterRewards = await nxm.balanceOf(tokenController.address);
-    const rewardsMinted = tcBalanceAfterRewards.sub(tcBalanceBeforeRewards);
+    const rewardsMinted = tcBalanceAfterRewards - tcBalanceBeforeRewards;
 
     await increaseTime(TRANCHE_DURATION * TRANCHE_COUNT);
     await mineNextBlock();
@@ -757,13 +754,13 @@ describe('withdraw', function () {
           tranche,
         );
 
-        stakeWithdrawn = stakeWithdrawn.add(stake);
-        rewardsWithdrawn = rewardsWithdrawn.add(rewards);
-        totalRewardsWithdrawn = totalRewardsWithdrawn.add(rewards);
+        stakeWithdrawn = stakeWithdrawn + stake;
+        rewardsWithdrawn = rewardsWithdrawn + rewards;
+        totalRewardsWithdrawn = totalRewardsWithdrawn + rewards;
       }
 
-      expect(userBalanceAfter).to.be.eq(userBalanceBefore.add(rewardsWithdrawn).add(stakeWithdrawn));
-      expect(tcBalanceAfter).to.be.eq(tcBalanceBefore.sub(rewardsWithdrawn).sub(stakeWithdrawn));
+      expect(userBalanceAfter).to.be.eq(userBalanceBefore + rewardsWithdrawn + stakeWithdrawn);
+      expect(tcBalanceAfter).to.be.eq(tcBalanceBefore - rewardsWithdrawn - stakeWithdrawn);
     }
 
     // withdraw manager rewards
@@ -795,18 +792,18 @@ describe('withdraw', function () {
         tranche,
       );
 
-      stakeWithdrawn = stakeWithdrawn.add(stake);
-      rewardsWithdrawn = rewardsWithdrawn.add(rewards);
-      totalRewardsWithdrawn = totalRewardsWithdrawn.add(rewards);
+      stakeWithdrawn = stakeWithdrawn + stake;
+      rewardsWithdrawn = rewardsWithdrawn + rewards;
+      totalRewardsWithdrawn = totalRewardsWithdrawn + rewards;
     }
 
-    expect(managerBalanceAfter).to.be.eq(managerBalanceBefore.add(rewardsWithdrawn).add(stakeWithdrawn));
-    expect(tcBalanceAfter).to.be.eq(tcBalanceBefore.sub(rewardsWithdrawn).sub(stakeWithdrawn));
+    expect(managerBalanceAfter).to.be.eq(managerBalanceBefore + rewardsWithdrawn + stakeWithdrawn);
+    expect(tcBalanceAfter).to.be.eq(tcBalanceBefore - rewardsWithdrawn - stakeWithdrawn);
 
     // allow 20 wei of accumulated round error in protocol's favor the error is normal given
     // the distribution of the rewards across 4 users (3 stakers + manager) and 5 tranches
     // 4 users * 5 tranches = 20 wei max to remain undistributed
-    expect(totalRewardsWithdrawn).to.be.gte(rewardsMinted.sub(20));
+    expect(totalRewardsWithdrawn).to.be.gte(rewardsMinted - 20n);
     expect(totalRewardsWithdrawn).to.be.lte(rewardsMinted);
   });
 });

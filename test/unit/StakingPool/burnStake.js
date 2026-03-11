@@ -2,8 +2,14 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
-const { getTranches, moveTimeToNextBucket, moveTimeToNextTranche, BUCKET_DURATION, setTime } = require('./helpers');
-const { daysToSeconds } = require('../utils').helpers;
+const {
+  getTranches,
+  moveTimeToNextBucket,
+  moveTimeToNextTranche,
+  BUCKET_DURATION,
+  setTime,
+  daysToSeconds,
+} = require('./helpers');
 
 const { ZeroAddress } = ethers;
 const { parseEther } = ethers;
@@ -141,7 +147,7 @@ describe('burnStake', function () {
 
     // burn activeStake - 1
     const activeStake = await stakingPool.getActiveStake();
-    await stakingPool.connect(fixture.coverSigner).burnStake(activeStake.sub(1), burnStakeParams);
+    await stakingPool.connect(fixture.coverSigner).burnStake(activeStake - 1n, burnStakeParams);
 
     // deposit should work
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
@@ -149,7 +155,7 @@ describe('burnStake', function () {
       .reverted;
 
     // Burn all activeStake
-    await stakingPool.connect(fixture.coverSigner).burnStake(stakedNxmAmount.add(1), burnStakeParams);
+    await stakingPool.connect(fixture.coverSigner).burnStake(stakedNxmAmount + 1n, burnStakeParams);
 
     // deposit should fail
     await expect(
@@ -166,7 +172,7 @@ describe('burnStake', function () {
     await stakingPool.connect(fixture.coverSigner).burnStake(burnAmount, burnStakeParams);
 
     const activeStakeAfter = await stakingPool.getActiveStake();
-    expect(activeStakeAfter).to.equal(activeStakeBefore.sub(burnAmount));
+    expect(activeStakeAfter).to.equal(activeStakeBefore - burnAmount);
   });
 
   it('emits StakeBurned and ActiveStakeUpdated events', async function () {
@@ -176,7 +182,7 @@ describe('burnStake', function () {
     const expectedStakeSharesSupply = await stakingPool.getStakeSharesSupply(); // shouldn't change
 
     const activeStakeBefore = await stakingPool.getActiveStake();
-    const expectedActiveStake = activeStakeBefore.sub(burnAmount);
+    const expectedActiveStake = activeStakeBefore - burnAmount;
 
     const tx = stakingPool.connect(fixture.coverSigner).burnStake(burnAmount, burnStakeParams);
 
@@ -200,8 +206,8 @@ describe('burnStake', function () {
     const balanceAfter = await nxm.balanceOf(tokenController.address);
     const tcBalancesAfter = await tokenController.stakingPoolNXMBalances(poolId);
 
-    expect(balanceAfter).to.equal(balanceBefore.sub(burnAmount));
-    expect(tcBalancesAfter.deposits).to.equal(tcBalancesBefore.deposits.sub(burnAmount));
+    expect(balanceAfter).to.equal(balanceBefore - burnAmount);
+    expect(tcBalancesAfter.deposits).to.equal(tcBalancesBefore.deposits - burnAmount);
   });
 
   it('works correctly if burnAmount > initialStake', async function () {
@@ -214,10 +220,10 @@ describe('burnStake', function () {
     const balanceBefore = await nxm.balanceOf(tokenController.address);
     const tcBalancesBefore = await tokenController.stakingPoolNXMBalances(poolId);
 
-    const burnAmount = initialStake.add(parseEther('1'));
+    const burnAmount = initialStake + parseEther('1');
 
     // leaves 1 wei to avoid division by zero
-    const actualBurnedAmount = initialStake.sub(1);
+    const actualBurnedAmount = initialStake - 1n;
     await expect(stakingPool.connect(fixture.coverSigner).burnStake(burnAmount, burnStakeParams))
       .to.emit(stakingPool, 'StakeBurned')
       .withArgs(actualBurnedAmount);
@@ -226,9 +232,9 @@ describe('burnStake', function () {
     const balanceAfter = await nxm.balanceOf(tokenController.address);
     const tcBalancesAfter = await tokenController.stakingPoolNXMBalances(poolId);
 
-    expect(activeStakeAfter).to.equal(initialStake.sub(actualBurnedAmount));
-    expect(balanceAfter).to.equal(balanceBefore.sub(actualBurnedAmount));
-    expect(tcBalancesAfter.deposits).to.equal(tcBalancesBefore.deposits.sub(actualBurnedAmount));
+    expect(activeStakeAfter).to.equal(initialStake - actualBurnedAmount);
+    expect(balanceAfter).to.equal(balanceBefore - actualBurnedAmount);
+    expect(tcBalancesAfter.deposits).to.equal(tcBalancesBefore.deposits - actualBurnedAmount);
   });
 
   it('correctly deallocates cover tranche allocations', async function () {
@@ -236,7 +242,7 @@ describe('burnStake', function () {
     const { stakingPool } = fixture;
     const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
 
-    const coverTrancheAllocationAmount = stakedNxmAmount.div(NXM_PER_ALLOCATION_UNIT);
+    const coverTrancheAllocationAmount = stakedNxmAmount / NXM_PER_ALLOCATION_UNIT;
 
     const allocationId1 = await stakingPool.getNextAllocationId();
     const allocationAmount1 = stakedNxmAmount;
@@ -247,12 +253,12 @@ describe('burnStake', function () {
 
     {
       const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId1);
-      expect(coverTrancheAllocations.and(MaxUint32)).to.equal(allocationAmount1.div(NXM_PER_ALLOCATION_UNIT));
-      expect(coverTrancheAllocations.shr(32)).to.equal(0);
-      expect(coverTrancheAllocations.shr(64)).to.equal(0);
+      expect(coverTrancheAllocations & MaxUint32).to.equal(allocationAmount1 / NXM_PER_ALLOCATION_UNIT);
+      expect(coverTrancheAllocations >> 32n).to.equal(0);
+      expect(coverTrancheAllocations >> 64n).to.equal(0);
     }
 
-    const allocationAmount2 = stakedNxmAmount.mul(2);
+    const allocationAmount2 = stakedNxmAmount * 2n;
     const allocationId2 = await stakingPool.getNextAllocationId();
 
     // allocates 50% of first tranche and 50% of second tranche
@@ -260,12 +266,12 @@ describe('burnStake', function () {
 
     {
       const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId2);
-      expect(coverTrancheAllocations.and(MaxUint32)).to.equal(coverTrancheAllocationAmount);
-      expect(coverTrancheAllocations.shr(32)).to.equal(coverTrancheAllocationAmount);
-      expect(coverTrancheAllocations.shr(64)).to.equal(0);
+      expect(coverTrancheAllocations & MaxUint32).to.equal(coverTrancheAllocationAmount);
+      expect(coverTrancheAllocations >> 32n).to.equal(coverTrancheAllocationAmount);
+      expect(coverTrancheAllocations >> 64n).to.equal(0);
     }
 
-    const allocationAmount3 = stakedNxmAmount.mul(3);
+    const allocationAmount3 = stakedNxmAmount * 3n;
     const allocationId3 = await stakingPool.getNextAllocationId();
 
     // deallocate first allocation, and allocate new one to be 50% of first tranche,
@@ -284,13 +290,13 @@ describe('burnStake', function () {
 
     {
       const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId3);
-      expect(coverTrancheAllocations.and(MaxUint32)).to.equal(coverTrancheAllocationAmount);
-      expect(coverTrancheAllocations.shr(32).and(MaxUint32)).to.equal(coverTrancheAllocationAmount);
-      expect(coverTrancheAllocations.shr(64)).to.equal(coverTrancheAllocationAmount);
+      expect(coverTrancheAllocations & MaxUint32).to.equal(coverTrancheAllocationAmount);
+      expect((coverTrancheAllocations >> 32n) & MaxUint32).to.equal(coverTrancheAllocationAmount);
+      expect(coverTrancheAllocations >> 64n).to.equal(coverTrancheAllocationAmount);
     }
 
     // deallocates half of the last tranche
-    const firstDeallocationAmount = stakedNxmAmount.div(2);
+    const firstDeallocationAmount = stakedNxmAmount / 2n;
     const params = {
       allocationId: allocationId3,
       productId: allocationRequestParams.productId,
@@ -303,20 +309,20 @@ describe('burnStake', function () {
 
     {
       const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId3);
-      expect(coverTrancheAllocations.and(MaxUint32)).to.equal(coverTrancheAllocationAmount);
-      expect(coverTrancheAllocations.shr(32).and(MaxUint32)).to.equal(coverTrancheAllocationAmount);
-      expect(coverTrancheAllocations.shr(64)).to.equal(stakedNxmAmount.div(2).div(NXM_PER_ALLOCATION_UNIT));
+      expect(coverTrancheAllocations & MaxUint32).to.equal(coverTrancheAllocationAmount);
+      expect((coverTrancheAllocations >> 32n) & MaxUint32).to.equal(coverTrancheAllocationAmount);
+      expect(coverTrancheAllocations >> 64n).to.equal(stakedNxmAmount / 2n / NXM_PER_ALLOCATION_UNIT);
     }
 
     // deallocates 100%
-    const deallocationAmount = allocationAmount3.sub(firstDeallocationAmount);
+    const deallocationAmount = allocationAmount3 - firstDeallocationAmount;
     await stakingPool.connect(fixture.coverSigner).burnStake(0, { ...params, deallocationAmount });
 
     {
       const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId1);
-      expect(coverTrancheAllocations.and(MaxUint32)).to.equal(0);
-      expect(coverTrancheAllocations.shr(32)).to.equal(0);
-      expect(coverTrancheAllocations.shr(64)).to.equal(0);
+      expect(coverTrancheAllocations & MaxUint32).to.equal(0);
+      expect(coverTrancheAllocations >> 32n).to.equal(0);
+      expect(coverTrancheAllocations >> 64n).to.equal(0);
     }
   });
 
@@ -339,7 +345,7 @@ describe('burnStake', function () {
     await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount1, allocationRequestParams);
     const firstAllocationBlock = await ethers.provider.getBlock('latest');
 
-    const allocationAmountInUnit = stakedNxmAmount.div(NXM_PER_ALLOCATION_UNIT);
+    const allocationAmountInUnit = stakedNxmAmount / NXM_PER_ALLOCATION_UNIT;
 
     {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
@@ -348,19 +354,19 @@ describe('burnStake', function () {
       expect(activeAllocations[2]).to.equal(0);
     }
 
-    const allocationAmount2 = stakedNxmAmount.mul(2);
+    const allocationAmount2 = stakedNxmAmount * 2n;
 
     // allocates 50% of first tranche and 50% of second tranche
     await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount2, allocationRequestParams);
 
     {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
-      expect(activeAllocations[0]).to.equal(allocationAmountInUnit.mul(2));
+      expect(activeAllocations[0]).to.equal(allocationAmountInUnit * 2n);
       expect(activeAllocations[1]).to.equal(allocationAmountInUnit);
       expect(activeAllocations[2]).to.equal(0);
     }
 
-    const allocationAmount3 = stakedNxmAmount.mul(3);
+    const allocationAmount3 = stakedNxmAmount * 3n;
     const allocationId3 = await stakingPool.getNextAllocationId();
 
     // deallocate first allocation, and allocate new one to be 50% of first tranche,
@@ -378,13 +384,13 @@ describe('burnStake', function () {
 
     {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
-      expect(activeAllocations[0]).to.equal(allocationAmountInUnit.mul(2));
-      expect(activeAllocations[1]).to.equal(allocationAmountInUnit.mul(2));
+      expect(activeAllocations[0]).to.equal(allocationAmountInUnit * 2n);
+      expect(activeAllocations[1]).to.equal(allocationAmountInUnit * 2n);
       expect(activeAllocations[2]).to.equal(allocationAmountInUnit);
     }
 
     // deallocates half of the last tranche
-    const firstDeallocationAmount = stakedNxmAmount.div(2);
+    const firstDeallocationAmount = stakedNxmAmount / 2n;
     const params = {
       allocationId: allocationId3,
       productId,
@@ -397,13 +403,13 @@ describe('burnStake', function () {
 
     {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
-      expect(activeAllocations[0]).to.equal(allocationAmountInUnit.mul(2));
-      expect(activeAllocations[1]).to.equal(allocationAmountInUnit.mul(2));
-      expect(activeAllocations[2]).to.equal(allocationAmountInUnit.div(2));
+      expect(activeAllocations[0]).to.equal(allocationAmountInUnit * 2n);
+      expect(activeAllocations[1]).to.equal(allocationAmountInUnit * 2n);
+      expect(activeAllocations[2]).to.equal(allocationAmountInUnit / 2n);
     }
 
     // deallocates 100%
-    const deallocationAmount = allocationAmount3.sub(firstDeallocationAmount);
+    const deallocationAmount = allocationAmount3 - firstDeallocationAmount;
     await stakingPool.connect(fixture.coverSigner).burnStake(0, { ...params, deallocationAmount });
 
     {
@@ -484,7 +490,7 @@ describe('burnStake', function () {
     const thirdTrancheGroupId = Math.floor(thirdTrancheId / BUCKET_TRANCHE_GROUP_SIZE);
     const thirdTrancheIndexInGroup = thirdTrancheId % BUCKET_TRANCHE_GROUP_SIZE;
 
-    const allocationAmountInUnit = stakedNxmAmount.div(NXM_PER_ALLOCATION_UNIT);
+    const allocationAmountInUnit = stakedNxmAmount / NXM_PER_ALLOCATION_UNIT;
 
     {
       const expiringCoverBuckets = await stakingPool.expiringCoverBuckets(
@@ -492,12 +498,12 @@ describe('burnStake', function () {
         targetBucketId,
         firstTrancheGroupId,
       );
-      expect(expiringCoverBuckets.shr(firstTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)).to.equal(
+      expect(expiringCoverBuckets >> BigInt(firstTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)).to.equal(
         allocationAmountInUnit,
       );
     }
 
-    const allocationAmount2 = stakedNxmAmount.mul(2);
+    const allocationAmount2 = stakedNxmAmount * 2n;
 
     // allocates 50% of first tranche and 50% of second tranche
     await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount2, allocationRequestParams);
@@ -509,8 +515,8 @@ describe('burnStake', function () {
         firstTrancheGroupId,
       );
       expect(
-        expiringCoverBuckets.shr(firstTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE).and(MaxUint32),
-      ).to.equal(allocationAmountInUnit.mul(2));
+        (expiringCoverBuckets >> BigInt(firstTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)) & MaxUint32,
+      ).to.equal(allocationAmountInUnit * 2n);
     }
 
     {
@@ -520,11 +526,11 @@ describe('burnStake', function () {
         secondTrancheGroupId,
       );
       expect(
-        expiringCoverBuckets.shr(secondTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE).and(MaxUint32),
+        (expiringCoverBuckets >> BigInt(secondTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)) & MaxUint32,
       ).to.equal(allocationAmountInUnit);
     }
 
-    const allocationAmount3 = stakedNxmAmount.mul(3);
+    const allocationAmount3 = stakedNxmAmount * 3n;
     const allocationId3 = await stakingPool.getNextAllocationId();
 
     // deallocate first allocation, and allocate new one to be 50% of first tranche,
@@ -547,8 +553,8 @@ describe('burnStake', function () {
         firstTrancheGroupId,
       );
       expect(
-        expiringCoverBuckets.shr(firstTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE).and(MaxUint32),
-      ).to.equal(allocationAmountInUnit.mul(2));
+        (expiringCoverBuckets >> BigInt(firstTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)) & MaxUint32,
+      ).to.equal(allocationAmountInUnit * 2n);
     }
 
     {
@@ -558,8 +564,8 @@ describe('burnStake', function () {
         secondTrancheGroupId,
       );
       expect(
-        expiringCoverBuckets.shr(secondTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE).and(MaxUint32),
-      ).to.equal(allocationAmountInUnit.mul(2));
+        (expiringCoverBuckets >> BigInt(secondTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)) & MaxUint32,
+      ).to.equal(allocationAmountInUnit * 2n);
     }
 
     {
@@ -569,12 +575,12 @@ describe('burnStake', function () {
         thirdTrancheGroupId,
       );
       expect(
-        expiringCoverBuckets.shr(thirdTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE).and(MaxUint32),
+        (expiringCoverBuckets >> BigInt(thirdTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)) & MaxUint32,
       ).to.equal(allocationAmountInUnit);
     }
 
     // deallocates half of the last tranche
-    const firstDeallocationAmount = stakedNxmAmount.div(2);
+    const firstDeallocationAmount = stakedNxmAmount / 2n;
     const params = {
       allocationId: allocationId3,
       productId,
@@ -592,8 +598,8 @@ describe('burnStake', function () {
         firstTrancheGroupId,
       );
       expect(
-        expiringCoverBuckets.shr(firstTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE).and(MaxUint32),
-      ).to.equal(allocationAmountInUnit.mul(2));
+        (expiringCoverBuckets >> BigInt(firstTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)) & MaxUint32,
+      ).to.equal(allocationAmountInUnit * 2n);
     }
 
     {
@@ -603,8 +609,8 @@ describe('burnStake', function () {
         secondTrancheGroupId,
       );
       expect(
-        expiringCoverBuckets.shr(secondTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE).and(MaxUint32),
-      ).to.equal(allocationAmountInUnit.mul(2));
+        (expiringCoverBuckets >> BigInt(secondTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)) & MaxUint32,
+      ).to.equal(allocationAmountInUnit * 2n);
     }
 
     {
@@ -614,12 +620,12 @@ describe('burnStake', function () {
         thirdTrancheGroupId,
       );
       expect(
-        expiringCoverBuckets.shr(thirdTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE).and(MaxUint32),
-      ).to.equal(allocationAmountInUnit.div(2));
+        (expiringCoverBuckets >> BigInt(thirdTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)) & MaxUint32,
+      ).to.equal(allocationAmountInUnit / 2n);
     }
 
     // deallocates 100%
-    const deallocationAmount = allocationAmount3.sub(firstDeallocationAmount);
+    const deallocationAmount = allocationAmount3 - firstDeallocationAmount;
     await stakingPool.connect(fixture.coverSigner).burnStake(0, { ...params, deallocationAmount });
 
     {
@@ -629,7 +635,7 @@ describe('burnStake', function () {
         firstTrancheGroupId,
       );
       expect(
-        expiringCoverBuckets.shr(firstTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE).and(MaxUint32),
+        (expiringCoverBuckets >> BigInt(firstTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)) & MaxUint32,
       ).to.equal(allocationAmountInUnit);
     }
 
@@ -640,7 +646,7 @@ describe('burnStake', function () {
         secondTrancheGroupId,
       );
       expect(
-        expiringCoverBuckets.shr(secondTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE).and(MaxUint32),
+        (expiringCoverBuckets >> BigInt(secondTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)) & MaxUint32,
       ).to.equal(allocationAmountInUnit);
     }
 
@@ -651,7 +657,7 @@ describe('burnStake', function () {
         thirdTrancheGroupId,
       );
       expect(
-        expiringCoverBuckets.shr(thirdTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE).and(MaxUint32),
+        (expiringCoverBuckets >> BigInt(thirdTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)) & MaxUint32,
       ).to.equal(0);
     }
   });

@@ -1,14 +1,15 @@
 const { expect } = require('chai');
-const { ethers } = require('hardhat');
-const { calculateBasePrice, calculateBasePremium, calculatePriceBump } = require('./helpers');
+const { ethers, nexus } = require('hardhat');
+const { calculateBasePrice, calculateBasePremium, calculatePriceBump, daysToSeconds } = require('./helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
-const { daysToSeconds } = require('../utils').helpers;
-const { divCeil } = require('../utils').bnMath;
-const { DIVIDE_BY_ZERO } = require('../utils').errors;
+const { BigIntMath } = nexus.helpers;
+const { divCeil } = BigIntMath;
 
 const { parseEther } = ethers;
+
+const DIVIDE_BY_ZERO = 0x12;
 
 const stakedProductTemplate = {
   lastEffectiveWeight: 50n,
@@ -88,7 +89,7 @@ describe('calculatePremium', function () {
 
     for (const spreadsheetItem of spreadsheet) {
       // advance time
-      currentTime = currentTime.add(spreadsheetItem.timeSinceLastBuy);
+      currentTime = currentTime + spreadsheetItem.timeSinceLastBuy;
 
       const amount = spreadsheetItem.coverAmountInNXM;
       const allocationAmount = divCeil(amount, NXM_PER_ALLOCATION_UNIT);
@@ -97,9 +98,9 @@ describe('calculatePremium', function () {
       const expectedBasePrice = calculateBasePrice(currentTime, product, PRICE_CHANGE_PER_DAY);
       const expectedBasePremium = calculateBasePremium(amount, expectedBasePrice, period, fixture.config);
       const expectedPriceBump = calculatePriceBump(amount, PRICE_BUMP_RATIO, totalCapacity, NXM_PER_ALLOCATION_UNIT);
-      const expectedBumpedPrice = expectedBasePrice.add(expectedPriceBump);
+      const expectedBumpedPrice = expectedBasePrice + expectedPriceBump;
       const expectedPremium = expectedBasePremium;
-      const expectedPoolCapacityBeforePercentage = initialCapacityUsed.mul(10000).div(totalCapacity);
+      const expectedPoolCapacityBeforePercentage = (initialCapacityUsed * 10000n) / totalCapacity;
 
       // cross-check spreadsheet vs js
       expect(expectedBasePrice).to.be.equal(spreadsheetItem.basePrice);
@@ -132,7 +133,7 @@ describe('calculatePremium', function () {
         bumpedPrice: updatedProduct.bumpedPrice,
         bumpedPriceUpdateTime: updatedProduct.bumpedPriceUpdateTime,
       };
-      initialCapacityUsed = initialCapacityUsed.add(allocationAmount);
+      initialCapacityUsed = initialCapacityUsed + allocationAmount;
     }
   });
 
@@ -229,7 +230,7 @@ describe('calculatePremium', function () {
     const coverAmount = 1n;
     const allocationAmount = divCeil(coverAmount, NXM_PER_ALLOCATION_UNIT);
 
-    const totalCapacity = allocationAmount.mul(100);
+    const totalCapacity = allocationAmount * 100n;
 
     const expectedBasePrice = calculateBasePrice(timestamp, stakedProduct, fixture.config.PRICE_CHANGE_PER_DAY);
     const expectedBasePremium = calculateBasePremium(coverAmount, expectedBasePrice, period, fixture.config);
@@ -260,7 +261,7 @@ describe('calculatePremium', function () {
     const coverAmount = parseEther('1');
     const allocationAmount = divCeil(coverAmount, NXM_PER_ALLOCATION_UNIT);
 
-    const totalCapacity = coverAmount.mul(100);
+    const totalCapacity = coverAmount * 100n;
 
     const expectedBasePrice = calculateBasePrice(timestamp, stakedProduct, fixture.config.PRICE_CHANGE_PER_DAY);
     const expectedBasePremium = calculateBasePremium(coverAmount, expectedBasePrice, period, fixture.config);

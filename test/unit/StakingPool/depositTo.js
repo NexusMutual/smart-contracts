@@ -1,15 +1,15 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { increaseTime } = require('../utils').evm;
+const { increaseTime } = require('../../utils/evm');
 
-const { getTranches, calculateStakeShares, setTime, TRANCHE_DURATION } = require('./helpers');
+const { getTranches, calculateStakeShares, setTime, TRANCHE_DURATION, daysToSeconds } = require('./helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
-const { daysToSeconds } = require('../utils').helpers;
-const { DIVISION_BY_ZERO } = require('../utils').errors;
 
 const { ZeroAddress, MaxUint256 } = ethers;
 const { parseEther } = ethers;
+
+const DIVISION_BY_ZERO = 0x12;
 
 const depositToFixture = {
   amount: parseEther('100'),
@@ -244,8 +244,8 @@ describe('depositTo', function () {
 
     expect(updatedDepositData.pendingRewards).to.equal(0);
     expect(updatedDepositData.lastAccNxmPerRewardShare).to.equal(0);
-    expect(updatedDepositData.stakeShares).to.equal(firstDepositData.stakeShares.add(newShares));
-    expect(updatedDepositData.rewardsShares).to.equal(firstDepositData.rewardsShares.add(newShares));
+    expect(updatedDepositData.stakeShares).to.equal(firstDepositData.stakeShares + newShares);
+    expect(updatedDepositData.rewardsShares).to.equal(firstDepositData.rewardsShares + newShares);
   });
 
   it('reverts deposit to an existing nft that msg.sender is not an owner of / approved for', async function () {
@@ -310,9 +310,9 @@ describe('depositTo', function () {
     expect(secondDepositData.lastAccNxmPerRewardShare).to.equal(secondAccNxmPerRewardsShare);
     expect(secondDepositData.pendingRewards).to.not.equal(0);
     expect(secondDepositData.pendingRewards).to.equal(
-      depositData.rewardsShares
-        .mul(secondDepositData.lastAccNxmPerRewardShare.sub(depositData.lastAccNxmPerRewardShare))
-        .div(parseEther('1')),
+      (depositData.rewardsShares *
+        (secondDepositData.lastAccNxmPerRewardShare - depositData.lastAccNxmPerRewardShare)) /
+        parseEther('1'),
     );
 
     // Last deposit
@@ -324,9 +324,9 @@ describe('depositTo', function () {
     expect(lastDepositData.lastAccNxmPerRewardShare).to.equal(lastAccNxmPerRewardsShare);
     expect(lastDepositData.pendingRewards).to.not.equal(0);
 
-    const accDiff = lastDepositData.lastAccNxmPerRewardShare.sub(secondDepositData.lastAccNxmPerRewardShare);
-    const newRewards = secondDepositData.rewardsShares.mul(accDiff).div(parseEther('1'));
-    const expectedPendingRewards = secondDepositData.pendingRewards.add(newRewards);
+    const accDiff = lastDepositData.lastAccNxmPerRewardShare - secondDepositData.lastAccNxmPerRewardShare;
+    const newRewards = (secondDepositData.rewardsShares * accDiff) / parseEther('1');
+    const expectedPendingRewards = secondDepositData.pendingRewards + newRewards;
     expect(lastDepositData.pendingRewards).to.equal(expectedPendingRewards);
   });
 
@@ -446,7 +446,7 @@ describe('depositTo', function () {
 
       expect(activeStake).to.equal(amount);
       expect(stakeSharesSupply).to.equal(userDeposit.stakeShares);
-      expect(rewardsSharesSupply).to.equal(userDeposit.rewardsShares.add(managerDeposit.rewardsShares));
+      expect(rewardsSharesSupply).to.equal(userDeposit.rewardsShares + managerDeposit.rewardsShares);
     }
   });
 
@@ -472,8 +472,8 @@ describe('depositTo', function () {
       const userDeposit = await stakingPool.deposits(expectedTokenId, firstActiveTrancheId);
       const managerDeposit = await stakingPool.deposits(managerDepositId, firstActiveTrancheId);
 
-      const totalRewardShares = userDeposit.rewardsShares.add(managerDeposit.rewardsShares);
-      const expectedManagerRewardsShares = totalRewardShares.mul(initialPoolFee).div(POOL_FEE_DENOMINATOR);
+      const totalRewardShares = userDeposit.rewardsShares + managerDeposit.rewardsShares;
+      const expectedManagerRewardsShares = (totalRewardShares * BigInt(initialPoolFee)) / POOL_FEE_DENOMINATOR;
       expect(managerDeposit.rewardsShares).to.equal(expectedManagerRewardsShares);
     }
   });
@@ -501,7 +501,7 @@ describe('depositTo', function () {
 
       const tranche = await stakingPool.getTranche(firstActiveTrancheId);
       expect(tranche.stakeShares).to.equal(userDeposit.stakeShares);
-      expect(tranche.rewardsShares).to.equal(userDeposit.rewardsShares.add(managerDeposit.rewardsShares));
+      expect(tranche.rewardsShares).to.equal(userDeposit.rewardsShares + managerDeposit.rewardsShares);
     }
   });
 
@@ -520,8 +520,8 @@ describe('depositTo', function () {
 
     const userBalanceAfter = await nxm.balanceOf(user.address);
     const tokenControllerBalanceAfter = await nxm.balanceOf(tokenController.address);
-    expect(userBalanceAfter).to.equal(userBalanceBefore.sub(amount));
-    expect(tokenControllerBalanceAfter).to.equal(tokenControllerBalanceBefore.add(amount));
+    expect(userBalanceAfter).to.equal(userBalanceBefore - amount);
+    expect(tokenControllerBalanceAfter).to.equal(tokenControllerBalanceBefore + amount);
   });
 
   it('allows to deposit to multiple tranches', async function () {
@@ -547,12 +547,12 @@ describe('depositTo', function () {
 
     await stakingPool.connect(user).multicall(depositToParams);
 
-    const totalAmount = amount.mul(tranches.length);
+    const totalAmount = amount * BigInt(tranches.length);
 
     const userBalanceAfter = await nxm.balanceOf(user.address);
     const tokenControllerBalanceAfter = await nxm.balanceOf(tokenController.address);
-    expect(userBalanceAfter).to.equal(userBalanceBefore.sub(totalAmount));
-    expect(tokenControllerBalanceAfter).to.equal(tokenControllerBalanceBefore.add(totalAmount));
+    expect(userBalanceAfter).to.equal(userBalanceBefore - totalAmount);
+    expect(tokenControllerBalanceAfter).to.equal(tokenControllerBalanceBefore + totalAmount);
 
     let totalStakeShares = 0n;
     let stakedAmount = 0n;
@@ -564,7 +564,7 @@ describe('depositTo', function () {
       const newShares =
         tokenId === 1
           ? sqrt(amount) // first deposit uses sqrt(amount)
-          : amount.mul(totalStakeShares).div(stakedAmount);
+          : (amount * totalStakeShares) / stakedAmount;
 
       expect(deposit.pendingRewards).to.equal(0);
       expect(deposit.lastAccNxmPerRewardShare).to.equal(0);
@@ -574,15 +574,15 @@ describe('depositTo', function () {
       const managerDeposit = await stakingPool.deposits(managerDepositId, trancheId);
 
       const stakersRewardSharesRatio = POOL_FEE_DENOMINATOR - BigInt(initialPoolFee);
-      const expectedManagerRewardsShares = deposit.rewardsShares.mul(initialPoolFee).div(stakersRewardSharesRatio);
+      const expectedManagerRewardsShares = (deposit.rewardsShares * BigInt(initialPoolFee)) / stakersRewardSharesRatio;
       expect(managerDeposit.rewardsShares).to.equal(expectedManagerRewardsShares);
 
       const tranche = await stakingPool.getTranche(trancheId);
       expect(tranche.stakeShares).to.equal(deposit.stakeShares);
-      expect(tranche.rewardsShares).to.equal(deposit.rewardsShares.add(managerDeposit.rewardsShares));
+      expect(tranche.rewardsShares).to.equal(deposit.rewardsShares + managerDeposit.rewardsShares);
 
-      stakedAmount = stakedAmount.add(amount);
-      totalStakeShares = totalStakeShares.add(deposit.stakeShares);
+      stakedAmount = stakedAmount + amount;
+      totalStakeShares = totalStakeShares + deposit.stakeShares;
     }
   });
 
@@ -700,8 +700,8 @@ describe('depositTo', function () {
 
     const managerBalanceAfter = await nxm.balanceOf(manager.address);
     const tokenControllerBalanceAfter = await nxm.balanceOf(tokenController.address);
-    expect(managerBalanceAfter).to.equal(managerBalanceBefore.sub(amount));
-    expect(tokenControllerBalanceAfter).to.equal(tokenControllerBalanceBefore.add(amount));
+    expect(managerBalanceAfter).to.equal(managerBalanceBefore - amount);
+    expect(tokenControllerBalanceAfter).to.equal(tokenControllerBalanceBefore + amount);
   });
 
   it('should revert if trying to deposit with token from other pool', async function () {
@@ -715,7 +715,7 @@ describe('depositTo', function () {
     const poolId = await stakingPool.getPoolId();
 
     // mint a token belonging to a different pool
-    await stakingNFT.mint(poolId.add(1), user.address);
+    await stakingNFT.mint(poolId + 1n, user.address);
     const tokenId = await stakingNFT.totalSupply();
 
     await expect(

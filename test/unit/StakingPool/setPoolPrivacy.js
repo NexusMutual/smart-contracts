@@ -37,12 +37,9 @@ async function setPoolPrivacySetup() {
 describe('setPoolPrivacy', function () {
   it('reverts if manager is not the caller', async function () {
     const fixture = await loadFixture(setPoolPrivacySetup);
-    const { stakingPool, tokenController } = fixture;
+    const { stakingPool } = fixture;
     const { defaultSender: manager } = fixture.accounts;
     const [nonManager] = fixture.accounts.nonMembers;
-
-    const poolId = await stakingPool.getPoolId();
-    await tokenController.setStakingPoolManager(poolId, manager.address);
 
     await expect(stakingPool.connect(nonManager).setPoolPrivacy(true)).to.be.revertedWithCustomError(
       stakingPool,

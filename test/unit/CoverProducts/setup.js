@@ -6,10 +6,11 @@ const { MaxUint256 } = ethers;
 const { Role } = nexus.constants;
 const { hex } = nexus.helpers;
 
-const Assets = {
-  ETH: 1,
-  DAI: 2,
-  USDC: 3,
+const COVER_ASSET = {
+  ETH: 1 << 0, // 1
+  // DAI: 1 << 1, // 2 - deprecated
+  USDC: 1 << 6, // 64
+  CBBTC: 1 << 7, // 128
 };
 
 async function setup() {
@@ -33,9 +34,17 @@ async function setup() {
 
   const pool = await ethers.deployContract('PoolMock');
   await pool.setAssets([
-    { assetAddress: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', isCoverAsset: true, isAbandoned: false },
-    { assetAddress: dai.target, isCoverAsset: true, isAbandoned: false },
-    { assetAddress: usdc.target, isCoverAsset: true, isAbandoned: false },
+    // cover assets
+    { assetAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE', isCoverAsset: true, isAbandoned: false }, // 0 ETH
+    { assetAddress: dai.target, isCoverAsset: true, isAbandoned: true }, // 2 DAI - deprecated
+    // non-cover assets
+    { assetAddress: ethers.Wallet.createRandom().address, isCoverAsset: false, isAbandoned: false }, // 1 stETH
+    { assetAddress: ethers.Wallet.createRandom().address, isCoverAsset: false, isAbandoned: false }, // 2 NXMTY
+    { assetAddress: ethers.Wallet.createRandom().address, isCoverAsset: false, isAbandoned: false }, // 3 rETH
+    { assetAddress: ethers.Wallet.createRandom().address, isCoverAsset: false, isAbandoned: false }, // 4 NXMIS
+    // cover assets
+    { assetAddress: usdc.target, isCoverAsset: true, isAbandoned: false }, // 6 USDC
+    { assetAddress: ethers.Wallet.createRandom().address, isCoverAsset: true, isAbandoned: false }, // 7 CBBTC
   ]);
 
   // set contract addresses
@@ -130,7 +139,7 @@ async function setup() {
         productType: 0,
         minPrice: 0,
         __gap: 0,
-        coverAssets: Assets.ETH | Assets.DAI, // ETH and DAI, no USDC
+        coverAssets: COVER_ASSET.ETH | COVER_ASSET.USDC, // ETH and USDC, no CBBTC
         initialPriceRatio: 1000, // 10%
         capacityReductionRatio: 0,
         isDeprecated: false,
@@ -146,7 +155,7 @@ async function setup() {
         productType: 0,
         minPrice: 0,
         __gap: 0,
-        coverAssets: Assets.ETH | Assets.DAI, // ETH and DAI, no USDC
+        coverAssets: COVER_ASSET.ETH | COVER_ASSET.USDC, // ETH and USDC, no CBBTC
         initialPriceRatio: 1000, // 10%
         capacityReductionRatio: 0,
         isDeprecated: false,
@@ -178,11 +187,14 @@ async function setup() {
     stakingProducts,
     coverProducts,
     config: { DEFAULT_MIN_PRICE_RATIO, BUCKET_SIZE },
-    Assets,
+    COVER_ASSET,
     pooledStakingSigner,
     productTypes,
     products,
   };
 }
 
-module.exports = setup;
+module.exports = {
+  setup,
+  COVER_ASSET,
+};

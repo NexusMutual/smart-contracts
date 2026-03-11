@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
-const setup = require('./setup');
+const { setup, COVER_ASSET } = require('./setup');
 
 const { MaxUint256 } = ethers;
 
@@ -15,7 +15,7 @@ describe('setProducts', function () {
     productType: 0,
     minPrice: 0,
     __gap: 0,
-    coverAssets: parseInt('111', 2), // ETH/DAI/USDC
+    coverAssets: COVER_ASSET.ETH | COVER_ASSET.USDC | COVER_ASSET.CBBTC, // ETH/USDC/CBBTC
     initialPriceRatio: 1000, // 10%
     capacityReductionRatio: capacityFactor, // 100%
     isDeprecated: false,
@@ -73,7 +73,6 @@ describe('setProducts', function () {
     const { timestamp } = await ethers.provider.getBlock(receipt.blockNumber);
 
     const actualProductMetadata = await coverProducts.getLatestProductMetadata(expectedProductId);
-
     expect(actualProductMetadata.timestamp).to.be.equal(timestamp);
     expect(actualProductMetadata.ipfsHash).to.be.equal(productParams.ipfsMetadata);
   });
@@ -236,8 +235,8 @@ describe('setProducts', function () {
     const { coverProducts } = fixture;
     const [advisoryBoardMember] = fixture.accounts.advisoryBoardMembers;
 
-    // ETH = 1, DAI = 2, 3 & 4 don't exist
-    const coverAssets = 0b1111;
+    // ETH, USDC, and CBBTC are supported, bit 2 is unsupported
+    const coverAssets = COVER_ASSET.ETH | COVER_ASSET.USDC | COVER_ASSET.CBBTC | (1 << 2);
     const product = { ...productTemplate, coverAssets };
     const productParams = { ...productParamsTemplate, product };
 
@@ -255,7 +254,7 @@ describe('setProducts', function () {
     const productParams = { ...productParamsTemplate };
     await coverProducts.connect(advisoryBoardMember0).setProducts([productParams]);
 
-    const coverAssets = parseInt('1111', 2); // ETH DAI, USDC and WBTC supported
+    const coverAssets = COVER_ASSET.ETH | COVER_ASSET.USDC | COVER_ASSET.CBBTC | (1 << 2); // includes unsupported bit 2
     const product = { ...productTemplate, coverAssets };
     const updatedProductParams = { ...productParamsTemplate, product, productId };
     await expect(

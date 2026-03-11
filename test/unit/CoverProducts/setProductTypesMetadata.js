@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
-const setup = require('./setup');
+const { setup } = require('./setup');
 
 describe('setProductTypesMetadata', function () {
   it('should revert if called by address not on advisory board', async function () {

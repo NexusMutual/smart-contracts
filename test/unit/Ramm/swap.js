@@ -95,7 +95,7 @@ describe('swap', function () {
     await expect(swap).to.be.revertedWithCustomError(ramm, 'OneInputRequired');
   });
 
-  it('should revert with OneInputOnly if both NXM and ETH values are greater then 0', async function () {
+  it('should revert with OneInputOnly if both NXM and ETH values are greater than 0', async function () {
     const fixture = await loadFixture(setup);
     const { ramm } = fixture.contracts;
     const [member] = fixture.accounts.members;
@@ -580,14 +580,16 @@ describe('swap', function () {
     const nextBlockTimestamp = timestamp + 5 * 60;
     const deadline = nextBlockTimestamp + 5 * 60;
 
-    // Set ETH reserve < TARGET_LIQUIDITY (5000) to force injection
+    // The first setEthReserveValue call sets reserves for getStateAtBlockTimestamp/getExpectedStateAfterSwapEthForNxm
+    // at the current block context so expected nxmOut is computed before time.setNextBlockTimestamp advances time.
     await setEthReserveValue(ramm.target, 4999);
     const stateForCalc = await getStateAtBlockTimestamp(ramm, pool, tokenController, nextBlockTimestamp);
     const { nxmOut } = getExpectedStateAfterSwapEthForNxm(stateForCalc, ethIn);
 
     await time.setNextBlockTimestamp(nextBlockTimestamp);
 
-    // Set ETH reserve < TARGET_LIQUIDITY (5000) to force injection
+    // Second setEthReserveValue repeats after time.setNextBlockTimestamp so calculateEthToInject (via ramm.loadState)
+    // uses the same reserve baseline in the new block timestamp context for the swap/EthInjected assertion.
     await setEthReserveValue(ramm.target, 4999);
 
     const state = await ramm.loadState();

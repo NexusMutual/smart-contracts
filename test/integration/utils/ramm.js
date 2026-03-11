@@ -1,7 +1,3 @@
-const { ethers } = require('hardhat');
-
-const { parseEther } = ethers;
-
 /**
  * Loads RAMM state and calculates reserves for a given timestamp
  * @param {Object} ramm - RAMM contract instance

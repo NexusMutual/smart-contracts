@@ -68,6 +68,8 @@ async function setup() {
       LIQ_SPEED_A: await ramm.LIQ_SPEED_A(),
       LIQ_SPEED_B: await ramm.LIQ_SPEED_B(),
       NORMAL_RATCHET_SPEED: await ramm.NORMAL_RATCHET_SPEED(),
+      SPOT_PRICE_A,
+      SPOT_PRICE_B,
       ...internalConstants,
     },
   };
@@ -75,6 +77,4 @@ async function setup() {
 
 module.exports = {
   setup,
-  SPOT_PRICE_A,
-  SPOT_PRICE_B,
 };

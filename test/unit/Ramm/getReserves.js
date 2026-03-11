@@ -3,21 +3,23 @@ const { expect } = require('chai');
 const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { calculateEthToExtract, calculateEthToInject } = require('./rammCalculations');
-const { setup, SPOT_PRICE_A, SPOT_PRICE_B } = require('./setup');
+const { setup } = require('./setup');
 
 const { parseEther } = ethers;
 
-const INITIAL_LIQUIDITY = parseEther('5000');
-const FAST_RATCHET_SPEED = 5000n;
-const INITIAL_BUDGET = parseEther('43835');
-
-const INITIAL_RAMM_STATE = {
+const getInitialRammState = ({
+  SPOT_PRICE_A,
+  SPOT_PRICE_B,
+  INITIAL_LIQUIDITY,
+  INITIAL_BUDGET,
+  FAST_RATCHET_SPEED,
+}) => ({
   nxmA: (INITIAL_LIQUIDITY * parseEther('1')) / SPOT_PRICE_A,
   nxmB: (INITIAL_LIQUIDITY * parseEther('1')) / SPOT_PRICE_B,
   eth: INITIAL_LIQUIDITY,
   budget: INITIAL_BUDGET,
   ratchetSpeedB: FAST_RATCHET_SPEED,
-};
+});
 
 const getExpectedNxmA = (
   state,
@@ -142,7 +144,7 @@ describe('_getReserves', function () {
 
     // Set eth to 5100 so its > 5000 TARGET_LIQUIDITY (i.e. extract ETH)
     const state = {
-      ...INITIAL_RAMM_STATE,
+      ...getInitialRammState(fixture.constants),
       timestamp: updatedAt,
       eth: TARGET_LIQUIDITY + parseEther('100'),
     };
@@ -190,7 +192,7 @@ describe('_getReserves', function () {
 
     // Set eth == TARGET_LIQUIDITY (i.e. extract ETH)
     const state = {
-      ...INITIAL_RAMM_STATE,
+      ...getInitialRammState(fixture.constants),
       timestamp: updatedAt,
       eth: TARGET_LIQUIDITY,
     };
@@ -238,7 +240,7 @@ describe('_getReserves', function () {
 
     // Set eth be less than TARGET_LIQUIDITY (i.e. inject ETH)
     const state = {
-      ...INITIAL_RAMM_STATE,
+      ...getInitialRammState(fixture.constants),
       timestamp: updatedAt,
       eth: TARGET_LIQUIDITY - parseEther('100'),
     };
@@ -288,7 +290,7 @@ describe('_getReserves', function () {
 
     // Set eth be less than TARGET_LIQUIDITY (i.e. inject ETH)
     const state = {
-      ...INITIAL_RAMM_STATE,
+      ...getInitialRammState(fixture.constants),
       timestamp: updatedAt,
       eth: TARGET_LIQUIDITY - parseEther('100'),
     };
@@ -338,7 +340,7 @@ describe('_getReserves', function () {
 
     // Set eth be less than TARGET_LIQUIDITY (i.e. inject ETH)
     const state = {
-      ...INITIAL_RAMM_STATE,
+      ...getInitialRammState(fixture.constants),
       timestamp: updatedAt,
       eth: TARGET_LIQUIDITY - parseEther('100'),
     };
@@ -387,7 +389,7 @@ describe('_getReserves', function () {
 
     // Set eth be less than TARGET_LIQUIDITY (i.e. inject ETH) and budget to 0 (i.e. elapsed > timeLeftOnBudget)
     const state = {
-      ...INITIAL_RAMM_STATE,
+      ...getInitialRammState(fixture.constants),
       budget: 0n,
       timestamp: updatedAt,
       eth: TARGET_LIQUIDITY - parseEther('100'),
@@ -436,7 +438,7 @@ describe('_getReserves', function () {
 
     // Set budget to 0 and eth == TARGET_LIQUIDITY (i.e. extract ETH)
     const state = {
-      ...INITIAL_RAMM_STATE,
+      ...getInitialRammState(fixture.constants),
       timestamp: updatedAt,
       budget: 0n,
       eth: TARGET_LIQUIDITY,

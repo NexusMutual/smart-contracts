@@ -7,7 +7,7 @@ const { getAccounts, setAutomine } = require('../utils');
 
 const { parseEther } = ethers;
 const { ContractIndexes, PauseTypes } = nexus.constants;
-const { calculateInternalPrice } = nexus.protocol;
+const { calculateInternalPrice } = require('./rammCalculations');
 
 describe('getInternalPrice', function () {
   it('should return the internal price', async function () {
@@ -60,14 +60,14 @@ describe('getInternalPrice', function () {
   });
 
   it('should return the bonding curve as internal price right after deployment', async function () {
+    const fixture = await loadFixture(setup);
+    const { SPOT_PRICE_A, SPOT_PRICE_B } = fixture.constants;
+
     const accounts = await getAccounts();
     const token = await ethers.deployContract('NXMTokenMock');
     const tokenController = await ethers.deployContract('RAMockTokenController', [token.target]);
     const pool = await ethers.deployContract('PoolMock');
     const registry = await ethers.deployContract('RegistryMock');
-
-    const SPOT_PRICE_A = parseEther('0.0347');
-    const SPOT_PRICE_B = parseEther('0.0152');
 
     await setBalance(pool.target, parseEther('145000'));
 
@@ -129,11 +129,11 @@ describe('getInternalPrice', function () {
       timestamp: BigInt(targetTimestamp),
     };
 
-    const observations = Array(3).fill({
+    const observations = Array.from({ length: 3 }, () => ({
       timestamp: 0n,
       priceCumulativeAbove: 0n,
       priceCumulativeBelow: 0n,
-    });
+    }));
     observations[previousIdx] = {
       timestamp: BigInt(previousTimestamp),
       priceCumulativeAbove: (parseEther('1') * state.eth * BigInt(periodSizeNum)) / state.nxmA,
@@ -183,11 +183,11 @@ describe('getInternalPrice', function () {
       timestamp: BigInt(targetTimestamp),
     };
 
-    const observations = Array(3).fill({
+    const observations = Array.from({ length: 3 }, () => ({
       timestamp: 0n,
       priceCumulativeAbove: 0n,
       priceCumulativeBelow: 0n,
-    });
+    }));
     observations[previousIdx] = {
       timestamp: BigInt(previousTimestamp),
       priceCumulativeAbove: 0n,

@@ -4,6 +4,14 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 
 describe('removeBudget', function () {
+  it('should revert if caller is not governor', async function () {
+    const fixture = await loadFixture(setup);
+    const { ramm } = fixture.contracts;
+    const [member] = fixture.accounts.members;
+
+    await expect(ramm.connect(member).removeBudget()).to.be.revertedWithCustomError(ramm, 'Unauthorized');
+  });
+
   it('should set the budget to 0', async function () {
     const fixture = await loadFixture(setup);
     const { ramm } = fixture.contracts;

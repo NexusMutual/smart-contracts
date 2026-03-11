@@ -1,4 +1,3 @@
-const { nexus } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers');
 
@@ -8,9 +7,8 @@ const {
   calculateEthToInject,
   getExpectedObservations,
   setEthReserveValue,
+  calculateInternalPrice,
 } = require('./rammCalculations');
-
-const { calculateInternalPrice } = nexus.protocol;
 
 describe('getInternalPriceAndUpdateTwap', function () {
   it('should return the internal price and update the twap', async function () {

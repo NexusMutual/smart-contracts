@@ -8,16 +8,6 @@ const { timeTillBv, calculateTwapAboveForPeriod, calculateTwapBelowForPeriod } =
 const { parseEther } = ethers;
 const { BigIntMath } = nexus.helpers;
 
-function divCeil(a, b) {
-  const aBigInt = BigInt(a);
-  const bBigInt = BigInt(b);
-  let result = aBigInt / bBigInt;
-  if (aBigInt % bBigInt !== 0n) {
-    result = result + 1n;
-  }
-  return result;
-}
-
 describe('getObservation', function () {
   it('should check initial observation', async function () {
     const fixture = await loadFixture(setup);
@@ -40,7 +30,7 @@ describe('getObservation', function () {
 
     let priceCumulativeAbove = 0n;
     let priceCumulativeBelow = 0n;
-    const endIdx = divCeil(timestamp, PERIOD_SIZE);
+    const endIdx = BigIntMath.divCeil(timestamp, PERIOD_SIZE);
     let previousTimestamp = (endIdx - 11n) * PERIOD_SIZE;
     const expectedObservations = [];
 

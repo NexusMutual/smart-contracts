@@ -151,37 +151,6 @@ function calculateObservation(state, previousState, previousObservation, capital
 }
 
 /**
- * Calculates the expected internal NXM price in ETH
- */
-async function getInternalPrice(ramm, pool, tokenController, timestamp) {
-  const capital = await pool.getPoolValueInEth();
-  const supply = await tokenController.totalSupply();
-  const mcrValue = await pool.getMCR();
-  const context = {
-    capital,
-    supply,
-    mcr: mcrValue,
-  };
-
-  const GRANULARITY = await ramm.GRANULARITY();
-  const PERIOD_SIZE = await ramm.PERIOD_SIZE();
-
-  const previousState = await ramm.loadState();
-  const previousObservations = [];
-
-  for (let i = 0; i < 3; i++) {
-    const observation = await ramm.observations(i);
-    previousObservations[i] = observation.toObject();
-  }
-
-  const [currentState] = await ramm._getReserves(previousState.toObject(), context, timestamp);
-
-  const observations = await ramm._updateTwap(previousState.toObject(), previousObservations, context, timestamp);
-
-  return calculateInternalPrice(currentState, observations, capital, supply, timestamp, { GRANULARITY, PERIOD_SIZE });
-}
-
-/**
  * Retrieves the expected observations for the given timestamp
  *
  * @param {Object} previousState - The previous state of the Ramm contract
@@ -203,6 +172,7 @@ async function getExpectedObservations(previousState, ramm, pool, tokenControlle
   const observationsAfterExpected = [];
   const currentTimestampBigInt = BigInt(currentTimestamp);
   const endIdx = Number(BigIntMath.divCeil(currentTimestampBigInt, PERIOD_SIZE));
+  let currPreviousState = previousState;
 
   for (let i = endIdx - 2; endIdx >= i; i++) {
     const previousObservationIndex = Number(BigInt(i - 1) % GRANULARITY);
@@ -215,16 +185,16 @@ async function getExpectedObservations(previousState, ramm, pool, tokenControlle
     const observationIndex = Number(BigInt(i) % GRANULARITY);
     const timestamp = Math.min(Number(currentTimestampBigInt), Number(PERIOD_SIZE * BigInt(i)));
 
-    const [stateResult] = await ramm._getReserves(previousState, context, BigInt(timestamp));
+    const [stateResult] = await ramm._getReserves(currPreviousState, context, BigInt(timestamp));
     const state = stateResult.toObject ? stateResult.toObject() : stateResult;
 
     const observationData = calculateObservation(
       state,
-      previousState,
+      currPreviousState,
       previousObservation,
       context.capital,
       context.supply,
-      BigInt(timestamp) - previousState.timestamp,
+      BigInt(timestamp) - currPreviousState.timestamp,
       constants,
     );
 
@@ -234,7 +204,7 @@ async function getExpectedObservations(previousState, ramm, pool, tokenControlle
       priceCumulativeAbove: observationData.priceCumulativeAbove,
     };
 
-    previousState = state;
+    currPreviousState = state;
   }
 
   // Return a dense array (filter out undefined and return in order)
@@ -350,7 +320,6 @@ async function setEthReserveValue(rammAddress, valueInEther) {
 }
 
 module.exports = {
-  getInternalPrice,
   getExpectedObservations,
   timeTillBv,
   calculateTwapAboveForPeriod,
@@ -361,5 +330,3 @@ module.exports = {
   calculateEthToInject,
   setEthReserveValue,
 };
-
-// TOOD: move some to lib/protocol?

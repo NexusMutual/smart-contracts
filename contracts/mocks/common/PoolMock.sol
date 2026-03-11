@@ -17,7 +17,7 @@ contract PoolMock is PoolGeneric {
 
   Asset[] public assets;
   mapping (uint => uint) internal prices;
-  uint internal mcrValue;
+  uint internal mcrValue = 1 ether;
 
   uint public constant MCR_RATIO_DECIMALS = 4;
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;

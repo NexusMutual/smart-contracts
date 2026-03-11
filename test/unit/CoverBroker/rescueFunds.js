@@ -59,6 +59,7 @@ describe('rescueFunds', function () {
     const nonOwner = ethers.Wallet.createRandom().connect(ethers.provider);
     await setEtherBalance(nonOwner.address, parseEther('1000000'));
 
+    await setEtherBalance(coverBroker.target, parseEther('1'));
     const balanceBefore = await ethers.provider.getBalance(coverBroker.target);
 
     await expect(coverBroker.connect(nonOwner).rescueFunds(ETH)).to.revertedWith('Ownable: caller is not the owner');

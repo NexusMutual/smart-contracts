@@ -162,7 +162,7 @@ async function setup() {
   const coverNFTDescriptor = await ethers.deployContract('CoverNFTDescriptor', [master.target]);
   const coverNFT = await ethers.deployContract('CoverNFT', [
     'Nexus Mutual Cover',
-    'NMC',
+    'NXMC',
     coverAddress, // operator
     coverNFTDescriptor,
   ]);

@@ -41,19 +41,6 @@ async function getRammState(ramm, pool, tokenController, timestamp) {
 }
 
 /**
- * Calculate internal NXM/ETH price from RAMM reserves
- * @param {Object} ramm - RAMM contract instance
- * @param {Object} pool - Pool contract instance
- * @param {Object} tokenController - TokenController contract instance
- * @param {number} timestamp - Target timestamp for price calculation
- * @returns {BigInt} Internal NXM/ETH price
- */
-async function getInternalPrice(ramm, pool, tokenController, timestamp) {
-  const state = await getRammState(ramm, pool, tokenController, timestamp);
-  return (state.eth * parseEther('1')) / state.nxmA;
-}
-
-/**
  * Calculate expected swap output from RAMM
  * @param {Object} ramm - RAMM contract instance
  * @param {Object} pool - Pool contract instance
@@ -83,6 +70,5 @@ async function calculateExpectedSwapOutput(ramm, pool, tokenController, input, i
 
 module.exports = {
   getRammState,
-  getInternalPrice,
   calculateExpectedSwapOutput,
 };

@@ -4,6 +4,7 @@ const { loadFixture, setNextBlockBaseFeePerGas, time } = require('@nomicfoundati
 
 const setup = require('../setup');
 const { daysToSeconds } = require('../utils');
+const { getInternalPrice } = require('../../utils/ramm');
 
 const {
   calculateCoverEditPremium,
@@ -11,7 +12,6 @@ const {
   calculateCoverEditRewards,
   calculatePremium,
   calculateRewards,
-  getInternalPrice,
 } = nexus.protocol;
 const { BigIntMath } = nexus.helpers;
 const { PoolAsset } = nexus.constants;

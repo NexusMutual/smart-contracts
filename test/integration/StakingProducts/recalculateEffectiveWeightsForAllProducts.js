@@ -4,8 +4,9 @@ const { expect } = require('chai');
 const { daysToSeconds } = require('../utils');
 const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
-const { calculatePremium, getInternalPrice } = require('../../../lib/protocol');
-const { roundUpToMultiple, divCeil } = require('../../../lib/helpers').BigIntMath;
+const { getInternalPrice } = require('../../utils/ramm');
+const { calculatePremium } = nexus.protocol;
+const { BigIntMath } = nexus.helpers;
 
 const { parseEther } = ethers;
 const { PoolAsset } = nexus.constants;
@@ -91,7 +92,10 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
     );
 
     // Calculate expected active weight based on cover allocation and available capacity
-    const coverAmountInNXM = roundUpToMultiple(divCeil(amount * ONE_NXM, ethRate), NXM_PER_ALLOCATION_UNIT);
+    const coverAmountInNXM = BigIntMath.roundUpToMultiple(
+      BigIntMath.divCeil(amount * ONE_NXM, ethRate),
+      NXM_PER_ALLOCATION_UNIT,
+    );
     const coverAllocationAmount = coverAmountInNXM / NXM_PER_ALLOCATION_UNIT;
 
     // Calculate available capacity in allocation units
@@ -161,8 +165,8 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
 
       // Calculate expected active weight based on cover allocation and available capacity
       const nxmPriceInCoverAsset = await pool.getInternalTokenPriceInAsset(coverAsset);
-      const coverAmountInNXM = roundUpToMultiple(
-        divCeil(amount * ONE_NXM, nxmPriceInCoverAsset),
+      const coverAmountInNXM = BigIntMath.roundUpToMultiple(
+        BigIntMath.divCeil(amount * ONE_NXM, nxmPriceInCoverAsset),
         NXM_PER_ALLOCATION_UNIT,
       );
       const coverAllocationAmount = coverAmountInNXM / NXM_PER_ALLOCATION_UNIT;
@@ -225,8 +229,8 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
 
       // Calculate expected active weight based on cover allocation and available capacity
       const nxmPriceInCoverAsset = await pool.getInternalTokenPriceInAsset(coverAsset);
-      const coverAmountInNXM = roundUpToMultiple(
-        divCeil(amount * ONE_NXM, nxmPriceInCoverAsset),
+      const coverAmountInNXM = BigIntMath.roundUpToMultiple(
+        BigIntMath.divCeil(amount * ONE_NXM, nxmPriceInCoverAsset),
         NXM_PER_ALLOCATION_UNIT,
       );
       const coverAllocationAmount = coverAmountInNXM / NXM_PER_ALLOCATION_UNIT;

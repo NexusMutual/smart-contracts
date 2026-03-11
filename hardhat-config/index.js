@@ -40,7 +40,7 @@ const config = {
     jobs: Number(process.env.MOCHA_JOBS) || undefined,
     parallel: true,
     slow: 5000,
-    timeout: Number(process.env.TIMEOUT || 30000),
+    timeout: Number(process.env.TIMEOUT) || 30000,
   },
 
   networks: require('./networks'),

@@ -23,7 +23,6 @@ const orderDetailsFixture = {
 
 const executionDetailsFixture = {
   maxPremiumInAsset: MaxUint256,
-  renewableUntil: 180 * 24 * 60 * 60,
   renewablePeriodBeforeExpiration: 3 * 24 * 60 * 60,
 };
 
@@ -40,6 +39,7 @@ describe('cancelOrder', function () {
       ...executionDetailsFixture,
       notExecutableBefore: currentTimestamp,
       executableUntil: currentTimestamp + 3600,
+      renewableUntil: currentTimestamp + daysToSeconds(180),
       buyer: limitOrderOwner.address,
     };
     const orderDetails = {
@@ -76,6 +76,7 @@ describe('cancelOrder', function () {
       ...executionDetailsFixture,
       notExecutableBefore: currentTimestamp,
       executableUntil: currentTimestamp + 3600,
+      renewableUntil: currentTimestamp + daysToSeconds(180),
       buyer: limitOrderOwner.address,
     };
 
@@ -113,7 +114,8 @@ describe('cancelOrder', function () {
       ...executionDetailsFixture,
       notExecutableBefore: currentTimestamp,
       executableUntil: currentTimestamp + 3600,
-      buyer: limitOrderOwner.address,
+      renewableUntil: currentTimestamp + daysToSeconds(180),
+      buyer: notOwner.address,
     };
 
     const orderDetails = {
@@ -121,12 +123,12 @@ describe('cancelOrder', function () {
       owner: limitOrderOwner.address,
     };
 
-    const { signature } = await signLimitOrder(notOwner, limitOrders.target, {
+    const { signature } = await signLimitOrder(limitOrderOwner, limitOrders.target, {
       orderDetails,
       executionDetails,
     });
 
-    const tx = limitOrders.connect(notOwner).cancelOrder(
+    const tx = limitOrders.connect(limitOrderOwner).cancelOrder(
       {
         ...orderDetails,
         maxPremiumInAsset: MaxUint256,
@@ -150,6 +152,7 @@ describe('cancelOrder', function () {
       ...executionDetailsFixture,
       notExecutableBefore: currentTimestamp,
       executableUntil: currentTimestamp + 3600,
+      renewableUntil: currentTimestamp + daysToSeconds(180),
       buyer: limitOrderOwner.address,
     };
     const orderDetails = {

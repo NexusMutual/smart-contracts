@@ -19,6 +19,7 @@ describe('getManagerTokenRewardsByAddr', function () {
     expect(tokenReward.rewards.toString()).to.equal('0');
 
     const expectedTrancheId = await calculateCurrentTrancheId();
+    expect(tokenReward.deposits).to.have.length.greaterThan(0);
     tokenReward.deposits.forEach(deposit => {
       expect(deposit.tokenId.toString()).to.equal('0');
       expect(deposit.stake.toString()).to.equal('0');

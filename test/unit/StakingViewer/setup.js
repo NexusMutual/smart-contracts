@@ -68,8 +68,6 @@ async function setup() {
   await master.setLatestAddress(hex('SP'), stakingProducts.target);
   await master.setLatestAddress(hex('CP'), coverProducts.target);
 
-  await master.setTokenAddress(nxm.target);
-  // await master.enrollInternal(accounts.defaultSender.address);
   await nxm.setOperator(tokenController.target);
 
   for (const member of accounts.members) {
@@ -77,11 +75,9 @@ async function setup() {
     await memberRoles.setRole(member.address, Role.Member);
   }
 
-  for (const contract of [stakingProducts]) {
-    await contract.changeMasterAddress(master.target);
-    await contract.changeDependentContractAddress();
-    await master.enrollInternal(contract.target);
-  }
+  await stakingProducts.changeMasterAddress(master.target);
+  await stakingProducts.changeDependentContractAddress();
+  await master.enrollInternal(stakingProducts.target);
 
   // nxm mint and allowance
   await nxm.mint(manager.address, parseEther('100000'));

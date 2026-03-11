@@ -32,6 +32,7 @@ describe('getManagerPoolsAndRewards', function () {
     expect(tokenReward.rewards.toString()).to.equal('0');
 
     const expectedTrancheId = await calculateCurrentTrancheId();
+    expect(tokenReward.deposits).to.not.be.empty;
     tokenReward.deposits.forEach(deposit => {
       expect(deposit.tokenId.toString()).to.equal('0');
       expect(deposit.stake.toString()).to.equal('0');

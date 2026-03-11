@@ -29,7 +29,7 @@ async function processExpirationsForSetup() {
 }
 
 describe('processExpirationsFor', function () {
-  it('processExpirationsFor should return the correct staking pools for the manager', async function () {
+  it('processExpirationsFor should emit BucketExpired when a bucket expires for the manager', async function () {
     const fixture = await loadFixture(processExpirationsForSetup);
     const { stakingViewer, stakingPool, stakingNFT } = fixture.contracts;
     const { tokenIds } = fixture.stakingPool;

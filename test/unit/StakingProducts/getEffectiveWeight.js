@@ -120,13 +120,12 @@ describe('getEffectiveWeight', function () {
     const { stakingProducts } = fixture;
     const [staker] = fixture.accounts.members;
 
-    const { timestamp: start } = await ethers.provider.getBlock('latest');
     await setStakedProducts.call(fixture, { productIds: [productId] });
     await depositTo.call(fixture, { staker, amount: parseEther('100') });
     // 50% allocation
-    await allocateCapacity.call(fixture, { amount: parseEther('100'), productId });
+    const allocation = await allocateCapacity.call(fixture, { amount: parseEther('100'), productId });
     // burn 50%
-    await burnStake.call(fixture, { start, amount: parseEther('50') });
+    await burnStake.call(fixture, { amount: parseEther('50'), ...allocation });
 
     const effectiveWeight = await stakingProducts.getEffectiveWeight(
       poolId,

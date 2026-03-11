@@ -123,7 +123,7 @@ describe('createStakingPool', function () {
     }
 
     const stakingPoolCount = await stakingPoolFactory.stakingPoolCount();
-    const poolId = Number(stakingPoolCount) + 1;
+    const poolId = stakingPoolCount + 1n;
     const salt = Buffer.from(poolId.toString(16).padStart(64, '0'), 'hex');
     const initCodeHash = Buffer.from(requiredHash, 'hex');
     const expectedAddress = ethers.getCreate2Address(stakingPoolFactory.target, salt, initCodeHash);
@@ -240,7 +240,7 @@ describe('createStakingPool', function () {
     );
 
     const stakingPoolCount = await stakingPoolFactory.stakingPoolCount();
-    const poolId = Number(stakingPoolCount);
+    const poolId = stakingPoolCount;
     const expectedSPAddress = await stakingProducts.stakingPool(poolId);
     await expect(tx).to.emit(stakingPoolFactory, 'StakingPoolCreated').withArgs(poolId, expectedSPAddress);
   });
@@ -291,8 +291,24 @@ describe('createStakingPool', function () {
     const [stakingPoolCreator] = fixture.accounts.members;
     const { initialPoolFee, maxPoolFee, productInitializationParams, ipfsDescriptionHash } = newPoolFixture;
     const [productMinPrice] = await coverProducts.getMinPrices([productIdMinPrice]);
+    expect(productIdMinPrice).to.not.equal(productInitializationParams[0].productId);
 
-    const products = [{ ...productInitializationParams[0], productId: 201, targetPrice: productMinPrice - 1n }];
+    const productsAtConfiguredMinPrice = [
+      { ...productInitializationParams[0], productId: productIdMinPrice, targetPrice: productMinPrice },
+    ];
+    await expect(
+      stakingProducts.connect(stakingPoolCreator).createStakingPool.staticCall(
+        false, // isPrivatePool,
+        initialPoolFee,
+        maxPoolFee,
+        productsAtConfiguredMinPrice,
+        ipfsDescriptionHash,
+      ),
+    ).to.not.be.reverted;
+
+    const products = [
+      { ...productInitializationParams[0], productId: productIdMinPrice, targetPrice: productMinPrice - 1n },
+    ];
 
     await expect(
       stakingProducts.connect(stakingPoolCreator).createStakingPool(

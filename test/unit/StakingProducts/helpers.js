@@ -49,14 +49,6 @@ const newProductWithMinPriceTemplate = {
   productId: 200,
 };
 
-const burnStakeParams = {
-  allocationId: 1,
-  productId: 1,
-  start: 0,
-  period: buyCoverParamsTemplate.period,
-  deallocationAmount: 0,
-};
-
 const TRANCHE_DURATION = daysToSeconds(91);
 
 async function getCurrentTrancheId() {
@@ -122,7 +114,18 @@ async function allocateCapacity({ amount, productId }) {
     productMinPrice: DEFAULT_MIN_PRICE_RATIO,
   };
 
-  await stakingPool.connect(coverSigner).requestAllocation(amount, allocationRequest);
+  const allocationId = await stakingPool.getNextAllocationId();
+  const tx = await stakingPool.connect(coverSigner).requestAllocation(amount, allocationRequest);
+  const receipt = await tx.wait();
+  const { timestamp } = await ethers.provider.getBlock(receipt.blockNumber);
+
+  return {
+    allocationId,
+    productId,
+    period: allocationRequest.period,
+    start: timestamp,
+    deallocationAmount: 0,
+  };
 }
 
 async function setStakedProducts(params) {
@@ -142,7 +145,10 @@ async function setStakedProducts(params) {
 
 async function burnStake(params) {
   const { stakingPool, cover } = this;
-  const { amount, start } = params;
+  const { amount, allocationId, productId, start, period, deallocationAmount } = params;
+  if ([allocationId, productId, start, period, deallocationAmount].some(value => value === undefined)) {
+    throw new Error('burnStake requires allocationId, productId, start, period and deallocationAmount');
+  }
 
   // Impersonate cover contract
   const coverSigner = await ethers.getImpersonatedSigner(cover.target);
@@ -152,7 +158,13 @@ async function burnStake(params) {
     await setEtherBalance(cover.target, parseEther('100000'));
   }
 
-  await stakingPool.connect(coverSigner).burnStake(amount, { ...burnStakeParams, start });
+  await stakingPool.connect(coverSigner).burnStake(amount, {
+    allocationId,
+    productId,
+    start,
+    period,
+    deallocationAmount,
+  });
 }
 
 module.exports = {
@@ -167,5 +179,4 @@ module.exports = {
   buyCoverParamsTemplate,
   setStakedProducts,
   burnStake,
-  burnStakeParams,
 };

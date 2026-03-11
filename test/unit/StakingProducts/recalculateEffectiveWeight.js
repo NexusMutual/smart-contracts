@@ -7,11 +7,10 @@ const {
   burnStake,
   setStakedProducts,
   daysToSeconds,
-  burnStakeParams,
   newProductTemplate,
 } = require('./helpers');
 const setup = require('./setup');
-const { increaseTime, setEtherBalance } = require('../../utils/evm');
+const { increaseTime } = require('../../utils/evm');
 
 const { parseEther } = ethers;
 
@@ -57,12 +56,11 @@ describe('recalculateEffectiveWeight', function () {
     const { stakingProducts } = fixture;
     const [staker] = fixture.accounts.members;
     const productId = 0n;
-    const { timestamp: start } = await ethers.provider.getBlock('latest');
 
     await setStakedProducts.call(fixture, { productIds: [productId], targetWeight: 10n });
     await depositTo.call(fixture, { staker, amount: parseEther('100') });
-    await allocateCapacity.call(fixture, { amount: parseEther('20'), productId });
-    await burnStake.call(fixture, { start, amount: parseEther('10') });
+    const allocation = await allocateCapacity.call(fixture, { amount: parseEther('20'), productId });
+    await burnStake.call(fixture, { amount: parseEther('10'), ...allocation });
 
     await stakingProducts.recalculateEffectiveWeights(fixture.poolId, [productId]);
 
@@ -239,14 +237,13 @@ describe('recalculateEffectiveWeight', function () {
     await setStakedProducts.call(fixture, { productIds: [productIdToAdd] });
 
     // deposit stake
-    const { timestamp: start } = await ethers.provider.getBlock('latest');
     await depositTo.call(fixture, { staker, amount });
 
     // buy all cover
-    await allocateCapacity.call(fixture, { amount: coverBuyAmount, productId: productIdToAdd });
+    const allocation = await allocateCapacity.call(fixture, { amount: coverBuyAmount, productId: productIdToAdd });
 
     // burn stake
-    await burnStake.call(fixture, { start, amount: amount - fixture.config.NXM_PER_ALLOCATION_UNIT });
+    await burnStake.call(fixture, { amount: amount - fixture.config.NXM_PER_ALLOCATION_UNIT, ...allocation });
 
     // check effective weight
     const stakedProduct = await stakingProducts.getProduct(fixture.poolId, productIdToAdd);
@@ -316,12 +313,13 @@ describe('recalculateEffectiveWeight', function () {
     await setStakedProducts.call(fixture, { productIds: DEFAULT_PRODUCTS, targetWeight: initialTargetWeight });
 
     // deposit stake
-    const { timestamp: start } = await ethers.provider.getBlock('latest');
     await depositTo.call(fixture, { staker, amount });
 
     // buy all cover on all products at 50% target weight (1/2 max)
+    const [firstProductId, ...remainingProductIds] = DEFAULT_PRODUCTS;
+    const allocation = await allocateCapacity.call(fixture, { amount: coverBuyAmount, productId: firstProductId });
     const allocationPromises = [];
-    for (const productId of DEFAULT_PRODUCTS) {
+    for (const productId of remainingProductIds) {
       allocationPromises.push(allocateCapacity.call(fixture, { amount: coverBuyAmount, productId }));
     }
     await Promise.all(allocationPromises);
@@ -332,7 +330,7 @@ describe('recalculateEffectiveWeight', function () {
 
     // burn half of active stake: leaving 1/2 of the capacity, so effective weight should now be maxed out
     const activeStake = await stakingPool.getActiveStake();
-    await burnStake.call(fixture, { amount: activeStake / 2n, start });
+    await burnStake.call(fixture, { amount: activeStake / 2n, ...allocation });
 
     // recalculate effective weight
     await stakingProducts.recalculateEffectiveWeights(fixture.poolId, DEFAULT_PRODUCTS);
@@ -356,7 +354,7 @@ describe('recalculateEffectiveWeight', function () {
     {
       // allocation will be at 200% of max allowable capacity, so effective weight should now be 200%
       const activeStake = await stakingPool.getActiveStake();
-      await burnStake.call(fixture, { amount: activeStake / 2n, start });
+      await burnStake.call(fixture, { amount: activeStake / 2n, ...allocation });
     }
 
     // recalculate effective weight
@@ -370,12 +368,8 @@ describe('recalculateEffectiveWeight', function () {
 
   it('should fail to increase target weight when effective weight is at the limit', async function () {
     const fixture = await loadFixture(setup);
-    const { stakingProducts, stakingPool, cover } = fixture;
+    const { stakingProducts, stakingPool } = fixture;
     const [manager, staker] = fixture.accounts.members;
-
-    // Impersonate cover contract
-    const coverSigner = await ethers.getImpersonatedSigner(cover.target);
-    await setEtherBalance(cover.target, parseEther('100000'));
 
     const numProducts = 200;
     const amount = parseEther('10000');
@@ -403,8 +397,10 @@ describe('recalculateEffectiveWeight', function () {
     await stakingProducts.connect(manager).setProducts(fixture.poolId, products);
 
     // Buy all available cover for every product
+    // Create one deterministic allocation first; we reuse its metadata in burnStake below.
+    const allocation = await allocateCapacity.call(fixture, { productId: products[0].productId, amount: amount / 10n });
     const allocationPromises = [];
-    for (let i = 0; i < products.length; i++) {
+    for (let i = 1; i < products.length; i++) {
       allocationPromises.push(allocateCapacity.call(fixture, { productId: i, amount: amount / 10n }));
     }
     await Promise.all(allocationPromises);
@@ -418,7 +414,7 @@ describe('recalculateEffectiveWeight', function () {
     // ie. 50/100 = 1000 effective weight, burn 75% of stake -> 50/25 = 4000 effective weight
     const activeStake = await stakingPool.getActiveStake();
     const burnAmount = activeStake - activeStake / 4n;
-    await stakingPool.connect(coverSigner).burnStake(burnAmount, burnStakeParams);
+    await burnStake.call(fixture, { amount: burnAmount, ...allocation });
 
     // recalculate effective weight
     await stakingProducts.recalculateEffectiveWeights(
@@ -431,13 +427,16 @@ describe('recalculateEffectiveWeight', function () {
     // Increasing weight on any product will cause it to recalculate effective weight
     const increaseProductWeightParams = products.map(product => {
       return {
-        ...newProductTemplate,
         productId: product.productId,
-        targetWeight: 10,
         recalculateEffectiveWeight: true,
-        setPrice: false,
+        setTargetWeight: true,
+        targetWeight: 10,
+        setTargetPrice: false,
+        targetPrice: 0,
       };
     });
+    expect(increaseProductWeightParams.every(p => p.setTargetPrice === false)).to.be.equal(true);
+    expect(Object.keys(increaseProductWeightParams[0]).sort()).to.deep.equal(Object.keys(newProductTemplate).sort());
     await expect(
       stakingProducts.connect(manager).setProducts(fixture.poolId, increaseProductWeightParams),
     ).to.be.revertedWithCustomError(stakingProducts, 'TotalEffectiveWeightExceeded');

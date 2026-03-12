@@ -21,9 +21,6 @@ contract AssessmentGeneric is IAssessments {
     revert("Unsupported");
   }
 
-  function setAssessmentDataForProductTypes(uint[] calldata, uint, uint, uint) external virtual {
-    revert("Unsupported");
-  }
 
   function undoVotes(uint, uint[] calldata) external virtual {
     revert("Unsupported");
@@ -46,10 +43,6 @@ contract AssessmentGeneric is IAssessments {
   }
 
   function getBallotsMetadata(uint, uint) external view virtual returns (bytes32) {
-    revert("Unsupported");
-  }
-
-  function resetVotingPeriod(uint) external virtual {
     revert("Unsupported");
   }
 
@@ -87,15 +80,7 @@ contract AssessmentGeneric is IAssessments {
     revert("Unsupported");
   }
 
-  function votingPeriod() external view virtual returns (uint) {
-    revert("Unsupported");
-  }
-
-  function assessorGroupOf(uint) external view virtual returns (uint32) {
-    revert("Unsupported");
-  }
-
-  function setAssessingGroupIdForProductTypes(uint[] calldata, uint) external view virtual {
+  function setAssessingGroupIdForProductTypes(uint[] calldata, uint) external virtual {
     revert("Unsupported");
   }
 

@@ -48,13 +48,5 @@ contract AVMockAssessment is AssessmentGeneric {
   //   withdrawableUntilIndex = _withdrawableUntilIndex;
   // }
 
-  // /* ========== VIEWS ========== */
 
-  // function getVoteCountOfAssessor(address assessor) external view override returns (uint) {
-  //   return votesOf[assessor].length;
-  // }
-
-  // function getRewards(address) external view override returns (uint, uint, uint) {
-  //   return (totalPendingAmountInNXM, withdrawableAmountInNXM, withdrawableUntilIndex);
-  // }
 }

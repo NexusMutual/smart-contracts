@@ -40,14 +40,6 @@ contract TokenControllerGeneric is ITokenController {
     revert("lockForMemberVote unsupported");
   }
 
-  function withdrawClaimAssessmentTokens(address[] calldata) external pure {
-    revert("withdrawClaimAssessmentTokens unsupported");
-  }
-
-  function getLockReasons(address) external pure returns (bytes32[] memory) {
-    revert("getLockReasons unsupported");
-  }
-
   function totalSupply() external virtual view returns (uint) {
     revert("totalSupply unsupported");
   }
@@ -122,14 +114,6 @@ contract TokenControllerGeneric is ITokenController {
 
   function stakingPoolNXMBalances(uint) external virtual view returns(uint128, uint128) {
     revert("stakingPoolNXMBalances unsupported");
-  }
-
-  function tokensLocked(address, bytes32) external virtual view returns (uint256) {
-    revert("tokensLocked unsupported");
-  }
-
-  function getPendingRewards(address) external virtual view returns (uint) {
-    revert("getPendingRewards unsupported");
   }
 
   function withdrawNXM(

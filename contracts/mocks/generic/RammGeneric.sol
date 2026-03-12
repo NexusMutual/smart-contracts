@@ -36,8 +36,4 @@ contract RammGeneric is IRamm {
   function removeBudget() external pure {
     revert("Unsupported");
   }
-
-  function setEmergencySwapPause(bool) external pure {
-    revert("Unsupported");
-  }
 }

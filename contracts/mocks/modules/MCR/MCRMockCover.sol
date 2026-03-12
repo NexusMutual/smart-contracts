@@ -9,10 +9,6 @@ contract MCRMockCover is CoverGeneric {
 
   mapping(uint => uint) public _totalActiveCoverInAsset;
 
-  function getTotalActiveCoverInAsset(uint coverAsset) external view returns (uint) {
-    return _totalActiveCoverInAsset[coverAsset];
-  }
-
   function setTotalActiveCoverInAsset(uint asset, uint amount) public {
     _totalActiveCoverInAsset[asset] = amount;
   }

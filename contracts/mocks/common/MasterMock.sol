@@ -86,12 +86,4 @@ contract MasterMock is INXMMaster {
   function isPause() public view returns (bool) {
     return paused;
   }
-
-  function transferOwnershipToRegistry(address) pure external {
-    revert("Unsupported");
-  }
-
-  function migrate(address) pure external {
-    revert("Unsupported");
-  }
 }

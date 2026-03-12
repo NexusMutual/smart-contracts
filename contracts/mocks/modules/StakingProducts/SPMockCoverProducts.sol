@@ -30,9 +30,6 @@ contract SPMockCoverProducts is CoverProductsGeneric {
     return productsCount;
   }
 
-  function allowedPoolsCount(uint productId) external view returns (uint) {
-    return _allowedPoolsCount[productId];
-  }
 
   function setProductType(ProductType calldata productType, uint id) public {
     _productTypes[id] = productType;

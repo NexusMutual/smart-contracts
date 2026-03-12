@@ -4,7 +4,6 @@ pragma solidity ^0.8.18;
 
 import "../../../interfaces/ICoverNFT.sol";
 import "../../../interfaces/IStakingNFT.sol";
-import "../../../interfaces/IStakingPool.sol";
 import "../../../interfaces/IMemberRoles.sol";
 import "../../generic/CoverGeneric.sol";
 
@@ -48,4 +47,5 @@ contract MRMockCover is CoverGeneric {
   function memberRoles() external view returns (IMemberRoles) {
     return _memberRoles;
   }
+
 }

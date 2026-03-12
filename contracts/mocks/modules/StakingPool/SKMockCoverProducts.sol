@@ -14,15 +14,10 @@ contract SKMockCoverProducts is CoverProductsGeneric {
   mapping(uint => ProductType) public _productTypes;
   mapping(uint => mapping(uint => bool)) public allowedPools;
   uint public productsCount;
-  mapping(uint => uint)  private _allowedPoolsCount;
 
   function setProduct(Product memory _product, uint id) public {
     _products[id] = _product;
     productsCount++;
-  }
-
-  function allowedPoolsCount(uint productId) external view returns (uint) {
-    return _allowedPoolsCount[productId];
   }
 
   function setProductType(ProductType calldata product, uint id) public {
@@ -31,7 +26,6 @@ contract SKMockCoverProducts is CoverProductsGeneric {
 
   function setPoolAllowed(uint productId, uint poolId, bool allowed) external {
     allowedPools[productId][poolId] = allowed;
-    _allowedPoolsCount[productId]++;
   }
 
   function isPoolAllowed(uint productId, uint poolId) external override view returns (bool) {

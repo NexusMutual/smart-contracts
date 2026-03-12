@@ -15,7 +15,6 @@ async function setup() {
   const swapOperator = await ethers.deployContract('STMockSwapOperator');
   const pool = priceFeedOracle;
 
-  const tokenAmount = parseEther('100000');
   const investmentLimit = parseUnits('15000000', 6);
 
   const usdc = await ethers.deployContract('ERC20Mock');
@@ -23,12 +22,15 @@ async function setup() {
   const debtUsdc = await ethers.deployContract('ERC20Mock');
   const weth = await ethers.deployContract('WETH9');
 
+  await usdc.setMetadata('USDC', 'USDC', 6);
+  await debtUsdc.setMetadata('Debt USDC', 'debtUSDC', 6);
+
   const wethAmount = parseEther('100');
   await weth.deposit({ value: wethAmount });
 
-  await usdc.mint(accounts.defaultSender.address, tokenAmount);
-  await aweth.mint(accounts.defaultSender.address, tokenAmount);
-  await debtUsdc.mint(accounts.defaultSender.address, tokenAmount);
+  await usdc.mint(accounts.defaultSender.address, parseUnits('100000', 6));
+  await aweth.mint(accounts.defaultSender.address, parseEther('100000'));
+  await debtUsdc.mint(accounts.defaultSender.address, parseUnits('100000', 6));
 
   // C_POOL index constant from RegistryAware
   const C_POOL = 1 << 4;

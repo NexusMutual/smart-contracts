@@ -12,6 +12,8 @@ describe('approve', function () {
       members: [member],
     } = fixture.accounts;
 
-    await expect(safeTracker.connect(defaultSender).approve(member.address, 100)).to.emit(safeTracker, 'Approval');
+    await expect(safeTracker.connect(defaultSender).approve(member.address, 100))
+      .to.emit(safeTracker, 'Approval')
+      .withArgs(defaultSender.address, member.address, 100);
   });
 });

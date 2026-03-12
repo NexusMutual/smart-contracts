@@ -1,7 +1,6 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
-
-const { setEtherBalance } = require('../../utils/evm');
+const { setBalance } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { parseEther, ZeroAddress } = ethers;
 
@@ -155,7 +154,7 @@ async function burnStake(params) {
   const balance = await ethers.provider.getBalance(coverSigner.address);
 
   if (balance < parseEther('1')) {
-    await setEtherBalance(cover.target, parseEther('100000'));
+    await setBalance(cover.target, parseEther('100000'));
   }
 
   await stakingPool.connect(coverSigner).burnStake(amount, {

@@ -19,7 +19,7 @@ const setup = require('./setup');
 
 const { BigIntMath } = nexus.helpers;
 const { divCeil } = BigIntMath;
-const { increaseTime } = require('../../utils/evm');
+const { time } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { ZeroAddress } = ethers;
 const { parseEther } = ethers;
@@ -307,7 +307,7 @@ describe('requestAllocation', function () {
     const initialPrice = coverProductTemplate.initialPriceRatio;
     const daysForward = 1;
     const expectedPrice = BigInt(initialPrice) - PRICE_CHANGE_PER_DAY * BigInt(daysForward);
-    await increaseTime(daysToSeconds(daysForward));
+    await time.increase(daysToSeconds(daysForward));
     await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, 0, stakingPool.address);
     const expectedPremium =
       (buyCoverParamsTemplate.amount * BigInt(expectedPrice)) /
@@ -317,7 +317,7 @@ describe('requestAllocation', function () {
     {
       const product = await stakingProducts.getProduct(poolId, productId);
       const daysForward = 50;
-      await increaseTime(daysToSeconds(daysForward));
+      await time.increase(daysToSeconds(daysForward));
       await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, 0, stakingPool.address);
       const expectedPremium =
         (buyCoverParamsTemplate.amount * BigInt(product.targetPrice)) /
@@ -334,7 +334,7 @@ describe('requestAllocation', function () {
     const initialPrice = coverProductTemplate.initialPriceRatio;
     const daysForward = 1;
     const expectedPrice = BigInt(initialPrice) - PRICE_CHANGE_PER_DAY * BigInt(daysForward);
-    await increaseTime(daysToSeconds(daysForward));
+    await time.increase(daysToSeconds(daysForward));
     await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, 0, stakingPool.address);
     const expectedPremium =
       (buyCoverParamsTemplate.amount * BigInt(expectedPrice)) /
@@ -344,7 +344,7 @@ describe('requestAllocation', function () {
     {
       const product = await stakingProducts.getProduct(poolId, productId);
       const daysForward = 100;
-      await increaseTime(daysToSeconds(daysForward));
+      await time.increase(daysToSeconds(daysForward));
       await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, 0, stakingPool.address);
       const expectedPremium =
         (buyCoverParamsTemplate.amount * BigInt(product.targetPrice)) /

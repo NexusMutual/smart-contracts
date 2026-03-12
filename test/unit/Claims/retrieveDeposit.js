@@ -1,8 +1,6 @@
 const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
-
-const { setNextBlockBaseFee } = require('../../utils/evm');
+const { loadFixture, setNextBlockBaseFeePerGas } = require('@nomicfoundation/hardhat-network-helpers');
 const { createMockCover, submitClaim, daysToSeconds } = require('./helpers');
 const { setup } = require('./setup');
 
@@ -93,7 +91,7 @@ describe('retrieveDeposit', function () {
 
     const ipfsHash = ethers.solidityPackedKeccak256(['string'], ['ipfs-hash']);
 
-    await setNextBlockBaseFee('0');
+    await setNextBlockBaseFeePerGas('0x0');
     const claimId = await claims.getClaimsCount();
     await claims.connect(coverOwner).submitClaim(coverId, coverData.amount, ipfsHash, { value: deposit, gasPrice: 0 });
 
@@ -101,7 +99,7 @@ describe('retrieveDeposit', function () {
 
     await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Draw);
 
-    await setNextBlockBaseFee('0');
+    await setNextBlockBaseFeePerGas('0x0');
     await claims.connect(coverOwner).retrieveDeposit(claimId, { gasPrice: 0 });
     const ethBalanceAfter = await ethers.provider.getBalance(coverOwner.address);
 
@@ -163,7 +161,7 @@ describe('retrieveDeposit', function () {
     const newOwnerBalanceBefore = await ethers.provider.getBalance(newOwner.address);
     const originalOwnerBalanceBefore = await ethers.provider.getBalance(originalOwner.address);
 
-    await setNextBlockBaseFee('0');
+    await setNextBlockBaseFeePerGas('0x0');
     await claims.connect(newOwner).retrieveDeposit(claimId, { gasPrice: 0 });
 
     const newOwnerBalanceAfter = await ethers.provider.getBalance(newOwner.address);
@@ -189,7 +187,7 @@ describe('retrieveDeposit', function () {
     const coverOwnerBalanceBefore = await ethers.provider.getBalance(coverOwner.address);
     const otherMemberBalanceBefore = await ethers.provider.getBalance(otherMember.address);
 
-    await setNextBlockBaseFee('0');
+    await setNextBlockBaseFeePerGas('0x0');
     await claims.connect(otherMember).retrieveDeposit(claimId, { gasPrice: 0 });
 
     const coverOwnerBalanceAfter = await ethers.provider.getBalance(coverOwner.address);
@@ -269,7 +267,7 @@ describe('retrieveDeposit', function () {
 
     const balanceBefore = await ethers.provider.getBalance(coverOwner.address);
 
-    await setNextBlockBaseFee('0');
+    await setNextBlockBaseFeePerGas('0x0');
     await claims.connect(coverOwner).retrieveDeposit(claimId, { gasPrice: 0 });
 
     const balanceAfter = await ethers.provider.getBalance(coverOwner.address);

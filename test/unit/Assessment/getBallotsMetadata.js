@@ -1,8 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, setBalance } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
-const { setEtherBalance } = require('../../utils/evm');
 
 describe('getBallotsMetadata', function () {
   it('should return zero hash for non-existent assessor member ID', async function () {
@@ -73,7 +72,7 @@ describe('getBallotsMetadata', function () {
     const expectedClaimId1 = 2;
     const expectedClaimId2 = 3;
     const coverIds = [1, 2];
-    await setEtherBalance(memberAddress, ethers.parseEther('10'));
+    await setBalance(memberAddress, ethers.parseEther('10'));
 
     for (const coverId of coverIds) {
       await claims

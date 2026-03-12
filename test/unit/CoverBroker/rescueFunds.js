@@ -1,9 +1,8 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, setBalance } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { setup } = require('./setup');
-const { setEtherBalance } = require('../../utils/evm');
 
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 const { parseEther } = ethers;
@@ -16,7 +15,7 @@ describe('rescueFunds', function () {
       coverBrokerOwner,
     } = fixture;
 
-    await setEtherBalance(coverBroker.target, parseEther('1'));
+    await setBalance(coverBroker.target, parseEther('1'));
     const brokerBalanceBefore = await ethers.provider.getBalance(coverBroker.target);
     const ownerBalanceBefore = await ethers.provider.getBalance(coverBrokerOwner.address);
 
@@ -57,9 +56,9 @@ describe('rescueFunds', function () {
     const fixture = await loadFixture(setup);
     const { coverBroker } = fixture.contracts;
     const nonOwner = ethers.Wallet.createRandom().connect(ethers.provider);
-    await setEtherBalance(nonOwner.address, parseEther('1000000'));
+    await setBalance(nonOwner.address, parseEther('1000000'));
 
-    await setEtherBalance(coverBroker.target, parseEther('1'));
+    await setBalance(coverBroker.target, parseEther('1'));
     const balanceBefore = await ethers.provider.getBalance(coverBroker.target);
 
     await expect(coverBroker.connect(nonOwner).rescueFunds(ETH)).to.revertedWith('Ownable: caller is not the owner');

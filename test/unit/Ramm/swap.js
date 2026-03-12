@@ -1,10 +1,9 @@
 const { ethers, artifacts, nexus } = require('hardhat');
 const { expect } = require('chai');
-const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, time, setCode, setNextBlockBaseFeePerGas } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { calculateEthToExtract, calculateEthToInject, setEthReserveValue } = require('./rammCalculations');
 const { setup } = require('./setup');
-const { setCode, setNextBlockBaseFee } = require('../utils');
 
 const { parseEther } = ethers;
 const { PauseTypes } = nexus.constants;
@@ -213,7 +212,7 @@ describe('swap', function () {
     const before = await getSupplyAndBalances(tokenController, token, member.address);
     const state = await getStateAtBlockTimestamp(ramm, pool, tokenController, nextBlockTimestamp);
 
-    await setNextBlockBaseFee(0);
+    await setNextBlockBaseFeePerGas(0);
     await time.setNextBlockTimestamp(nextBlockTimestamp);
     await ramm.connect(member).swap(nxmIn, minAmountOut, deadline, { maxPriorityFeePerGas: 0 });
 
@@ -246,7 +245,7 @@ describe('swap', function () {
     const state = await getStateAtBlockTimestamp(ramm, pool, tokenController, nextBlockTimestamp);
     const { newEthLiquidity, newNxmA, newNxmB, nxmOut } = getExpectedStateAfterSwapEthForNxm(state, ethIn);
 
-    await setNextBlockBaseFee(0);
+    await setNextBlockBaseFeePerGas(0);
     await time.setNextBlockTimestamp(nextBlockTimestamp);
     await ramm.connect(member).swap(0, nxmOut, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
 

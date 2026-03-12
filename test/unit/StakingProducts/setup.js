@@ -1,8 +1,8 @@
 const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
+const { setBalance } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { getAccounts } = require('../../utils/accounts');
-const { setEtherBalance } = require('../../utils/evm');
 
 const { parseEther, getCreateAddress } = ethers;
 const { Role } = nexus.constants;
@@ -165,7 +165,7 @@ async function setup() {
   };
 
   const coverSigner = await ethers.getImpersonatedSigner(cover.target);
-  await setEtherBalance(coverSigner.address, parseEther('1'));
+  await setBalance(coverSigner.address, parseEther('1'));
 
   return {
     accounts,

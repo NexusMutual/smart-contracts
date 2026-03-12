@@ -2,8 +2,7 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { parseEther, ZeroAddress } = ethers;
 
-const { setNextBlockTime } = require('../../utils/evm');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 
 const gracePeriod = 120 * 24 * 60 * 60;
@@ -58,7 +57,7 @@ describe('editCover', function () {
 
     const passedPeriod = 10n;
     const editTimestamp = coverData.start + passedPeriod;
-    await setNextBlockTime(Number(editTimestamp));
+    await time.setNextBlockTimestamp(Number(editTimestamp));
 
     const increasedAmount = amount * 2n;
 
@@ -154,7 +153,7 @@ describe('editCover', function () {
 
     const passedPeriod = 10n;
     const editTimestamp = coverData.start + passedPeriod;
-    await setNextBlockTime(Number(editTimestamp));
+    await time.setNextBlockTimestamp(Number(editTimestamp));
 
     const increasedAmount = amount * 2n;
 
@@ -221,7 +220,7 @@ describe('editCover', function () {
 
     const passedPeriod = 10n;
     const editTimestamp = coverData.start + passedPeriod;
-    await setNextBlockTime(Number(editTimestamp));
+    await time.setNextBlockTimestamp(Number(editTimestamp));
 
     // refund for the unused period
     const expectedRefund =
@@ -386,7 +385,7 @@ describe('editCover', function () {
 
     const passedPeriod = 10n;
     const editTimestamp = coverData.start + passedPeriod;
-    await setNextBlockTime(Number(editTimestamp));
+    await time.setNextBlockTimestamp(Number(editTimestamp));
 
     const expectedRefund =
       (coverData.amount * targetPriceRatio * (coverData.period - passedPeriod)) / MAX_COVER_PERIOD / priceDenominator;
@@ -442,7 +441,7 @@ describe('editCover', function () {
 
     const passedPeriod = 10n;
     const editTimestamp = coverData.start + passedPeriod;
-    await setNextBlockTime(Number(editTimestamp));
+    await time.setNextBlockTimestamp(Number(editTimestamp));
 
     const expectedRefund =
       (coverData.amount * targetPriceRatio * (coverData.period - passedPeriod)) / MAX_COVER_PERIOD / priceDenominator;
@@ -511,7 +510,7 @@ describe('editCover', function () {
 
     const extraPremium = expectedEditPremium - expectedRefund;
 
-    await setNextBlockTime(Number(editTimestamp));
+    await time.setNextBlockTimestamp(Number(editTimestamp));
     await cover.connect(coverBuyer).buyCover(
       {
         coverId,
@@ -606,7 +605,7 @@ describe('editCover', function () {
     const extraPremium = expectedEditPremium - expectedRefund;
 
     const now = await ethers.provider.getBlock('latest').then(block => block.timestamp);
-    await setNextBlockTime(now + Number(period) + 3600);
+    await time.setNextBlockTimestamp(now + Number(period) + 3600);
 
     await expect(
       cover.connect(coverBuyer).buyCover(
@@ -758,7 +757,7 @@ describe('editCover', function () {
 
     // const { start: startTimestamp } = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 0);
     const editTimestamp = coverData.start + passedPeriod;
-    await setNextBlockTime(Number(editTimestamp));
+    await time.setNextBlockTimestamp(Number(editTimestamp));
 
     await cover.connect(coverBuyer).buyCover(
       {
@@ -960,7 +959,7 @@ describe('editCover', function () {
 
     const passedPeriod = 10n;
     const editTimestamp = coverData.start + passedPeriod;
-    await setNextBlockTime(Number(editTimestamp));
+    await time.setNextBlockTimestamp(Number(editTimestamp));
 
     const increasedAmount = amount * 2n;
     const expectedRefund =
@@ -1172,7 +1171,7 @@ describe('editCover', function () {
 
     const passedPeriod = 10n;
     const editTimestamp = coverData.start + passedPeriod;
-    await setNextBlockTime(Number(editTimestamp));
+    await time.setNextBlockTimestamp(Number(editTimestamp));
 
     const increasedAmount = amount * 2n;
     const expectedRefund =
@@ -1225,7 +1224,7 @@ describe('editCover', function () {
 
     const passedPeriod = 10n;
     const editTimestamp = coverData.start + passedPeriod;
-    await setNextBlockTime(Number(editTimestamp));
+    await time.setNextBlockTimestamp(Number(editTimestamp));
 
     const increasedAmount = amount * 2n;
     const expectedRefund =
@@ -1275,7 +1274,7 @@ describe('editCover', function () {
 
     const passedPeriod = 10n;
     const editTimestamp = coverData.start + passedPeriod;
-    await setNextBlockTime(Number(editTimestamp));
+    await time.setNextBlockTimestamp(Number(editTimestamp));
 
     const increasedAmount = amount * 2n;
 
@@ -1338,7 +1337,7 @@ describe('editCover', function () {
 
     const passedPeriod = 10n;
     const editTimestamp = coverData.start + passedPeriod;
-    await setNextBlockTime(Number(editTimestamp));
+    await time.setNextBlockTimestamp(Number(editTimestamp));
 
     const increasedAmount = amount * 2n;
 
@@ -1437,7 +1436,7 @@ describe('editCover', function () {
 
     const passedPeriod = 10n;
     const editTimestamp = coverData.start + passedPeriod;
-    await setNextBlockTime(Number(editTimestamp));
+    await time.setNextBlockTimestamp(Number(editTimestamp));
 
     const increasedPoolAmount = amount * 2n;
 
@@ -1537,7 +1536,7 @@ describe('editCover', function () {
 
     const passedPeriod = 10n;
     const editTimestamp = coverData.start + passedPeriod;
-    await setNextBlockTime(Number(editTimestamp));
+    await time.setNextBlockTimestamp(Number(editTimestamp));
 
     const increasedAmount = amount * 2n;
 

@@ -1,5 +1,5 @@
 const { ethers } = require('hardhat');
-const { setEtherBalance } = require('../../utils/evm');
+const { setBalance } = require('@nomicfoundation/hardhat-network-helpers');
 const { getAccounts } = require('../../utils/accounts');
 
 const { parseEther } = ethers;
@@ -25,8 +25,8 @@ async function setup() {
   // impersonate staking pool address
   const poolId = 50;
   const stakingAddress = await cover.stakingPool(poolId);
-  await setEtherBalance(stakingAddress, parseEther('1000'));
-  await setEtherBalance(cover.target, parseEther('1000'));
+  await setBalance(stakingAddress, parseEther('1000'));
+  await setBalance(cover.target, parseEther('1000'));
   const stakingPoolSigner = await ethers.getImpersonatedSigner(stakingAddress);
   const coverSigner = await ethers.getImpersonatedSigner(cover.target);
 

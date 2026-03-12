@@ -1,9 +1,7 @@
 const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
-const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, time, setNextBlockBaseFeePerGas } = require('@nomicfoundation/hardhat-network-helpers');
 const { parseEther } = ethers;
-
-const { setNextBlockBaseFee } = require('../../utils/evm');
 const { createMockCover, submitClaim, daysToSeconds } = require('./helpers');
 const { setup } = require('./setup');
 
@@ -170,14 +168,14 @@ describe('redeemClaimPayout', function () {
     const coverData = await cover.getCoverData(coverId);
     const claimId = await claims.getClaimsCount();
 
-    await setNextBlockBaseFee('0');
+    await setNextBlockBaseFeePerGas('0x0');
     await claims
       .connect(originalOwner)
       .submitClaim(coverId, coverData.amount, ipfsHash, { value: deposit, gasPrice: 0 });
 
     await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Accepted);
 
-    await setNextBlockBaseFee('0');
+    await setNextBlockBaseFeePerGas('0x0');
     await claims.connect(originalOwner).redeemClaimPayout(claimId, { gasPrice: 0 });
     const ethBalanceAfter = await ethers.provider.getBalance(originalOwner.address);
 
@@ -203,7 +201,7 @@ describe('redeemClaimPayout', function () {
       const newOwnerBalanceBefore = await ethers.provider.getBalance(newOwner.address);
       await coverNFT.connect(originalOwner).transferFrom(originalOwner.address, newOwner.address, coverId);
 
-      await setNextBlockBaseFee('0');
+      await setNextBlockBaseFeePerGas('0x0');
       await claims.connect(newOwner).redeemClaimPayout(claimId, { gasPrice: 0 }); // only NFT owner can redeem
       const newOwnerBalanceAfter = await ethers.provider.getBalance(newOwner.address);
 
@@ -225,14 +223,14 @@ describe('redeemClaimPayout', function () {
     const daiBalanceBefore = await dai.balanceOf(originalOwner.address);
     const claimId = await claims.getClaimsCount();
 
-    await setNextBlockBaseFee('0');
+    await setNextBlockBaseFeePerGas('0x0');
     await claims
       .connect(originalOwner)
       .submitClaim(coverId, coverData.amount, ipfsHash, { value: deposit, gasPrice: 0 });
 
     await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Accepted);
 
-    await setNextBlockBaseFee('0');
+    await setNextBlockBaseFeePerGas('0x0');
     await claims.connect(originalOwner).redeemClaimPayout(claimId, { gasPrice: 0 });
     const ethBalanceAfter = await ethers.provider.getBalance(originalOwner.address);
     const daiBalanceAfter = await dai.balanceOf(originalOwner.address);
@@ -249,7 +247,7 @@ describe('redeemClaimPayout', function () {
       const newOwnerDaiBalanceBefore = await dai.balanceOf(newOwner.address);
       const claimId = await claims.getClaimsCount();
 
-      await setNextBlockBaseFee('0');
+      await setNextBlockBaseFeePerGas('0x0');
       await claims
         .connect(originalOwner)
         .submitClaim(coverId, coverData.amount, ipfsHash, { value: deposit, gasPrice: 0 });
@@ -258,7 +256,7 @@ describe('redeemClaimPayout', function () {
 
       await coverNFT.connect(originalOwner).transferFrom(originalOwner.address, newOwner.address, coverId);
 
-      await setNextBlockBaseFee('0');
+      await setNextBlockBaseFeePerGas('0x0');
       await claims.connect(newOwner).redeemClaimPayout(claimId, { gasPrice: 0 }); // onlyNFT owner can redeem
       const newOwnerEthBalanceAfter = await ethers.provider.getBalance(newOwner.address);
       const newOwnerDaiBalanceAfter = await dai.balanceOf(newOwner.address);
@@ -281,7 +279,7 @@ describe('redeemClaimPayout', function () {
     {
       const coverId = 3;
       const { amount: coverAmount } = await cover.getCoverData(coverId);
-      await setNextBlockBaseFee('0');
+      await setNextBlockBaseFeePerGas('0x0');
       const claimId = await claims.getClaimsCount();
       await claims.connect(coverOwner).submitClaim(coverId, coverAmount, ipfsHash, { value: deposit, gasPrice: 0 });
 
@@ -297,13 +295,13 @@ describe('redeemClaimPayout', function () {
       const coverData = await cover.getCoverData(coverId);
       const claimAmount = coverData.amount / 2n;
 
-      await setNextBlockBaseFee('0');
+      await setNextBlockBaseFeePerGas('0x0');
       const claimId = await claims.getClaimsCount();
       await claims.connect(coverOwner).submitClaim(coverId, claimAmount, ipfsHash, { value: deposit, gasPrice: 0 });
 
       await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Accepted);
 
-      await setNextBlockBaseFee('0');
+      await setNextBlockBaseFeePerGas('0x0');
       await claims.connect(coverOwner).redeemClaimPayout(claimId, { gasPrice: 0 });
 
       const burnStakeCalledWith = await cover.burnStakeCalledWith();

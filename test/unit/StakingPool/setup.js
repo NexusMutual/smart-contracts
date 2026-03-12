@@ -1,6 +1,6 @@
 const { ethers, nexus } = require('hardhat');
+const { setBalance } = require('@nomicfoundation/hardhat-network-helpers');
 const { getAccounts } = require('../../utils/accounts');
-const { setEtherBalance } = require('../../utils/evm');
 
 const { parseEther, ZeroAddress, MaxUint256 } = ethers;
 const { Role } = nexus.constants;
@@ -76,10 +76,10 @@ async function setup() {
   };
 
   const coverSigner = await ethers.getImpersonatedSigner(cover.target);
-  await setEtherBalance(coverSigner.address, parseEther('1'));
+  await setBalance(coverSigner.address, parseEther('1'));
 
   const stakingProductsSigner = await ethers.getImpersonatedSigner(stakingProducts.target);
-  await setEtherBalance(stakingProductsSigner.address, parseEther('100'));
+  await setBalance(stakingProductsSigner.address, parseEther('100'));
 
   // Backward-compat alias used widely by migrated tests.
   for (const contract of [

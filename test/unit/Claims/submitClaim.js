@@ -1,9 +1,7 @@
 const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
-const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, time, setCode } = require('@nomicfoundation/hardhat-network-helpers');
 const { parseEther } = ethers;
-
-const { setNextBlockTime, setCode } = require('../../utils/evm');
 
 const { createMockCover, submitClaim, daysToSeconds } = require('./helpers');
 const { setup } = require('./setup');
@@ -123,7 +121,7 @@ describe('submitClaim', function () {
     const coverId = 1;
     const { amount } = await cover.getCoverData(coverId);
 
-    await setNextBlockTime(start);
+    await time.setNextBlockTimestamp(start);
     const submitClaimSameBlock = submitClaim(fixture)({ coverId, amount, value: deposit, sender: coverOwner });
     await expect(submitClaimSameBlock).to.be.revertedWithCustomError(claims, 'CantBuyCoverAndClaimInTheSameBlock');
   });

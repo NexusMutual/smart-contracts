@@ -1,8 +1,7 @@
 const { expect } = require('chai');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, impersonateAccount, setBalance } = require('@nomicfoundation/hardhat-network-helpers');
 const { ethers } = require('hardhat');
 
-const { impersonateAccount, setEtherBalance } = require('../../utils/evm');
 const { setup } = require('./setup');
 
 const { parseEther } = ethers;
@@ -42,7 +41,7 @@ describe('transferFrom', function () {
     } = fixture.accounts;
 
     await impersonateAccount(pool.target);
-    await setEtherBalance(pool.target, parseEther('1000'));
+    await setBalance(pool.target, parseEther('1000'));
     const poolSigner = await ethers.getSigner(pool.target);
 
     await expect(
@@ -58,7 +57,7 @@ describe('transferFrom', function () {
     } = fixture.accounts;
 
     await impersonateAccount(swapOperator.target);
-    await setEtherBalance(swapOperator.target, parseEther('1000'));
+    await setBalance(swapOperator.target, parseEther('1000'));
     const swapOperatorSigner = await ethers.getSigner(swapOperator.target);
 
     await expect(

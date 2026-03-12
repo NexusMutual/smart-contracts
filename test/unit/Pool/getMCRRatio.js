@@ -1,9 +1,8 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { loadFixture, setBalance } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, setBalance, time } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
-const { setNextBlockTime } = require('../../utils/evm');
 const { calculateCurrentMCR } = require('../utils');
 const { parseEther } = ethers;
 
@@ -25,7 +24,7 @@ describe('getMCRRatio', function () {
     const mcr = calculateCurrentMCR({ stored, desired, now: nextBlockTimestamp, updatedAt }, constants);
     const expectedValue = (totalAssetValue * 10n ** constants.MCR_RATIO_DECIMALS) / mcr;
 
-    await setNextBlockTime(Number(nextBlockTimestamp));
+    await time.setNextBlockTimestamp(Number(nextBlockTimestamp));
     const mcrRatio = await pool.getMCRRatio();
 
     expect(mcrRatio).to.be.equal(expectedValue);

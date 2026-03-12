@@ -198,10 +198,8 @@ describe('submitClaim', function () {
     await createMockCover(cover, { owner: coverOwner.address });
 
     const coverId = 1;
-    const submitClaimTx = submitClaim(fixture)({ coverId, ipfsMetadata, sender: coverOwner });
-
     const claimId = await claims.getClaimsCount();
-    await submitClaimTx;
+    const submitClaimTx = submitClaim(fixture)({ coverId, ipfsMetadata, sender: coverOwner });
     await expect(submitClaimTx).to.emit(claims, 'MetadataSubmitted').withArgs(claimId, ipfsHash);
 
     await createMockCover(cover, { owner: coverOwner.address });

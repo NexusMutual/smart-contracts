@@ -3,10 +3,10 @@ const { expect } = require('chai');
 const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('../setup');
+const { getInternalPrice } = require('../../utils/ramm');
 
 const { parseEther, parseUnits } = ethers;
 const { Assets, PoolAsset, AggregatorType } = nexus.constants;
-const { getInternalPrice } = nexus.protocol;
 const { BigIntMath } = nexus.helpers;
 
 describe('Pool functions', function () {

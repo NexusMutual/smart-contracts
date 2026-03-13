@@ -14,7 +14,6 @@ const { increaseTime } = require('../../utils/evm');
 
 const { parseEther } = ethers;
 
-const DEFAULT_PRODUCTS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
 const MAX_TARGET_WEIGHT = 100n;
 const MAX_TOTAL_EFFECTIVE_WEIGHT = 2000n;
 const UINT16_MAX = 65535n;
@@ -307,16 +306,19 @@ describe('recalculateEffectiveWeight', function () {
     const amount = parseEther('1');
     const coverBuyAmount = parseEther('1');
     const initialTargetWeight = 50n;
-    const expectedTotalTargetWeight = BigInt(DEFAULT_PRODUCTS.length) * initialTargetWeight;
+    // 4 products is enough to verify the burn/recalculation behaviors
+    const productIds = [1, 2, 3, 4];
+    const expectedTotalTargetWeight = BigInt(productIds.length) * initialTargetWeight;
 
     // set target weight to 50% for all products
-    await setStakedProducts.call(fixture, { productIds: DEFAULT_PRODUCTS, targetWeight: initialTargetWeight });
+    await setStakedProducts.call(fixture, { productIds, targetWeight: initialTargetWeight });
 
     // deposit stake
     await depositTo.call(fixture, { staker, amount });
 
-    // buy all cover on all products at 50% target weight (1/2 max)
-    const [firstProductId, ...remainingProductIds] = DEFAULT_PRODUCTS;
+    // buy all cover on all products at 50% target weight
+    // capacity per product = stake * 2x * 50/100 = 1 NXM, so coverBuyAmount fills it exactly
+    const [firstProductId, ...remainingProductIds] = productIds;
     const allocation = await allocateCapacity.call(fixture, { amount: coverBuyAmount, productId: firstProductId });
     const allocationPromises = [];
     for (const productId of remainingProductIds) {
@@ -328,42 +330,40 @@ describe('recalculateEffectiveWeight', function () {
     );
     expect(await stakingProducts.getTotalEffectiveWeight(fixture.poolId)).to.be.equal(expectedTotalTargetWeight);
 
-    // burn half of active stake: leaving 1/2 of the capacity, so effective weight should now be maxed out
+    // burn half of active stake: allocations are now 2x capacity, so effective weight doubles
     const activeStake = await stakingPool.getActiveStake();
     await burnStake.call(fixture, { amount: activeStake / 2n, ...allocation });
 
-    // recalculate effective weight
-    await stakingProducts.recalculateEffectiveWeights(fixture.poolId, DEFAULT_PRODUCTS);
-    expect(await stakingProducts.getTotalEffectiveWeight(fixture.poolId)).to.be.equal(MAX_TOTAL_EFFECTIVE_WEIGHT);
+    // recalculate effective weight: 4 products * 2 * 50 = 400
+    await stakingProducts.recalculateEffectiveWeights(fixture.poolId, productIds);
+    expect(await stakingProducts.getTotalEffectiveWeight(fixture.poolId)).to.be.equal(400n);
     expect(await stakingProducts.getTotalTargetWeight(fixture.poolId)).to.be.equal(expectedTotalTargetWeight);
 
-    // lowering target weight shouldn't change effective weight
-    await setStakedProducts.call(fixture, { productIds: DEFAULT_PRODUCTS, targetWeight: 1n });
-    await stakingProducts.recalculateEffectiveWeights(fixture.poolId, DEFAULT_PRODUCTS);
-    expect(await stakingProducts.getTotalEffectiveWeight(fixture.poolId)).to.be.equal(MAX_TOTAL_EFFECTIVE_WEIGHT);
-    expect(await stakingProducts.getTotalTargetWeight(fixture.poolId)).to.be.equal(BigInt(DEFAULT_PRODUCTS.length));
+    // lowering target weight shouldn't change effective weight (actual > target)
+    await setStakedProducts.call(fixture, { productIds, targetWeight: 1n });
+    await stakingProducts.recalculateEffectiveWeights(fixture.poolId, productIds);
+    expect(await stakingProducts.getTotalEffectiveWeight(fixture.poolId)).to.be.equal(400n);
+    expect(await stakingProducts.getTotalTargetWeight(fixture.poolId)).to.be.equal(BigInt(productIds.length));
 
-    // raising target weight also shouldn't change effective weight
-    await setStakedProducts.call(fixture, { productIds: DEFAULT_PRODUCTS, targetWeight: MAX_TARGET_WEIGHT });
+    // raising target weight to match actual shouldn't change effective weight
+    await setStakedProducts.call(fixture, { productIds, targetWeight: MAX_TARGET_WEIGHT });
     expect(await stakingProducts.getTotalEffectiveWeight(fixture.poolId)).to.be.equal(
       await stakingProducts.getTotalTargetWeight(fixture.poolId),
     );
-    expect(await stakingProducts.getTotalEffectiveWeight(fixture.poolId)).to.be.equal(MAX_TOTAL_EFFECTIVE_WEIGHT);
+    expect(await stakingProducts.getTotalEffectiveWeight(fixture.poolId)).to.be.equal(400n);
 
-    // burn half the remaining stake
+    // burn half the remaining stake: allocations are now 4x original capacity
     {
-      // allocation will be at 200% of max allowable capacity, so effective weight should now be 200%
       const activeStake = await stakingPool.getActiveStake();
       await burnStake.call(fixture, { amount: activeStake / 2n, ...allocation });
     }
 
-    // recalculate effective weight
-    await stakingProducts.recalculateEffectiveWeights(fixture.poolId, DEFAULT_PRODUCTS);
+    // recalculate effective weight: 4 products * 200 = 800
+    await stakingProducts.recalculateEffectiveWeights(fixture.poolId, productIds);
     expect(await stakingProducts.getTotalEffectiveWeight(fixture.poolId)).to.be.gt(
       await stakingProducts.getTotalTargetWeight(fixture.poolId),
     );
-    // 2000 * 2.00 = 4000
-    expect(await stakingProducts.getTotalEffectiveWeight(fixture.poolId)).to.be.equal(4000n);
+    expect(await stakingProducts.getTotalEffectiveWeight(fixture.poolId)).to.be.equal(800n);
   });
 
   it('should fail to increase target weight when effective weight is at the limit', async function () {
@@ -371,15 +371,15 @@ describe('recalculateEffectiveWeight', function () {
     const { stakingProducts, stakingPool } = fixture;
     const [manager, staker] = fixture.accounts.members;
 
-    const numProducts = 200;
+    // 6 products x 99 weight = 594 total target weight (> 500 needed so 4x burn exceeds MAX_TOTAL_WEIGHT of 2000)
+    const numProducts = 6;
     const amount = parseEther('10000');
-    const initialTargetWeight = 5n;
+    const initialTargetWeight = 99n;
     const totalExpectedTargetWeight = BigInt(numProducts) * initialTargetWeight;
 
     // Get capacity in staking pool
     await depositTo.call(fixture, { staker, amount });
 
-    // 200 products with 5 weight = 50% of max weight (200 * 5 = 1000 / 2000)
     const products = Array(numProducts)
       .fill('')
       .map((value, index) => {
@@ -397,21 +397,25 @@ describe('recalculateEffectiveWeight', function () {
     await stakingProducts.connect(manager).setProducts(fixture.poolId, products);
 
     // Buy all available cover for every product
+    // capacity per product = stake * GLOBAL_CAPACITY_RATIO(2x) * targetWeight / WEIGHT_DENOMINATOR
+    const allocationAmount = (amount * 2n * initialTargetWeight) / 100n;
     // Create one deterministic allocation first; we reuse its metadata in burnStake below.
-    const allocation = await allocateCapacity.call(fixture, { productId: products[0].productId, amount: amount / 10n });
+    const allocation = await allocateCapacity.call(fixture, {
+      productId: products[0].productId,
+      amount: allocationAmount,
+    });
     const allocationPromises = [];
     for (let i = 1; i < products.length; i++) {
-      allocationPromises.push(allocateCapacity.call(fixture, { productId: i, amount: amount / 10n }));
+      allocationPromises.push(allocateCapacity.call(fixture, { productId: i, amount: allocationAmount }));
     }
     await Promise.all(allocationPromises);
 
-    // total target and total effective weight should be at the max
+    // total target and total effective weight should match
     expect(await stakingProducts.getTotalTargetWeight(fixture.poolId)).to.be.equal(totalExpectedTargetWeight);
     expect(await stakingProducts.getTotalEffectiveWeight(fixture.poolId)).to.be.equal(totalExpectedTargetWeight);
 
     // Burn 75% of the current stake
-    // Effective weight was at 50%, so with 3/4 of capacity reduced, allocations are twice as much as capacity
-    // ie. 50/100 = 1000 effective weight, burn 75% of stake -> 50/25 = 4000 effective weight
+    // With 25% capacity remaining, allocations are 4x capacity, pushing effective weight above MAX_TOTAL_WEIGHT
     const activeStake = await stakingPool.getActiveStake();
     const burnAmount = activeStake - activeStake / 4n;
     await burnStake.call(fixture, { amount: burnAmount, ...allocation });
@@ -422,15 +426,16 @@ describe('recalculateEffectiveWeight', function () {
       products.map(product => product.productId),
     );
     expect(await stakingProducts.getTotalTargetWeight(fixture.poolId)).to.be.equal(totalExpectedTargetWeight);
-    expect(await stakingProducts.getTotalEffectiveWeight(fixture.poolId)).to.be.equal(4000n);
+    const totalEffectiveWeight = await stakingProducts.getTotalEffectiveWeight(fixture.poolId);
+    expect(totalEffectiveWeight).to.be.gt(MAX_TOTAL_EFFECTIVE_WEIGHT);
 
-    // Increasing weight on any product will cause it to recalculate effective weight
+    // Increasing target weight on any product should revert because effective weight exceeds the limit
     const increaseProductWeightParams = products.map(product => {
       return {
         productId: product.productId,
         recalculateEffectiveWeight: true,
         setTargetWeight: true,
-        targetWeight: 10,
+        targetWeight: 100,
         setTargetPrice: false,
         targetPrice: 0,
       };

@@ -74,9 +74,13 @@ contract SPMockCoverProducts is CoverProductsGeneric {
 
   function prepareStakingProductsParams(
     ProductInitializationParams[] calldata params
-  ) external override pure returns (
-    ProductInitializationParams[] memory validatedParams
-  ) {
+  ) external override view returns (ProductInitializationParams[] memory validatedParams) {
+    for (uint i = 0; i < params.length; i++) {
+      uint productId = params[i].productId;
+      if (_allowedPoolsCount[productId] > 0) {
+        revert PoolNotAllowedForThisProduct(productId);
+      }
+    }
     validatedParams = params;
   }
 

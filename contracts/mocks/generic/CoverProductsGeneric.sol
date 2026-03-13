@@ -97,7 +97,7 @@ contract CoverProductsGeneric is ICoverProducts {
 
   function prepareStakingProductsParams(
     ProductInitializationParams[] calldata
-  ) external virtual pure returns (
+  ) external virtual view returns (
     ProductInitializationParams[] memory
   ) {
     revert("Unsupported");

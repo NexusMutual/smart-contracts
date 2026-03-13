@@ -1,9 +1,10 @@
-const { ethers } = require('hardhat');
+const { ethers, nexus } = require('hardhat');
 
 const { setEtherBalance } = require('../../utils/evm');
 const { getAccounts } = require('../../utils/accounts');
 
 const { parseEther, parseUnits } = ethers;
+const { ContractIndexes } = nexus.constants;
 
 const ETH_RATE = 1;
 
@@ -32,9 +33,7 @@ async function setup() {
   await aweth.mint(accounts.defaultSender.address, parseEther('100000'));
   await debtUsdc.mint(accounts.defaultSender.address, parseUnits('100000', 6));
 
-  // C_POOL index constant from RegistryAware
-  const C_POOL = 1 << 4;
-  await registry.addContract(C_POOL, pool.target, false);
+  await registry.addContract(ContractIndexes.C_POOL, pool.target, false);
 
   // use defaultSender for safe in unit tests
   const safeTracker = await ethers.deployContract('SafeTracker', [

@@ -24,11 +24,6 @@ const { time } = require('@nomicfoundation/hardhat-network-helpers');
 const { ZeroAddress } = ethers;
 const { parseEther } = ethers;
 
-// TODO: get rid of these two and just use `period` for calculation
-const periodInDays = 91.25;
-const periodsInYear = 365 / periodInDays;
-
-const coverId = 0;
 const productId = 0;
 const stakedNxmAmount = parseEther('50000');
 
@@ -59,7 +54,7 @@ const buyCoverParamsTemplate = {
   productId: 0,
   coverAsset: 0, // ETH
   amount: parseEther('4800'),
-  period: daysToSeconds(periodInDays),
+  period: daysToSeconds(365) / 4,
   maxPremiumInAsset: parseEther('100'),
   paymentAsset: 0,
   payWithNXM: false,
@@ -67,6 +62,7 @@ const buyCoverParamsTemplate = {
   commissionDestination: ZeroAddress,
   ipfsData: 'ipfs data',
 };
+const periodsPerYear = daysToSeconds(365) / buyCoverParamsTemplate.period;
 
 const coverProductTemplate = {
   productType: 1,
@@ -102,6 +98,27 @@ const product3 = {
 
 const poolId = 1;
 const trancheOffset = 5;
+
+const getAllocationRequestFromBuyCoverParams = (fixture, buyCoverParams) => ({
+  productId: buyCoverParams.productId,
+  coverId: buyCoverParams.coverId,
+  period: buyCoverParams.period,
+  gracePeriod: daysToSeconds(7),
+  useFixedPrice: coverProductTemplate.useFixedPrice,
+  capacityRatio: fixture.config.GLOBAL_CAPACITY_RATIO,
+  capacityReductionRatio: coverProductTemplate.capacityReductionRatio,
+  rewardRatio: fixture.config.GLOBAL_REWARDS_RATIO,
+  productMinPrice: fixture.config.DEFAULT_MIN_PRICE_RATIO,
+});
+
+async function requestAllocationFromBuyCoverParams(fixture, buyCoverParams) {
+  const allocationRequest = getAllocationRequestFromBuyCoverParams(fixture, buyCoverParams);
+  const requestResult = await fixture.stakingPool
+    .connect(fixture.coverSigner)
+    .requestAllocation.staticCall(buyCoverParams.amount, allocationRequest);
+  await fixture.stakingPool.connect(fixture.coverSigner).requestAllocation(buyCoverParams.amount, allocationRequest);
+  return requestResult;
+}
 
 async function requestAllocationSetup() {
   const fixture = await loadFixture(setup);
@@ -146,7 +163,7 @@ async function requestAllocationSetup() {
 describe('requestAllocation', function () {
   it('should allocate the amount for tranches and generate new allocation Id', async function () {
     const fixture = await loadFixture(requestAllocationSetup);
-    const { stakingPool, cover } = fixture;
+    const { stakingPool } = fixture;
     const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
     const buyCoverParams = { ...buyCoverParamsTemplate, period: daysToSeconds(365) };
     const coverAmount = divCeil(buyCoverParams.amount, NXM_PER_ALLOCATION_UNIT);
@@ -154,7 +171,7 @@ describe('requestAllocation', function () {
     const nextAllocationIdBefore = await stakingPool.getNextAllocationId();
     const activeTrancheCapacitiesBefore = await stakingPool.getActiveAllocations(buyCoverParamsTemplate.productId);
 
-    await cover.allocateCapacity(buyCoverParams, coverId, 0, stakingPool.address);
+    await requestAllocationFromBuyCoverParams(fixture, buyCoverParams);
 
     const nextAllocationIdAfter = await stakingPool.getNextAllocationId();
     const activeTrancheCapacitiesAfter = await stakingPool.getActiveAllocations(buyCoverParamsTemplate.productId);
@@ -199,7 +216,7 @@ describe('requestAllocation', function () {
 
   it('should correctly calculate the premium and price for year long cover', async function () {
     const fixture = await loadFixture(requestAllocationSetup);
-    const { stakingProducts, stakingPool, cover } = fixture;
+    const { stakingProducts, stakingPool } = fixture;
     const { GLOBAL_CAPACITY_RATIO, NXM_PER_ALLOCATION_UNIT, INITIAL_PRICE_DENOMINATOR } = fixture.config;
 
     const product = await stakingProducts.getProduct(poolId, productId);
@@ -221,16 +238,16 @@ describe('requestAllocation', function () {
 
     // buy cover and check premium + new price
     const buyCoverParams = { ...buyCoverParamsTemplate, period: daysToSeconds(365) };
-    await cover.allocateCapacity(buyCoverParams, coverId, 0, stakingPool.address);
+    const { premium } = await requestAllocationFromBuyCoverParams(fixture, buyCoverParams);
 
     const updatedProduct = await stakingProducts.getProduct(poolId, productId);
-    expect(await cover.lastPremium()).to.be.equal(expectedPremium);
+    expect(premium).to.be.equal(expectedPremium);
     expect(updatedProduct.bumpedPrice).to.be.equal(initialPrice + BigInt(priceBump));
   });
 
   it('should correctly calculate the premium and price for a very small cover', async function () {
     const fixture = await loadFixture(requestAllocationSetup);
-    const { stakingProducts, stakingPool, cover } = fixture;
+    const { stakingProducts, stakingPool } = fixture;
     const { GLOBAL_CAPACITY_RATIO, NXM_PER_ALLOCATION_UNIT, INITIAL_PRICE_DENOMINATOR } = fixture.config;
 
     const amount = 1n;
@@ -251,15 +268,15 @@ describe('requestAllocation', function () {
     {
       // buy cover and check premium + new price
       const buyCoverParams = { ...buyCoverParamsTemplate, amount };
-      await cover.allocateCapacity(buyCoverParams, coverId, 0, stakingPool.address);
+      const { premium } = await requestAllocationFromBuyCoverParams(fixture, buyCoverParams);
 
       const product = await stakingProducts.getProduct(poolId, productId);
 
       // cover purchases below NXM_PER_ALLOCATION_UNIT are charged at NXM_PER_ALLOCATION_UNIT rate
-      expect(await cover.lastPremium()).to.be.equal(
+      expect(premium).to.be.equal(
         (roundUpToNearestAllocationUnit(amount, NXM_PER_ALLOCATION_UNIT) * BigInt(initialPrice)) /
           BigInt(INITIAL_PRICE_DENOMINATOR) /
-          BigInt(periodsInYear),
+          BigInt(periodsPerYear),
       );
       expect(product.bumpedPrice).to.be.equal(initialPrice + BigInt(priceBump));
     }
@@ -267,7 +284,7 @@ describe('requestAllocation', function () {
 
   it('should correctly calculate the premium using the initial price', async function () {
     const fixture = await loadFixture(requestAllocationSetup);
-    const { stakingProducts, stakingPool, cover } = fixture;
+    const { stakingProducts, stakingPool } = fixture;
     const { GLOBAL_CAPACITY_RATIO, NXM_PER_ALLOCATION_UNIT, INITIAL_PRICE_DENOMINATOR } = fixture.config;
 
     const product = await stakingProducts.getProduct(poolId, productId);
@@ -282,7 +299,7 @@ describe('requestAllocation', function () {
     const expectedPremium =
       (buyCoverParamsTemplate.amount * BigInt(initialPrice)) /
       BigInt(INITIAL_PRICE_DENOMINATOR) /
-      BigInt(periodsInYear);
+      BigInt(periodsPerYear);
     const priceBump = calculatePriceBump(
       buyCoverParamsTemplate.amount,
       fixture.config.PRICE_BUMP_RATIO,
@@ -292,72 +309,71 @@ describe('requestAllocation', function () {
 
     {
       // buy cover and check premium + new price
-      await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, 0, stakingPool.address);
+      const { premium } = await requestAllocationFromBuyCoverParams(fixture, { ...buyCoverParamsTemplate });
 
       const product = await stakingProducts.getProduct(poolId, productId);
-      expect(await cover.lastPremium()).to.be.equal(expectedPremium);
+      expect(premium).to.be.equal(expectedPremium);
       expect(product.bumpedPrice).to.be.equal(initialPrice + BigInt(priceBump));
     }
   });
 
   it('should decrease price by PRICE_CHANGE_PER_DAY until it reaches product target price', async function () {
     const fixture = await loadFixture(requestAllocationSetup);
-    const { stakingProducts, stakingPool, cover } = fixture;
+    const { stakingProducts } = fixture;
     const { PRICE_CHANGE_PER_DAY, INITIAL_PRICE_DENOMINATOR } = fixture.config;
     const initialPrice = coverProductTemplate.initialPriceRatio;
     const daysForward = 1;
     const expectedPrice = BigInt(initialPrice) - PRICE_CHANGE_PER_DAY * BigInt(daysForward);
     await time.increase(daysToSeconds(daysForward));
-    await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, 0, stakingPool.address);
+    const firstRequest = await requestAllocationFromBuyCoverParams(fixture, { ...buyCoverParamsTemplate });
     const expectedPremium =
       (buyCoverParamsTemplate.amount * BigInt(expectedPrice)) /
       BigInt(INITIAL_PRICE_DENOMINATOR) /
-      BigInt(periodsInYear);
-    expect(await cover.lastPremium()).to.be.equal(expectedPremium);
+      BigInt(periodsPerYear);
+    expect(firstRequest.premium).to.be.equal(expectedPremium);
     {
       const product = await stakingProducts.getProduct(poolId, productId);
       const daysForward = 50;
       await time.increase(daysToSeconds(daysForward));
-      await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, 0, stakingPool.address);
+      const secondRequest = await requestAllocationFromBuyCoverParams(fixture, { ...buyCoverParamsTemplate });
       const expectedPremium =
         (buyCoverParamsTemplate.amount * BigInt(product.targetPrice)) /
         BigInt(INITIAL_PRICE_DENOMINATOR) /
-        BigInt(periodsInYear);
-      expect(await cover.lastPremium()).to.be.equal(expectedPremium);
+        BigInt(periodsPerYear);
+      expect(secondRequest.premium).to.be.equal(expectedPremium);
     }
   });
 
   it('shouldnt underflow while expiring cover during allocate capacity', async function () {
     const fixture = await loadFixture(requestAllocationSetup);
-    const { stakingProducts, stakingPool, cover } = fixture;
+    const { stakingProducts } = fixture;
     const { PRICE_CHANGE_PER_DAY, INITIAL_PRICE_DENOMINATOR } = fixture.config;
     const initialPrice = coverProductTemplate.initialPriceRatio;
     const daysForward = 1;
     const expectedPrice = BigInt(initialPrice) - PRICE_CHANGE_PER_DAY * BigInt(daysForward);
     await time.increase(daysToSeconds(daysForward));
-    await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, 0, stakingPool.address);
+    const firstRequest = await requestAllocationFromBuyCoverParams(fixture, { ...buyCoverParamsTemplate });
     const expectedPremium =
       (buyCoverParamsTemplate.amount * BigInt(expectedPrice)) /
       BigInt(INITIAL_PRICE_DENOMINATOR) /
-      BigInt(periodsInYear);
-    expect(await cover.lastPremium()).to.be.equal(expectedPremium);
+      BigInt(periodsPerYear);
+    expect(firstRequest.premium).to.be.equal(expectedPremium);
     {
       const product = await stakingProducts.getProduct(poolId, productId);
       const daysForward = 100;
       await time.increase(daysToSeconds(daysForward));
-      await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, 0, stakingPool.address);
+      const secondRequest = await requestAllocationFromBuyCoverParams(fixture, { ...buyCoverParamsTemplate });
       const expectedPremium =
         (buyCoverParamsTemplate.amount * BigInt(product.targetPrice)) /
         BigInt(INITIAL_PRICE_DENOMINATOR) /
-        BigInt(periodsInYear);
-      expect(await cover.lastPremium()).to.be.equal(expectedPremium);
+        BigInt(periodsPerYear);
+      expect(secondRequest.premium).to.be.equal(expectedPremium);
     }
   });
 
   it('should correctly calculate price when all coverage is bought in a single purchase', async function () {
     const fixture = await loadFixture(requestAllocationSetup);
-    const { stakingProducts, stakingPool, cover } = fixture;
-    const [coverBuyer] = fixture.accounts.members;
+    const { stakingProducts, stakingPool } = fixture;
     const { GLOBAL_CAPACITY_RATIO, PRICE_CHANGE_PER_DAY, NXM_PER_ALLOCATION_UNIT, TARGET_PRICE_DENOMINATOR } =
       fixture.config;
     const GLOBAL_CAPACITY_DENOMINATOR = 10000n;
@@ -399,20 +415,20 @@ describe('requestAllocation', function () {
     const expectedPremium = expectedBasePremium;
     expect(actualPremium.premium).to.be.equal(expectedPremium);
 
-    await cover.connect(coverBuyer).allocateCapacity(buyCoverParams, coverId, 0, stakingPool.address);
+    const { premium } = await requestAllocationFromBuyCoverParams(fixture, buyCoverParams);
 
     // get active allocations
     const activeAllocations = await stakingPool.getActiveAllocations(productId);
     const totalActiveAllocations = activeAllocations.reduce((acc, allocation) => acc + BigInt(allocation), 0n);
 
     expect(totalActiveAllocations).to.be.equal(totalCapacity);
-    expect(await cover.lastPremium()).to.be.equal(expectedPremium);
+    expect(premium).to.be.equal(expectedPremium);
   });
 
   it('should overflow uint32 tranche allocation when cover amount is too large', async function () {
     const fixture = await loadFixture(requestAllocationSetup);
-    const { stakingPool, cover } = fixture;
-    const [coverBuyer, staker] = fixture.accounts.members;
+    const { stakingPool } = fixture;
+    const [, staker] = fixture.accounts.members;
     const amount = 2n ** 95n - 1n;
     const buyCoverParams = { ...buyCoverParamsTemplate, amount };
 
@@ -423,9 +439,9 @@ describe('requestAllocation', function () {
       staker.address, // destination
     );
 
-    await expect(
-      cover.connect(coverBuyer).allocateCapacity(buyCoverParams, coverId, 0, stakingPool.address),
-    ).to.be.revertedWith("SafeCast: value doesn't fit in 32 bits");
+    await expect(requestAllocationFromBuyCoverParams(fixture, buyCoverParams)).to.be.revertedWith(
+      "SafeCast: value doesn't fit in 32 bits",
+    );
   });
 
   it('reverts if caller is not cover contract', async function () {
@@ -845,7 +861,7 @@ describe('requestAllocation', function () {
 
   it('calculates, update bucket rewards and mint rewards in NXM', async function () {
     const fixture = await loadFixture(requestAllocationSetup);
-    const { stakingPool, cover, tokenController, nxm } = fixture;
+    const { stakingPool, tokenController, nxm } = fixture;
     const [user] = fixture.accounts.members;
 
     const { REWARDS_DENOMINATOR } = fixture.config;
@@ -869,12 +885,15 @@ describe('requestAllocation', function () {
 
     let tcBalanceBefore = await nxm.balanceOf(tokenController.address);
 
-    await cover.requestAllocation(amount, allocationRequestParams, stakingPool.address);
+    const firstRequest = await stakingPool
+      .connect(fixture.coverSigner)
+      .requestAllocation.staticCall(amount, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, allocationRequestParams);
 
     let previousRewardPerSecond;
     let previousRewardBuckets;
     {
-      const premium = await cover.lastPremium();
+      const premium = firstRequest.premium;
 
       const lastBlock = await ethers.provider.getBlock('latest');
       const rewardStreamPeriod = expirationBucket * BUCKET_DURATION - lastBlock.timestamp;
@@ -897,10 +916,13 @@ describe('requestAllocation', function () {
       previousRewardBuckets = rewardPerSecondCut;
     }
 
-    await cover.requestAllocation(amount, allocationRequestParams, stakingPool.address);
+    const secondRequest = await stakingPool
+      .connect(fixture.coverSigner)
+      .requestAllocation.staticCall(amount, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, allocationRequestParams);
 
     {
-      const premium = await cover.lastPremium();
+      const premium = secondRequest.premium;
 
       const lastBlock = await ethers.provider.getBlock('latest');
       const rewardStreamPeriod = expirationBucket * BUCKET_DURATION - lastBlock.timestamp;

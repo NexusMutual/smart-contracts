@@ -87,23 +87,6 @@ contract PoolGeneric is IPool {
     revert("updateMCRInternal unsupported");
   }
 
-  // Legacy functions not in IPool interface but kept for compatibility
-  function setSwapDetailsLastSwapTime(address /* assetAddress */, uint32 /* lastSwapTime */) external virtual {
-    revert("setSwapDetailsLastSwapTime unsupported");
-  }
-
-  function upgradeCapitalPool(address payable /* newPoolAddress */) external virtual {
-    revert("upgradeCapitalPool unsupported");
-  }
-
-  function calculateMCRRatio(uint /* totalAssetValue */, uint /* mcrValue */) external virtual pure returns (uint) {
-    revert("calculateMCRRatio unsupported");
-  }
-
-  function setSwapAssetAmount(address /* assetAddress */, uint /* amount */) external virtual {
-    revert("setSwapAssetAmount unsupported");
-  }
-
   function migrate(address /* previousPool */, address /* previousMCR */) external virtual {
     revert("migrate unsupported");
   }

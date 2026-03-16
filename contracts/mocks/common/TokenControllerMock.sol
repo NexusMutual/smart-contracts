@@ -16,10 +16,6 @@ contract TokenControllerMock is TokenControllerGeneric {
 
   mapping(address => bool) public _isStakingPoolManager;
 
-  mapping(address => mapping (bytes32 => uint)) public _tokensLocked;
-
-  mapping(address => uint) public _pendingRewards;
-
   constructor(address _tokenAddress) {
     token = INXMToken(_tokenAddress);
   }
@@ -94,22 +90,6 @@ contract TokenControllerMock is TokenControllerGeneric {
 
   function setIsStakingPoolManager(address member, bool isManager) external {
     _isStakingPoolManager[member] = isManager;
-  }
-
-  function setTokensLocked(address member, bytes32 reason, uint amount) external {
-    _tokensLocked[member][reason] = amount;
-  }
-
-  function setPendingRewards(address member, uint amount) external {
-    _pendingRewards[member] = amount;
-  }
-
-  function tokensLocked(address member, bytes32 reason) external override view returns (uint) {
-    return _tokensLocked[member][reason];
-  }
-
-  function getPendingRewards(address member) external override view returns (uint) {
-    return _pendingRewards[member];
   }
 
   function stakingPoolNXMBalances(uint poolId) external override view returns(uint128 rewards, uint128 deposits) {

@@ -49,14 +49,6 @@ contract SwapOperatorGeneric is ISwapOperator {
     revert("Unsupported");
   }
 
-  function enzymeFundValueCalculatorRouter() external pure returns (IEnzymeFundValueCalculatorRouter) {
-    revert("Unsupported");
-  }
-
-  function minPoolEth() external pure returns (uint) {
-    revert("Unsupported");
-  }
-
   /* ==== MUTATIVE FUNCTIONS ==== */
 
   function placeOrder(GPv2Order.Data calldata, bytes calldata) external virtual {
@@ -79,19 +71,7 @@ contract SwapOperatorGeneric is ISwapOperator {
     revert("Unsupported");
   }
 
-  function setSafeTransferAssetAllowed(address, bool) external virtual {
-    revert("Unsupported");
-  }
-
   function requestAssetSwap(SwapRequest calldata) external virtual {
-    revert("Unsupported");
-  }
-
-  function requestAssetTransfer(address, uint) external virtual {
-    revert("Unsupported");
-  }
-
-  function transferRequestedAsset(address, uint) external virtual {
     revert("Unsupported");
   }
 }

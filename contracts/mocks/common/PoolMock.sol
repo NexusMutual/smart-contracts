@@ -87,10 +87,6 @@ contract PoolMock is PoolGeneric {
     return prices[assetId];
   }
 
-  function calculateMCRRatio(uint totalAssetValue, uint mcrEth) public override virtual pure returns (uint) {
-      return totalAssetValue * (10 ** MCR_RATIO_DECIMALS) / mcrEth;
-  }
-
   function addAsset(Asset memory asset) external virtual {
     assets.push(asset);
   }

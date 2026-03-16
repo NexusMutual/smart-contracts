@@ -23,18 +23,6 @@ contract CoverGeneric is ICover {
     revert("Unsupported");
   }
 
-  function globalCapacityRatio() external virtual pure returns (uint) {
-    revert("Unsupported");
-  }
-
-  function globalRewardsRatio() external virtual pure returns (uint) {
-    revert("Unsupported");
-  }
-
-  function getPriceAndCapacityRatios(uint[] calldata) public virtual view returns (uint, uint, uint[] memory, uint[] memory) {
-    revert("Unsupported");
-  }
-
   function getGlobalCapacityAndPriceRatios() public virtual pure returns (uint, uint) {
     revert("Unsupported");
   }
@@ -88,10 +76,6 @@ contract CoverGeneric is ICover {
 
   /* === MUTATIVE FUNCTIONS ==== */
 
-  function addLegacyCover(uint, uint, uint, uint, uint, address) external virtual returns (uint) {
-    revert("Unsupported");
-  }
-
   function buyCover(
     BuyCoverParams calldata /* params */,
     PoolAllocationRequest[] calldata /* coverChunkRequests */
@@ -123,10 +107,6 @@ contract CoverGeneric is ICover {
   }
 
   function recalculateActiveCoverInAsset(uint) external virtual pure {
-    revert("Unsupported");
-  }
-
-  function changeStakingPoolFactoryOperator() external virtual {
     revert("Unsupported");
   }
 

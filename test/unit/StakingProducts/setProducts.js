@@ -5,6 +5,7 @@ const { loadFixture, time, setBalance } = require('@nomicfoundation/hardhat-netw
 const {
   verifyProduct,
   depositTo,
+  allocateCapacity,
   daysToSeconds,
   newProductTemplate,
   newProductWithMinPriceTemplate,
@@ -38,7 +39,7 @@ const burnStakeParams = {
   deallocationAmount: 0,
 };
 
-describe('setProducts unit tests', function () {
+describe('setProducts', function () {
   it('should fail to be called by non manager', async function () {
     const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
@@ -451,8 +452,8 @@ describe('setProducts unit tests', function () {
 
   it('should fail to change product weights when fully allocated', async function () {
     const fixture = await loadFixture(setup);
-    const { stakingProducts, stakingPool, cover } = fixture;
-    const [manager, staker, coverBuyer] = fixture.accounts.members;
+    const { stakingProducts } = fixture;
+    const [manager, staker] = fixture.accounts.members;
 
     const amount = parseEther('1');
 
@@ -460,7 +461,6 @@ describe('setProducts unit tests', function () {
     await depositTo.call(fixture, { staker, amount });
 
     let i = 0;
-    const coverId = 1;
     // Initialize Products
     const products = await Promise.all(
       Array(20)
@@ -472,19 +472,17 @@ describe('setProducts unit tests', function () {
 
     await stakingProducts.connect(manager).setProducts(poolId, products);
 
-    // CoverBuy
-    const coverBuyParams = Array(20)
+    // Fill capacity across products
+    const coverAllocations = Array(20)
       .fill('')
       .map(() => ({
-        ...buyCoverParamsTemplate,
-        owner: coverBuyer.address,
         productId: --i,
         amount: parseEther('2'),
       }));
 
     await Promise.all(
-      coverBuyParams.map(cb => {
-        return cover.allocateCapacity(cb, coverId, 0, stakingPool.target);
+      coverAllocations.map(allocation => {
+        return allocateCapacity.call(fixture, allocation);
       }),
     );
 
@@ -498,8 +496,8 @@ describe('setProducts unit tests', function () {
 
   it('should fail to change products when fully allocated after initializing', async function () {
     const fixture = await loadFixture(setup);
-    const { stakingProducts, stakingPool, cover } = fixture;
-    const [manager, staker, coverBuyer] = fixture.accounts.members;
+    const { stakingProducts } = fixture;
+    const [manager, staker] = fixture.accounts.members;
     const amount = parseEther('1');
 
     let i = 0;
@@ -512,16 +510,15 @@ describe('setProducts unit tests', function () {
     // Get capacity in staking pool
     await depositTo.call(fixture, { staker, amount });
 
-    // Initialize Products and CoverBuy requests
-    const coverId = 1;
-    const coverBuyParams = Array(20)
+    // Initialize products allocations
+    const coverAllocations = Array(20)
       .fill('')
       .map(() => {
-        return { ...buyCoverParamsTemplate, owner: coverBuyer.address, productId: --i, amount: parseEther('2') };
+        return { productId: --i, amount: parseEther('2') };
       });
     await Promise.all(
-      coverBuyParams.map(cb => {
-        return cover.connect(coverBuyer).allocateCapacity(cb, coverId, 0, stakingPool.target);
+      coverAllocations.map(allocation => {
+        return allocateCapacity.call(fixture, allocation);
       }),
     );
 
@@ -538,7 +535,7 @@ describe('setProducts unit tests', function () {
 
   it('any address should be able to recalculate effective weight', async function () {
     const fixture = await loadFixture(setup);
-    const { stakingProducts, stakingPool, cover } = fixture;
+    const { stakingProducts } = fixture;
     const {
       members: [manager, staker, coverBuyer],
       nonMembers: [anybody],
@@ -566,10 +563,9 @@ describe('setProducts unit tests', function () {
         amount: parseEther('1'),
       }));
 
-    const coverId = 0;
     await Promise.all(
-      coverBuyParams.map(cb => {
-        return cover.connect(coverBuyer).allocateCapacity(cb, coverId, 0, stakingPool.target);
+      coverBuyParams.map(({ productId, amount }) => {
+        return allocateCapacity.call(fixture, { productId, amount });
       }),
     );
 
@@ -581,11 +577,10 @@ describe('setProducts unit tests', function () {
 
   it('should add products with target weight 0 and have no capacity', async function () {
     const fixture = await loadFixture(setup);
-    const { stakingProducts, stakingPool, cover } = fixture;
-    const [manager, staker, coverBuyer] = fixture.accounts.members;
+    const { stakingProducts, stakingPool } = fixture;
+    const [manager, staker] = fixture.accounts.members;
 
     const numProducts = 20;
-    const coverId = 1;
     const amount = parseEther('.01');
 
     // Get capacity in staking pool
@@ -603,19 +598,17 @@ describe('setProducts unit tests', function () {
     // Set products
     await stakingProducts.connect(manager).setProducts(poolId, products);
 
-    await expect(
-      cover
-        .connect(coverBuyer)
-        .allocateCapacity({ ...buyCoverParamsTemplate, amount: 1 }, coverId, 0, stakingPool.target),
-    ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
+    await expect(allocateCapacity.call(fixture, { productId: 0, amount: 1 })).to.be.revertedWithCustomError(
+      stakingPool,
+      'InsufficientCapacity',
+    );
   });
 
   it('should add product with target weight 1', async function () {
     const fixture = await loadFixture(setup);
-    const { stakingProducts, stakingPool, cover } = fixture;
-    const [manager, staker, coverBuyer] = fixture.accounts.members;
+    const { stakingProducts, stakingPool } = fixture;
+    const [manager, staker] = fixture.accounts.members;
 
-    const coverId = 1;
     const amount = parseEther('1');
     const coverBuyAmount = amount / 100n; // weight is 1/100
 
@@ -628,78 +621,21 @@ describe('setProducts unit tests', function () {
 
     // Fails if cover amount is too high
     await expect(
-      cover
-        .connect(coverBuyer)
-        .allocateCapacity({ ...buyCoverParamsTemplate, amount: coverBuyAmount * 3n }, coverId, 0, stakingPool.target),
+      allocateCapacity.call(fixture, { productId: 0, amount: coverBuyAmount * 3n }),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
-    await cover
-      .connect(coverBuyer)
-      .allocateCapacity({ ...buyCoverParamsTemplate, amount: coverBuyAmount }, coverId, 0, stakingPool.target);
-  });
-
-  // TODO: re-enable this test after fixing issue: https://github.com/NexusMutual/smart-contracts/issues/842
-  it.skip('should fail to increase target weight after a burn leaves less than 1 capacity unit', async function () {
-    const fixture = await loadFixture(setup);
-    const { stakingProducts, stakingPool, cover } = fixture;
-    const [manager, staker, coverBuyer] = fixture.accounts.members;
-
-    // Impersonate cover contract
-    const coverSigner = await ethers.getImpersonatedSigner(cover.target);
-    await setBalance(cover.target, parseEther('100000'));
-
-    const coverId = 1;
-    const amount = parseEther('10000');
-
-    // Get capacity in staking pool
-    await depositTo.call(fixture, { staker, amount });
-
-    // setup 20 products at 50% weight
-    const numProducts = 20;
-    const products = Array(numProducts)
-      .fill('')
-      .map((_, i) => ({ ...newProductTemplate, productId: i, targetWeight: 50 }));
-
-    // Add products
-    await stakingProducts.connect(manager).setProducts(poolId, products);
-
-    // Buy max cover on all products
-    const allocatePromises = [];
-    for (let i = 0; i < numProducts; i++) {
-      allocatePromises.push(
-        cover.allocateCapacity(
-          { ...buyCoverParamsTemplate, productId: i, owner: coverBuyer.address, amount },
-          coverId,
-          0,
-          stakingPool.target,
-        ),
-      );
-    }
-    await Promise.all(allocatePromises);
-
-    // Burn stake 99% of stake
-    const activeStake = await stakingPool.getActiveStake();
-    // TODO: This leaves 0 capacity in the pool,
-    // so the effective weight is calculated as if it is a new pool (defaults to target weight)
-    await stakingPool.connect(coverSigner).burnStake(activeStake - 1n, burnStakeParams);
-
-    // Increasing weight on any product will cause it to recalculate effective weight
-    const increaseTargetWeightParams = products.map(p => ({ ...p, targetWeight: 51 }));
-    await expect(
-      stakingProducts.connect(manager).setProducts(poolId, increaseTargetWeightParams),
-    ).to.be.revertedWithCustomError(stakingProducts, 'TotalEffectiveWeightExceeded');
+    await allocateCapacity.call(fixture, { productId: 0, amount: coverBuyAmount });
   });
 
   it('should fail to increase target weight when effective weight is at the limit', async function () {
     const fixture = await loadFixture(setup);
     const { stakingProducts, stakingPool, cover } = fixture;
-    const [manager, staker, coverBuyer] = fixture.accounts.members;
+    const [manager, staker] = fixture.accounts.members;
 
     // Impersonate cover contract
     const coverSigner = await ethers.getImpersonatedSigner(cover.target);
     await setBalance(cover.target, parseEther('100000'));
 
-    const coverId = 1;
     const amount = parseEther('10000');
 
     // Get capacity in staking pool
@@ -717,14 +653,7 @@ describe('setProducts unit tests', function () {
     // Buy max cover on all products
     const allocatePromises = [];
     for (let i = 0; i < numProducts; i++) {
-      allocatePromises.push(
-        cover.allocateCapacity(
-          { ...buyCoverParamsTemplate, productId: i, owner: coverBuyer.address, amount },
-          coverId,
-          0,
-          stakingPool.target,
-        ),
-      );
+      allocatePromises.push(allocateCapacity.call(fixture, { productId: i, amount }));
     }
     await Promise.all(allocatePromises);
 
@@ -742,14 +671,13 @@ describe('setProducts unit tests', function () {
   it('should lower target weights when over allocated', async function () {
     const fixture = await loadFixture(setup);
     const { stakingProducts, stakingPool, cover } = fixture;
-    const [manager, staker, coverBuyer] = fixture.accounts.members;
+    const [manager, staker] = fixture.accounts.members;
 
     // Impersonate cover contract
     const coverSigner = await ethers.getImpersonatedSigner(cover.target);
     await setBalance(cover.target, parseEther('100000'));
 
     const numProducts = 20;
-    const coverId = 1;
     const amount = parseEther('1');
     const { timestamp: start } = await ethers.provider.getBlock('latest');
 
@@ -770,17 +698,15 @@ describe('setProducts unit tests', function () {
     await stakingProducts.connect(manager).setProducts(poolId, products);
 
     // Buy all remaining cover
-    const coverBuyParams = Array(20)
+    const coverAllocations = Array(20)
       .fill('')
       .map(() => ({
-        ...buyCoverParamsTemplate,
-        owner: coverBuyer.address,
         productId: --i,
         amount: parseEther('1.90'),
       }));
     await Promise.all(
-      coverBuyParams.map(cb => {
-        return cover.allocateCapacity(cb, coverId, 0, stakingPool.target);
+      coverAllocations.map(allocation => {
+        return allocateCapacity.call(fixture, allocation);
       }),
     );
 

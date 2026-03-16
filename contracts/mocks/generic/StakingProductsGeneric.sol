@@ -68,8 +68,4 @@ contract StakingProductsGeneric is IStakingProducts {
   function getPoolMetadata(uint) external pure returns (string memory) {
     revert("Unsupported");
   }
-
-  function setInitialMetadata(string[] calldata) external pure {
-    revert("Unsupported");
-  }
 }

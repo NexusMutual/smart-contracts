@@ -37,12 +37,4 @@ contract NXMasterGeneric is INXMMaster {
   function contractAddresses(bytes2) external virtual view returns (address payable) {
     revert("Unsupported");
   }
-
-  function transferOwnershipToRegistry(address) pure external {
-    revert("Unsupported");
-  }
-
-  function migrate(address) pure external {
-    revert("Unsupported");
-  }
 }

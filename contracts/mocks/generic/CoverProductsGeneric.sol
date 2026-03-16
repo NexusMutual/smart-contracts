@@ -103,11 +103,6 @@ contract CoverProductsGeneric is ICoverProducts {
     revert("Unsupported");
   }
 
-  // deprecated
-  function productNames(uint) external virtual view returns (string memory) {
-    revert("Unsupported");
-  }
-
   function setProductTypes(ProductTypeParam[] calldata) external virtual view {
     revert("Unsupported");
   }

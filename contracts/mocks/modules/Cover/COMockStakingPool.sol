@@ -41,17 +41,6 @@ contract COMockStakingPool is StakingPoolGeneric {
   uint public burnStakeCalledWithAmount;
   BurnStakeParams public burnStakeCalledWithParams;
 
-  struct StakedProduct {
-    uint16 lastEffectiveWeight;
-    uint8 targetWeight;
-    uint96 targetPrice;
-    uint96 bumpedPrice;
-    uint32 bumpedPriceUpdateTime;
-  }
-
-  // product id => StakedProduct
-  mapping(uint => StakedProduct) public products;
-
   function initialize(
     bool _isPrivatePool,
     uint _initialPoolFee,
@@ -106,29 +95,9 @@ contract COMockStakingPool is StakingPoolGeneric {
     return priceRatio * coverAmount / MAX_PRICE_RATIO * period / 365 days;
   }
 
-  function stake(uint /*amount*/) external {
-    activeStake = activeStake;
-  }
-
   function processExpirations(bool) external override {
     activeStake = activeStake;
     revert("CoverMockStakingPool: not callable");
-  }
-
-  function getAvailableCapacity(uint productId, uint capacityFactor) external view returns (uint) {
-    return stakedAmount[productId] * capacityFactor - usedCapacity[productId];
-  }
-
-  function getCapacity(uint productId, uint capacityFactor) external view returns (uint) {
-    return stakedAmount[productId] * capacityFactor;
-  }
-
-  function getUsedCapacity(uint productId) external view returns (uint) {
-    return usedCapacity[productId];
-  }
-
-  function getStake(uint productId) external view returns (uint) {
-    return stakedAmount[productId];
   }
 
   function setUsedCapacity(uint productId, uint amount) external {
@@ -141,14 +110,6 @@ contract COMockStakingPool is StakingPoolGeneric {
 
   function setPrice(uint productId, uint price) external {
     mockPrices[productId] = price;
-  }
-
-  function changeMasterAddress(address payable _a) external {
-    // noop
-  }
-
-  function changeDependentContractAddress() external {
-    // noop
   }
 
   function burnStake(uint amount, BurnStakeParams calldata params) external override {
@@ -183,11 +144,6 @@ contract COMockStakingPool is StakingPoolGeneric {
   }
 
   function setPoolPrivacy(bool /* isPrivatePool */) external override {
-    activeStake = activeStake;
-    revert("CoverMockStakingPool: not callable");
-  }
-
-  function multicall(bytes[] calldata) external returns (bytes[] memory) {
     activeStake = activeStake;
     revert("CoverMockStakingPool: not callable");
   }
@@ -237,16 +193,6 @@ contract COMockStakingPool is StakingPoolGeneric {
     return address(0);
   }
 
-  function getProduct(uint /*productId*/) external pure returns (
-    uint lastEffectiveWeight,
-    uint targetWeight,
-    uint targetPrice,
-    uint bumpedPrice,
-    uint bumpedPriceUpdateTime
-  ) {
-    return (0, 0, 0, 0, 0);
-  }
-
   function getRewardPerSecond() external override pure returns (uint) {
     return 0;
   }
@@ -268,14 +214,6 @@ contract COMockStakingPool is StakingPoolGeneric {
   }
 
   function getNextAllocationId() external override pure returns (uint) {
-    return 0;
-  }
-
-  function getTotalTargetWeight() external pure returns (uint) {
-    return 0;
-  }
-
-  function getTotalEffectiveWeight() external pure returns (uint) {
     return 0;
   }
 

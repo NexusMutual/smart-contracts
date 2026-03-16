@@ -1,6 +1,6 @@
 const { ethers, nexus } = require('hardhat');
+const { setBalance } = require('@nomicfoundation/hardhat-network-helpers');
 
-const { setEtherBalance } = require('../../utils/evm');
 const { getAccounts } = require('../../utils/accounts');
 
 const { parseEther, parseUnits } = ethers;
@@ -46,7 +46,7 @@ async function setup() {
     debtUsdc.target,
   ]);
 
-  await setEtherBalance(pool.target, parseEther('145000'));
+  await setBalance(pool.target, parseEther('145000'));
   const contracts = { registry, pool, safeTracker, swapOperator, priceFeedOracle };
   const tokens = { usdc, weth, aweth, debtUsdc };
 

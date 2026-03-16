@@ -1,10 +1,9 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers');
 const { parseEther, ZeroAddress } = ethers;
 
 const { setup } = require('./setup');
-const { increaseTime } = require('../../utils/evm');
 
 const buyCoverFixture = {
   productId: 0,
@@ -47,7 +46,7 @@ async function updateTotalActiveCoverAmountSetup() {
   );
   const coverId = await cover.getCoverDataCount();
 
-  await increaseTime(31 * 24 * 60 * 60);
+  await time.increase(31 * 24 * 60 * 60);
 
   await expect(cover.connect(coverBuyer).expireCover(coverId));
 
@@ -60,7 +59,7 @@ describe('updateTotalActiveCoverAmount', function () {
     const { cover } = fixture;
     const { coverAsset } = buyCoverFixture;
 
-    await increaseTime(7 * 24 * 60 * 60); // fastforward to next bucket
+    await time.increase(7 * 24 * 60 * 60); // fastforward to next bucket
     await cover.updateTotalActiveCoverAmount(coverAsset);
     const totalCoverAmount = await cover.totalActiveCoverInAsset(coverAsset);
 

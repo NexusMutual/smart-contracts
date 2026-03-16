@@ -1,8 +1,7 @@
 const { expect } = require('chai');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, impersonateAccount } = require('@nomicfoundation/hardhat-network-helpers');
 const { ethers } = require('hardhat');
 const { setup } = require('./setup');
-const { impersonateAccount } = require('../../utils/evm');
 
 describe('startAssessment', function () {
   const COOLDOWN_PERIOD = 24 * 60 * 60;

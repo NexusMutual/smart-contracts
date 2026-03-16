@@ -1,7 +1,6 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-
-const { increaseTime, mineNextBlock, setNextBlockTime } = require('../../utils/evm');
+const { time, mine } = require('@nomicfoundation/hardhat-network-helpers');
 const {
   getTranches,
   calculateStakeShares,
@@ -109,7 +108,7 @@ describe('withdraw', function () {
       destination,
     );
 
-    await increaseTime(TRANCHE_DURATION);
+    await time.increase(TRANCHE_DURATION);
 
     // Simulate manager lock in governance
     await nxm.setLock(manager.address, 1e6);
@@ -139,7 +138,7 @@ describe('withdraw', function () {
     );
 
     await generateRewards(stakingPool, coverSigner);
-    await increaseTime(TRANCHE_DURATION);
+    await time.increase(TRANCHE_DURATION);
 
     const withdrawStake = true;
     const withdrawRewards = false;
@@ -181,8 +180,8 @@ describe('withdraw', function () {
 
     await generateRewards(stakingPool, coverSigner);
 
-    await increaseTime(TRANCHE_DURATION);
-    await mineNextBlock();
+    await time.increase(TRANCHE_DURATION);
+    await mine();
 
     const withdrawStake = true;
     const withdrawRewards = true;
@@ -235,7 +234,7 @@ describe('withdraw', function () {
     const managerTokenId = 0;
     const managerDepositBefore = await stakingPool.deposits(managerTokenId, firstActiveTrancheId);
 
-    await increaseTime(TRANCHE_DURATION);
+    await time.increase(TRANCHE_DURATION);
 
     const withdrawStake = false;
     const withdrawRewards = true;
@@ -343,8 +342,8 @@ describe('withdraw', function () {
 
       trancheIds.push(currentTranche);
       await generateRewards(stakingPool, coverSigner);
-      await increaseTime(TRANCHE_DURATION);
-      await mineNextBlock();
+      await time.increase(TRANCHE_DURATION);
+      await mine();
     }
 
     const depositsBeforeWithdraw = {};
@@ -415,8 +414,8 @@ describe('withdraw', function () {
 
     await generateRewards(stakingPool, coverSigner);
 
-    await increaseTime(TRANCHE_DURATION);
-    await mineNextBlock();
+    await time.increase(TRANCHE_DURATION);
+    await mine();
 
     await stakingPool.connect(user).withdraw(tokenId, withdrawStake, withdrawRewards, trancheIds);
 
@@ -457,7 +456,7 @@ describe('withdraw', function () {
     await generateRewards(stakingPool, coverSigner);
 
     const deposit = await stakingPool.deposits(tokenId, firstActiveTrancheId);
-    await increaseTime(TRANCHE_DURATION);
+    await time.increase(TRANCHE_DURATION);
 
     const userBalanceBefore = await nxm.balanceOf(user.address);
     const randomUserBalanceBefore = await nxm.balanceOf(randomUser.address);
@@ -536,7 +535,7 @@ describe('withdraw', function () {
     const { premium } = await stakingPool.connect(coverSigner).requestAllocation.staticCall(amount, allocationRequest);
 
     // set the exact time and send the tx
-    await setNextBlockTime(rewardsTimestamp);
+    await time.setNextBlockTimestamp(rewardsTimestamp);
     await stakingPool.connect(coverSigner).requestAllocation(amount, allocationRequest);
 
     const { rewards: rewardsMintedAfter } = await tokenController.stakingPoolNXMBalances(poolId);
@@ -548,12 +547,12 @@ describe('withdraw', function () {
 
     // half way through rewards period
     const { timestamp } = await ethers.provider.getBlock('latest');
-    await setNextBlockTime(timestamp + rewardsPeriod / 2);
+    await time.setNextBlockTimestamp(timestamp + rewardsPeriod / 2);
     await stakingPool.withdraw(aliceTokenId, withdrawStake, withdrawRewards, [lastTrancheId]);
     const firstAccNxmPerRewardShare = await stakingPool.getAccNxmPerRewardsShare();
 
     // advance time until after the rewards period has ended
-    await setNextBlockTime(timestamp + rewardsPeriod + BUCKET_DURATION);
+    await time.setNextBlockTimestamp(timestamp + rewardsPeriod + BUCKET_DURATION);
     await stakingPool.withdraw(aliceTokenId, withdrawStake, withdrawRewards, [lastTrancheId]);
     await stakingPool.withdraw(bobTokenId, withdrawStake, withdrawRewards, [lastTrancheId]);
     await stakingPool.withdraw(0, withdrawStake, withdrawRewards, [lastTrancheId]);
@@ -616,8 +615,8 @@ describe('withdraw', function () {
 
       trancheIds.push(currentTranche);
       await generateRewards(stakingPool, coverSigner);
-      await increaseTime(TRANCHE_DURATION);
-      await mineNextBlock();
+      await time.increase(TRANCHE_DURATION);
+      await mine();
     }
 
     const depositsBeforeWithdraw = {};
@@ -711,8 +710,8 @@ describe('withdraw', function () {
     const tcBalanceAfterRewards = await nxm.balanceOf(tokenController.address);
     const rewardsMinted = tcBalanceAfterRewards - tcBalanceBeforeRewards;
 
-    await increaseTime(TRANCHE_DURATION * TRANCHE_COUNT);
-    await mineNextBlock();
+    await time.increase(TRANCHE_DURATION * TRANCHE_COUNT);
+    await mine();
 
     const depositsBeforeWithdraw = {};
 

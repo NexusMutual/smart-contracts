@@ -1,6 +1,6 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, time, setBalance } = require('@nomicfoundation/hardhat-network-helpers');
 
 const {
   verifyProduct,
@@ -9,7 +9,6 @@ const {
   newProductTemplate,
   newProductWithMinPriceTemplate,
 } = require('./helpers');
-const { increaseTime, setEtherBalance } = require('../../utils/evm');
 const setup = require('./setup');
 
 const { ZeroAddress, parseEther } = ethers;
@@ -175,7 +174,7 @@ describe('setProducts unit tests', function () {
     expect(bumpedPriceBefore).to.be.equal(initialPrice);
     expect(bumpedPriceUpdateTimeBefore).to.be.equal(initialTimestamp);
 
-    await increaseTime(daysToSeconds(2)); // 2 days * 2% per day
+    await time.increase(daysToSeconds(2)); // 2 days * 2% per day
     const priceDrop = 400n; //  = 4% drop
 
     // increase targetPrice
@@ -213,7 +212,7 @@ describe('setProducts unit tests', function () {
     expect(bumpedPriceBefore).to.be.equal(initialPrice); // 500
     expect(bumpedPriceUpdateTimeBefore).to.be.equal(initialTimestamp);
 
-    await increaseTime(daysToSeconds(8));
+    await time.increase(daysToSeconds(8));
 
     // decrease target price, but keep it above what the base price would have been if there was no floor
     const newTargetPrice = 200n;
@@ -647,7 +646,7 @@ describe('setProducts unit tests', function () {
 
     // Impersonate cover contract
     const coverSigner = await ethers.getImpersonatedSigner(cover.target);
-    await setEtherBalance(cover.target, parseEther('100000'));
+    await setBalance(cover.target, parseEther('100000'));
 
     const coverId = 1;
     const amount = parseEther('10000');
@@ -698,7 +697,7 @@ describe('setProducts unit tests', function () {
 
     // Impersonate cover contract
     const coverSigner = await ethers.getImpersonatedSigner(cover.target);
-    await setEtherBalance(cover.target, parseEther('100000'));
+    await setBalance(cover.target, parseEther('100000'));
 
     const coverId = 1;
     const amount = parseEther('10000');
@@ -747,7 +746,7 @@ describe('setProducts unit tests', function () {
 
     // Impersonate cover contract
     const coverSigner = await ethers.getImpersonatedSigner(cover.target);
-    await setEtherBalance(cover.target, parseEther('100000'));
+    await setBalance(cover.target, parseEther('100000'));
 
     const numProducts = 20;
     const coverId = 1;

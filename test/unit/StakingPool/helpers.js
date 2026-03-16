@@ -1,7 +1,6 @@
 const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
-
-const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
+const { time, mine } = require('@nomicfoundation/hardhat-network-helpers');
 const { BigIntMath } = nexus.helpers;
 const { divCeil } = BigIntMath;
 
@@ -28,8 +27,8 @@ function sqrt(value) {
 }
 
 const setTime = async timestamp => {
-  await setNextBlockTime(timestamp);
-  await mineNextBlock();
+  await time.setNextBlockTimestamp(timestamp);
+  await mine();
 };
 
 function calculateBasePrice(timestamp, product, priceChangePerDay) {

@@ -1,8 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { time } = require('@nomicfoundation/hardhat-network-helpers');
 const { ZeroAddress, parseEther } = ethers;
-
-const { increaseTime } = require('../../utils/evm');
 const { getTranches, daysToSeconds } = require('./helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
@@ -122,7 +121,7 @@ describe('setPoolFee', function () {
     const coverSigner = await ethers.getImpersonatedSigner(cover.target);
 
     await stakingPool.connect(coverSigner).requestAllocation(coverAmount, allocationRequest);
-    await increaseTime(daysToSeconds(25));
+    await time.increase(daysToSeconds(25));
 
     const rewardsSharesSupplyBefore = await stakingPool.getRewardsSharesSupply();
     const trancheBefore = await stakingPool.getTranche(trancheId);

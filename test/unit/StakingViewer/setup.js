@@ -1,9 +1,8 @@
 const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
+const { setBalance } = require('@nomicfoundation/hardhat-network-helpers');
 
-const { getAccounts } = require('../../utils/accounts');
-const { setEtherBalance } = require('../../utils/evm');
-const { calculateCurrentTrancheId } = require('../../utils/stakingPool');
+const { getAccounts, calculateCurrentTrancheId } = require('../utils');
 
 const { parseEther, getCreateAddress, MaxUint256 } = ethers;
 const { ContractIndexes, Role } = nexus.constants;
@@ -107,7 +106,7 @@ async function setup() {
   const stakingViewer = await ethers.deployContract('StakingViewer', [registry.target]);
 
   // set ETH balance
-  await setEtherBalance(manager.address, parseEther('10000'));
+  await setBalance(manager.address, parseEther('10000'));
 
   return {
     accounts,

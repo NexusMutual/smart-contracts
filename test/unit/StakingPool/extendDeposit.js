@@ -1,9 +1,8 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { getTranches, TRANCHE_DURATION, generateRewards, setTime } = require('./helpers');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
-const { increaseTime } = require('../../utils/evm');
 
 const { ZeroAddress } = ethers;
 const { parseEther } = ethers;
@@ -129,7 +128,7 @@ describe('extendDeposit', function () {
 
     const { firstActiveTrancheId } = await getTranches();
 
-    await increaseTime(TRANCHE_DURATION * 2);
+    await time.increase(TRANCHE_DURATION * 2);
 
     await expect(
       stakingPool.connect(user).extendDeposit(depositNftId, firstActiveTrancheId, firstActiveTrancheId + 1, 0),
@@ -203,7 +202,7 @@ describe('extendDeposit', function () {
 
     const { firstActiveTrancheId, maxTranche } = await getTranches();
 
-    await increaseTime(TRANCHE_DURATION);
+    await time.increase(TRANCHE_DURATION);
 
     await expect(stakingPool.connect(user).extendDeposit(depositNftId, firstActiveTrancheId, maxTranche, 0)).to.emit(
       stakingPool,
@@ -224,7 +223,7 @@ describe('extendDeposit', function () {
     const accNxmPerRewardsShareBefore = await stakingPool.getAccNxmPerRewardsShare();
     const lastAccNxmUpdateBefore = await stakingPool.getLastAccNxmUpdate();
 
-    await increaseTime(TRANCHE_DURATION);
+    await time.increase(TRANCHE_DURATION);
 
     await stakingPool.connect(user).extendDeposit(depositNftId, firstActiveTrancheId, maxTranche, 0);
 
@@ -317,7 +316,7 @@ describe('extendDeposit', function () {
 
     await generateRewards(stakingPool, fixture.coverSigner);
 
-    await increaseTime(TRANCHE_DURATION);
+    await time.increase(TRANCHE_DURATION);
 
     const topUpAmount = parseEther('5');
     await stakingPool.connect(user).extendDeposit(depositNftId, firstActiveTrancheId, maxTranche, topUpAmount);
@@ -656,7 +655,7 @@ describe('extendDeposit', function () {
 
     const { firstActiveTrancheId, maxTranche } = await getTranches();
 
-    await increaseTime(TRANCHE_DURATION);
+    await time.increase(TRANCHE_DURATION);
 
     const topUpAmount = parseEther('50');
     await expect(
@@ -690,7 +689,7 @@ describe('extendDeposit', function () {
 
     await stakingPool.connect(manager).setPoolPrivacy(true);
 
-    await increaseTime(TRANCHE_DURATION);
+    await time.increase(TRANCHE_DURATION);
 
     const topUpAmount = parseEther('50');
     await expect(

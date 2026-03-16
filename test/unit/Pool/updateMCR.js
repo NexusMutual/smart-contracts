@@ -1,9 +1,9 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
-const { loadFixture, impersonateAccount, setBalance } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, impersonateAccount, setBalance, time } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
-const { setNextBlockTime, calculateCurrentMCR, setMCR } = require('../utils');
+const { calculateCurrentMCR, setMCR } = require('../utils');
 
 const stored = 12348870328212262601890n;
 const desired = 10922706197119349905840n;
@@ -30,7 +30,7 @@ describe('updateMCR', function () {
     await setMCR(pool.target, { stored, desired, updatedAt: BigInt(timestamp + 1) }, ethers.provider);
 
     const before = await ethers.provider.getStorage(pool.target, '0x3');
-    await setNextBlockTime(timestamp + 3000);
+    await time.setNextBlockTimestamp(timestamp + 3000);
     await pool.updateMCR();
     const after = await ethers.provider.getStorage(pool.target, '0x3');
     expect(before).to.be.equal(after);
@@ -44,7 +44,7 @@ describe('updateMCR', function () {
     const nextTimestamp = timestamp + 86400;
     const expectedMCRValue = calculateCurrentMCR({ stored, desired, updatedAt, now: BigInt(nextTimestamp) }, constants);
 
-    await setNextBlockTime(nextTimestamp);
+    await time.setNextBlockTimestamp(nextTimestamp);
     await pool.updateMCR();
     const newMCRValue = await pool.getMCR();
 
@@ -82,7 +82,7 @@ describe('updateMCRInternal', function () {
     const nextTimestamp = timestamp + 86400;
     const expectedMCRValue = calculateCurrentMCR({ stored, desired, updatedAt, now: BigInt(nextTimestamp) }, constants);
 
-    await setNextBlockTime(nextTimestamp);
+    await time.setNextBlockTimestamp(nextTimestamp);
     await pool.connect(rammSigner).updateMCRInternal(true);
     const newMCRValue = await pool.getMCR();
 

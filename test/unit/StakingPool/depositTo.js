@@ -1,6 +1,6 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { increaseTime } = require('../../utils/evm');
+const { time } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { getTranches, calculateStakeShares, setTime, TRANCHE_DURATION, daysToSeconds } = require('./helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
@@ -299,7 +299,7 @@ describe('depositTo', function () {
 
     const coverAmount = parseEther('1');
     await stakingPool.connect(fixture.coverSigner).requestAllocation(coverAmount, allocationRequest);
-    await increaseTime(daysToSeconds(20));
+    await time.increase(daysToSeconds(20));
 
     // Second deposit
     await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, expectedTokenId, destination);
@@ -365,7 +365,7 @@ describe('depositTo', function () {
     // Generate rewards
     const coverAmount = parseEther('1');
     await stakingPool.connect(fixture.coverSigner).requestAllocation(coverAmount, allocationRequest);
-    await increaseTime(daysToSeconds(20));
+    await time.increase(daysToSeconds(20));
 
     // Second deposit
     await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination);
@@ -408,7 +408,7 @@ describe('depositTo', function () {
     const coverAmount = parseEther('1');
     await stakingPool.connect(fixture.coverSigner).requestAllocation(coverAmount, allocationRequest);
 
-    await increaseTime(daysToSeconds(150));
+    await time.increase(daysToSeconds(150));
 
     await expect(
       stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination),

@@ -1,7 +1,6 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-
-const { increaseTime, setNextBlockTime, mineNextBlock } = require('../../utils/evm');
+const { time, mine } = require('@nomicfoundation/hardhat-network-helpers');
 const {
   getTranches,
   TRANCHE_DURATION,
@@ -85,13 +84,13 @@ describe('processExpirations', function () {
     await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination);
 
     // increase time to expire the first active tranche
-    await increaseTime(TRANCHE_DURATION + 1);
+    await time.increase(TRANCHE_DURATION + 1);
 
     await stakingPool.processExpirations(true);
 
     let expiredTranche = await stakingPool.getExpiredTranche(firstActiveTrancheId);
     if (expiredTranche.stakeAmountAtExpiry === 0n) {
-      await increaseTime(1);
+      await time.increase(1);
       await stakingPool.processExpirations(true);
       expiredTranche = await stakingPool.getExpiredTranche(firstActiveTrancheId);
     }
@@ -112,7 +111,7 @@ describe('processExpirations', function () {
     await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination);
 
     // increase time to expire a couple of tranches
-    await increaseTime(TRANCHE_DURATION * 2);
+    await time.increase(TRANCHE_DURATION * 2);
 
     await expect(stakingPool.processExpirations(true)).to.not.reverted;
   });
@@ -181,7 +180,7 @@ describe('processExpirations', function () {
 
     await stakingPool.processExpirations(true);
 
-    await increaseTime(TRANCHE_DURATION * 8);
+    await time.increase(TRANCHE_DURATION * 8);
 
     // expire all tranches
     await stakingPool.processExpirations(true);
@@ -242,7 +241,7 @@ describe('processExpirations', function () {
     const accNxmPerRewardShareAtExpiry = Array(MAX_ACTIVE_TRANCHES).fill(0);
 
     for (let i = 0; i < tranches.length; i++) {
-      await increaseTime(TRANCHE_DURATION);
+      await time.increase(TRANCHE_DURATION);
 
       // expire one tranche
       await stakingPool.processExpirations(false);
@@ -286,7 +285,7 @@ describe('processExpirations', function () {
 
     await generateRewards(stakingPool, fixture.coverSigner, TRANCHE_DURATION * 3, 0);
 
-    await increaseTime(TRANCHE_DURATION - BUCKET_DURATION);
+    await time.increase(TRANCHE_DURATION - BUCKET_DURATION);
 
     await stakingPool.processExpirations(true);
 
@@ -295,7 +294,7 @@ describe('processExpirations', function () {
     const rewardPerSecondBefore = await stakingPool.getRewardPerSecond();
     const rewardsSharesSupply = await stakingPool.getRewardsSharesSupply();
 
-    await increaseTime(BUCKET_DURATION * 2);
+    await time.increase(BUCKET_DURATION * 2);
 
     const bucketId = await stakingPool.getFirstActiveBucketId();
     const trancheId = await stakingPool.getFirstActiveTrancheId();
@@ -368,8 +367,8 @@ describe('processExpirations', function () {
 
     // advance to the start of the next bucket
     const currentBucketId = BigInt(await getCurrentBucket());
-    await setNextBlockTime(Number((currentBucketId + 1n) * BigInt(BUCKET_DURATION)));
-    await mineNextBlock();
+    await time.setNextBlockTimestamp(Number((currentBucketId + 1n) * BigInt(BUCKET_DURATION)));
+    await mine();
 
     const { firstActiveTrancheId } = await getTranches();
 
@@ -381,7 +380,7 @@ describe('processExpirations', function () {
     const rewardPerSecondBefore = await stakingPool.getRewardPerSecond();
     const lastAccNxmUpdateBefore = await stakingPool.getLastAccNxmUpdate();
 
-    await increaseTime(BUCKET_DURATION);
+    await time.increase(BUCKET_DURATION);
 
     await stakingPool.processExpirations(false);
 
@@ -422,7 +421,7 @@ describe('processExpirations', function () {
     expect(firstActiveTrancheIdBefore).to.equal(initialFirstActiveTrancheId);
 
     const increasedTranches = 7;
-    await increaseTime(TRANCHE_DURATION * increasedTranches);
+    await time.increase(TRANCHE_DURATION * increasedTranches);
 
     await expect(stakingPool.processExpirations(true))
       .to.emit(stakingPool, 'TrancheExpired')
@@ -455,7 +454,7 @@ describe('processExpirations', function () {
     expect(firstActiveBucketIdBefore).to.equal(initialCurrentBucket);
 
     const increasedBuckets = 7;
-    await increaseTime(BUCKET_DURATION * increasedBuckets);
+    await time.increase(BUCKET_DURATION * increasedBuckets);
 
     await expect(stakingPool.processExpirations(true))
       .to.emit(stakingPool, 'BucketExpired')
@@ -479,8 +478,8 @@ describe('processExpirations', function () {
 
     // advance to the start of the next bucket
     const currentBucketId = BigInt(await getCurrentBucket());
-    await setNextBlockTime(Number((currentBucketId + 1n) * BigInt(BUCKET_DURATION)));
-    await mineNextBlock();
+    await time.setNextBlockTimestamp(Number((currentBucketId + 1n) * BigInt(BUCKET_DURATION)));
+    await mine();
 
     const { firstActiveTrancheId } = await getTranches();
 
@@ -492,7 +491,7 @@ describe('processExpirations', function () {
     const rewardPerSecondBefore = await stakingPool.getRewardPerSecond();
     const lastAccNxmUpdateBefore = await stakingPool.getLastAccNxmUpdate();
 
-    await increaseTime(BUCKET_DURATION);
+    await time.increase(BUCKET_DURATION);
 
     // pass true to force update to current timestamp
     await stakingPool.processExpirations(true);
@@ -538,7 +537,7 @@ describe('processExpirations', function () {
     expect(activeStakeAfter).to.equal(expectedActiveStakeAfter);
     expect(stakeSharesSupplyAfter).to.equal(expectedStakeSharesSupplyAfter);
 
-    await increaseTime(TRANCHE_DURATION * 2);
+    await time.increase(TRANCHE_DURATION * 2);
     await expect(stakingPool.processExpirations(true)).to.emit(stakingPool, 'ActiveStakeUpdated').withArgs(0, 0);
   });
 });

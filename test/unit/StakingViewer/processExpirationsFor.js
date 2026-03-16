@@ -1,8 +1,6 @@
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers');
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-
-const { increaseTime } = require('../../utils/evm');
 const { calculateCurrentTrancheId } = require('../../utils/stakingPool');
 const { setup } = require('./setup');
 const { parseEther } = ethers;
@@ -40,7 +38,7 @@ describe('processExpirationsFor', function () {
 
     // adjust time so that the bucket expires
     const increasedBuckets = 7;
-    await increaseTime(BUCKET_DURATION * increasedBuckets);
+    await time.increase(BUCKET_DURATION * increasedBuckets);
 
     for (const tokenId of tokenIds) {
       const poolId = await stakingNFT.stakingPoolOf(tokenId);
@@ -56,7 +54,7 @@ describe('processExpirationsFor', function () {
     const { stakingViewer, stakingPool } = fixture.contracts;
     const { tokenIds } = fixture.stakingPool;
 
-    await increaseTime(BUCKET_DURATION * 7);
+    await time.increase(BUCKET_DURATION * 7);
 
     await stakingViewer.processExpirationsFor(tokenIds);
     const firstActiveBucketAfterFirstCall = await stakingPool.getFirstActiveBucketId();
@@ -90,7 +88,7 @@ describe('processExpirationsFor', function () {
     await secondPool.connect(otherManager).depositTo(parseEther('1000'), trancheId, 0, otherManager.address);
 
     const allTokenIds = [...fixture.stakingPool.tokenIds, secondPoolTokenId];
-    await increaseTime(BUCKET_DURATION * 7);
+    await time.increase(BUCKET_DURATION * 7);
 
     await expect(stakingViewer.processExpirationsFor(allTokenIds))
       .to.emit(fixture.contracts.stakingPool, 'BucketExpired')

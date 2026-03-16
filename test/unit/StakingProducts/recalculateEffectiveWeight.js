@@ -1,6 +1,6 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers');
 const {
   allocateCapacity,
   depositTo,
@@ -10,7 +10,6 @@ const {
   newProductTemplate,
 } = require('./helpers');
 const setup = require('./setup');
-const { increaseTime } = require('../../utils/evm');
 
 const { parseEther } = ethers;
 
@@ -167,7 +166,7 @@ describe('recalculateEffectiveWeight', function () {
     expect(await stakingProducts.getTotalEffectiveWeight(fixture.poolId)).to.be.equal(expectedEffectiveWeight);
 
     // expire cover. effective weight should be reduced to target weight
-    await increaseTime(daysToSeconds(365));
+    await time.increase(daysToSeconds(365));
 
     // recalculate effective weight
     await stakingProducts.recalculateEffectiveWeights(fixture.poolId, [productId]);

@@ -45,6 +45,12 @@ flowchart LR
       MR("MemberRoles")
     end
 
+    subgraph "Claims/Assessment Group"
+      IndClaims("IndividualClaims")
+      Assess("Assessment")
+      Assessor("Assessor")
+    end
+
     %% 1. Buy Cover (single tx)
     Buyer -->|"**(1a)** buyCover()"| CoverC
     CoverC -->|"**(1b)** onlyMember check"| MR
@@ -75,36 +81,40 @@ flowchart LR
 
 ### Step-by-Step
 
-1. **Buyer Purchases Cover**  
-   **(1a)** `Buyer` calls `buyCover(params, poolAllocationRequests)` on **Cover**.  
-   **(1b)** `Cover` checks if buyer is a member via `onlyMember` modifier.  
-   **(1c)** `Cover` gets product info from **CoverProducts**.  
-   **(1d)** `Cover` mints NFT via **CoverNFT** if new cover.  
-   **(1e)** `CoverNFT` issues NFT to buyer.  
-   **(1f)** `Cover` requests allocations from **StakingPool**(s).  
-   **(1g)** `Cover` handles payment: - For NXM: Burns premium via **TokenController** - For ETH/ERC20: Transfers premium to **Pool**
+1. **Buyer Purchases Cover**<br>
+   **(1a)** `Buyer` calls `buyCover(params, poolAllocationRequests)` on **Cover**.<br>
+   **(1b)** `Cover` checks if buyer is a member via `onlyMember` modifier.<br>
+   **(1c)** `Cover` gets product info from **CoverProducts**.<br>
+   **(1d)** `Cover` mints NFT via **CoverNFT** if new cover.<br>
+   **(1e)** `CoverNFT` issues NFT to buyer.<br>
+   **(1f)** `Cover` requests allocations from **StakingPool**(s).<br>
+   **(1g)** `Cover` handles payment:<br>
+   - For NXM: Burns premium via **TokenController**<br>
+   - For ETH/ERC20: Transfers premium to **Pool**
 
-2. **Buyer Submits Claim**  
-   **(2a)** `Buyer` calls `submitClaim()` on **IndividualClaims**.  
+2. **Buyer Submits Claim**<br>
+   **(2a)** `Buyer` calls `submitClaim()` on **IndividualClaims**.<br>
    **(2b)** `IndividualClaims` validates:
 
    - Cover ownership via `CoverNFT.isApprovedOrOwner()`
    - Cover validity via `Cover.coverSegmentWithRemainingAmount()`
 
-   **(2c)** `IndividualClaims` starts assessment via `Assessment.startAssessment()`.
+   **(2c)** `IndividualClaims` starts assessment via `Assessment.startAssessment()`.<br>
 
-3. **Claim Assessment**  
-   **(3a)** `Assessors` call `castVotes()` on **Assessment**.  
-   **(3b)** `Assessment` locks staked NXM via **TokenController**.  
-   **(3c)** When voting ends:
+3. **Claim Assessment**<br>
+   **(3a)** `Assessors` call `castVotes()` on **Assessment**.<br>
+   **(3b)** `Assessment` locks staked NXM via **TokenController**.<br>
+   **(3c)** When voting ends:<br>
 
-   - If accepted: Claim can be redeemed
-   - If denied: Claim deposit funds rewards
+   - If accepted: Claim can be redeemed<br>
+   - If denied: Claim deposit funds rewards<br>
 
-4. **Claim Payout**  
-   **(4a)** `Buyer` calls `redeemClaimPayout()` on **IndividualClaims**.  
-   **(4b)** `IndividualClaims` calls `Cover.burnStake()` to burn staker's NXM.  
-   **(4c)** `IndividualClaims` calls `Pool.sendPayout()` which: - Transfers claim amount in cover asset - Returns assessment deposit in ETH
+4. **Claim Payout**<br>
+   **(4a)** `Buyer` calls `redeemClaimPayout()` on **IndividualClaims**.<br>
+   **(4b)** `IndividualClaims` calls `Cover.burnStake()` to burn staker's NXM.<br>
+   **(4c)** `IndividualClaims` calls `Pool.sendPayout()` which:<br>
+   - Transfers claim amount in cover asset<br>
+   - Returns assessment deposit in ETH
 
 ---
 
@@ -176,34 +186,34 @@ flowchart LR
 
 ### Step-by-Step
 
-1. **Pool Manager Creates a New Staking Pool**
-   **(1a)** `Manager` calls `"createStakingPool()"` on **StakingProducts**.  
-   **(1b)** `StakingProducts` calls `"create()"` on **StakingPoolFactory**.  
-   **(1c)** `StakingPoolFactory` deploys new **StakingPool**.  
-   **(1d)** `StakingProducts` assigns manager via **TokenController**.  
-   **(1e)** `StakingProducts` sets initial products and metadata.
-2. **Manager Updates Pool Products**
-   **(2a)** `Manager` calls `"setProducts()"` on **StakingProducts**.  
-   **(2b)** `StakingProducts` updates weights and prices in **StakingPool**.
-3. **Staker Deposits NXM**
-   **(3a)** `Staker` calls `"depositTo(amount, trancheId, tokenId, dest)"` on **StakingPool**.  
-   **(3b)** `StakingPool` validates and calculates shares, calls `"depositStakedNXM()"` on **TokenController**.  
-   **(3c)** `TokenController` updates pool balance and calls `"operatorTransfer()"` on **NXMToken**.
-4. **Staker Withdraws Stake/Rewards**
-   **(4a)** `Staker` calls `"withdraw()"` on **StakingPool**.
+1. **Pool Manager Creates a New Staking Pool**<br>
+   **(1a)** `Manager` calls `"createStakingPool()"` on **StakingProducts**.<br>
+   **(1b)** `StakingProducts` calls `"create()"` on **StakingPoolFactory**.<br>
+   **(1c)** `StakingPoolFactory` deploys new **StakingPool**.<br>
+   **(1d)** `StakingProducts` assigns manager via **TokenController**.<br>
+   **(1e)** `StakingProducts` sets initial products and metadata.<br>
+2. **Manager Updates Pool Products**<br>
+   **(2a)** `Manager` calls `"setProducts()"` on **StakingProducts**.<br>
+   **(2b)** `StakingProducts` updates weights and prices in **StakingPool**.<br>
+3. **Staker Deposits NXM**<br>
+   **(3a)** `Staker` calls `"depositTo(amount, trancheId, tokenId, dest)"` on **StakingPool**.<br>
+   **(3b)** `StakingPool` validates and calculates shares, calls `"depositStakedNXM()"` on **TokenController**.<br>
+   **(3c)** `TokenController` updates pool balance and calls `"operatorTransfer()"` on **NXMToken**.<br>
+4. **Staker Withdraws Stake/Rewards**<br>
+   **(4a)** `Staker` calls `"withdraw()"` on **StakingPool**.<br>
 
-   - _Optional_: Check withdrawable amounts first via **NexusViewer** (`"getClaimableNXM()"`, `"getStakedNXM()"`)
+   - _Optional_: Check withdrawable amounts first via **NexusViewer** (`"getClaimableNXM()"`, `"getStakedNXM()"`)<br>
 
-   **(4b)** `StakingPool` calculates amounts, calls `"withdrawNXMStakeAndRewards()"` on **TokenController**.  
-   **(4c)** `TokenController` calls transfers on **NXMToken**.
-   **(4d)** `NXMToken` transfer stake + rewards to **Staker**
-5. **Claim Redemption Burns Stake and Pays Claimant**
-   If a claim is approved the claimant is paid from the staked NXM.
-   **(5a)** `Claimant` calls `"redeemClaimPayout()"` on **IndividualClaims**.  
-   **(5b)** `IndividualClaims` calls `"burnStake()"` on **Cover**.  
-   **(5c)** `Cover` calls `"burnStake()"` on affected **StakingPool**(s).  
-   **(5d)** `StakingPool` calls `"burnStakedNXM()"` on **TokenController**.  
-   **(5e)** `TokenController` burns tokens via **NXMToken**.  
-   **(5f)** `IndividualClaims` calls `"Pool.sendPayout()"` which:
-   - Transfers claim amount in cover asset
+   **(4b)** `StakingPool` calculates amounts, calls `"withdrawNXMStakeAndRewards()"` on **TokenController**.<br>
+   **(4c)** `TokenController` calls transfers on **NXMToken**.<br>
+   **(4d)** `NXMToken` transfer stake + rewards to **Staker**<br>
+5. **Claim Redemption Burns Stake and Pays Claimant**<br>
+   If a claim is approved the claimant is paid from the staked NXM.<br>
+   **(5a)** `Claimant` calls `"redeemClaimPayout()"` on **IndividualClaims**.<br>
+   **(5b)** `IndividualClaims` calls `"burnStake()"` on **Cover**.<br>
+   **(5c)** `Cover` calls `"burnStake()"` on affected **StakingPool**(s).<br>
+   **(5d)** `StakingPool` calls `"burnStakedNXM()"` on **TokenController**.<br>
+   **(5e)** `TokenController` burns tokens via **NXMToken**.<br>
+   **(5f)** `IndividualClaims` calls `"Pool.sendPayout()"` which:<br>
+   - Transfers claim amount in cover asset<br>
    - Returns assessment deposit in ETH

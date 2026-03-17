@@ -65,10 +65,10 @@ graph TD
    - Cover period
    - Payment asset
    - Cover asset
-     **(1b)** `Cover` validates product with CoverProducts
-     **(1c)** `Cover` mints NFT representing cover
-     - issues Cover NFT to buyer
-       **(1d)** `Cover` processes payment via Pool
+   **(1b)** `Cover` validates product with CoverProducts
+   **(1c)** `Cover` mints NFT representing cover
+   - issues Cover NFT to buyer
+   **(1d)** `Cover` processes payment via Pool
 
 ### 2. Advisory Board Actions
 

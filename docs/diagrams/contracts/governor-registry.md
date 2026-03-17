@@ -72,30 +72,30 @@ graph TD
 
 ### 1. Member Proposal Process
 
-**(1a)** `Member` calls **proposeAdvisoryBoardSwap** on `Governor` with AB member swaps
-**(1b)** `Governor` validates member status and voting weight (≥100 NXM) via `Registry`
-**(1c)** `Governor` creates member proposal with 3-day voting period
+**(1a)** `Member` calls **proposeAdvisoryBoardSwap** on `Governor` with AB member swaps<br>
+**(1b)** `Governor` validates member status and voting weight (≥100 NXM) via `Registry`<br>
+**(1c)** `Governor` creates member proposal with 3-day voting period<br>
 
-**(2a)** `Members` call **vote** on `Governor` during voting period
-**(2b)** `Governor` calculates vote weight via `TokenController` (NXM balance + 1, capped at 5%)
-**(2c)** `Governor` locks member tokens via `TokenController` until execution deadline
+**(2a)** `Members` call **vote** on `Governor` during voting period<br>
+**(2b)** `Governor` calculates vote weight via `TokenController` (NXM balance + 1, capped at 5%)<br>
+**(2c)** `Governor` locks member tokens via `TokenController` until execution deadline<br>
 
-**(3a)** `Member` calls **execute** on `Governor` after timelock period
-**(3b)** `Governor` validates quorum (≥15% participation) and outcome (for > against)
-**(3c)** `Governor` executes AB member swaps via `Registry`
+**(3a)** `Member` calls **execute** on `Governor` after timelock period<br>
+**(3b)** `Governor` validates quorum (≥15% participation) and outcome (for > against)<br>
+**(3c)** `Governor` executes AB member swaps via `Registry`<br>
 
 ### 2. Advisory Board Proposal Process
 
-**(1a)** `AB Member` calls **propose** on `Governor` with arbitrary transactions
-**(`1b`)** `Governor` validates AB membership via Registry
-**(1c)** `Governor` creates AB proposal with 3-day voting period
+**(1a)** `AB Member` calls **propose** on `Governor` with arbitrary transactions<br>
+**(1b)** `Governor` validates AB membership via Registry<br>
+**(1c)** `Governor` creates AB proposal with 3-day voting period<br>
 
-**(2a)** `AB Members` call **vote** on `Governor` during voting period
-**(2b)** `Governor` records AB votes with weight of 1 each
+**(2a)** `AB Members` call **vote** on `Governor` during voting period<br>
+**(2b)** `Governor` records AB votes with weight of 1 each<br>
 
-**(3a)** `AB Member` calls **execute** on `Governor` after timelock period
-**(3b)** `Governor` validates threshold (≥3 supporting votes) and outcome
-**(3c)** `Governor` executes arbitrary transactions
+**(3a)** `AB Member` calls **execute** on `Governor` after timelock period<br>
+**(3b)** `Governor` validates threshold (≥3 supporting votes) and outcome<br>
+**(3c)** `Governor` executes arbitrary transactions<br>
 
 ## Proposal Outcomes
 

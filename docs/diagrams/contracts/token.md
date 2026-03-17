@@ -13,13 +13,13 @@ graph TD
     NXMaster["NXMaster Registry"]
 
     %% Member interactions
-    Member -->|"(1) transfer()"| NXMToken
-    Member -->|"(2a) approve()"| NXMToken
-    Member -->|"(2b) increaseAllowance()"| NXMToken
-    Member -->|"(2c) decreaseAllowance()"| NXMToken
-    Member -->|"(3a) withdrawNXM()"| TokenController
-    TokenController -->|"(3b) transfer()"| NXMToken
-    NXMToken -.->|"(3c) sends NXM"| Member
+    Member -->|"**(1)** transfer()"| NXMToken
+    Member -->|"**(2a)** approve()"| NXMToken
+    Member -->|"**(2b)** increaseAllowance()"| NXMToken
+    Member -->|"**(2c)** decreaseAllowance()"| NXMToken
+    Member -->|"**(3a)** withdrawNXM()"| TokenController
+    TokenController -->|"**(3b)** transfer()"| NXMToken
+    NXMToken -.->|"**(3c)** sends NXM"| Member
 
     %% Contract Registry interactions
     NXMToken -.->|"getLatestAddress"| NXMaster
@@ -39,11 +39,11 @@ graph TD
     NXMaster["NXMaster Registry"]
 
     %% Operator interactions
-    Operator -->|"(1a) mint()"| TokenController
-    TokenController -->|"(1b) mint()"| NXMToken
-    Operator -->|"(2a) operatorTransfer()"| TokenController
-    TokenController -->|"(2b) operatorTransfer()"| NXMToken
-    NXMToken -.->|"(2c) sends NXM"| TokenController
+    Operator -->|"**(1a)** mint()"| TokenController
+    TokenController -->|"**(1b)** mint()"| NXMToken
+    Operator -->|"**(2a)** operatorTransfer()"| TokenController
+    TokenController -->|"**(2b)** operatorTransfer()"| NXMToken
+    NXMToken -.->|"**(2c)** sends NXM"| TokenController
 
     %% Contract Registry interactions
     TokenController -.->|"getLatestAddress"| NXMaster

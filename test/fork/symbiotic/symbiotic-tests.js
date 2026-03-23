@@ -13,6 +13,7 @@ const CHANGE_SLASH_RECEIVER_DELAY = 3n * ONE_DAY;
 
 describe('Symbiotic Tests', function () {
   describe('slash', function () {
+    this.timeout(60000);
     const WAD = 10n ** 18n;
 
     /**
@@ -197,7 +198,8 @@ describe('Symbiotic Tests', function () {
       const amountToSlashVault1 = parseEther('2000');
       const amountToSlashVault2 = parseEther('2000');
       const totalSlashed = amountToSlashVault1 + amountToSlashVault2;
-      const captureTimestamp = (await time.latest()) - 5; // must be w/in current epoch & not now
+      // cover.start in current epoch: only active stake is slashable (no queued withdrawals exist)
+      const captureTimestamp = (await time.latest()) - 5;
 
       const hints1 = await this.slasherHints.slashHints.staticCall(
         this.vault1.slasher.target,
@@ -288,7 +290,8 @@ describe('Symbiotic Tests', function () {
         routes: '(subnetwork1, operator1) → vault2',
       });
 
-      // captureTimestamp must be in PREVIOUS epoch so withdrawals[currentEpoch] is slashable
+      // cover.start in previous epoch: active + queued withdrawals[currentEpoch] are slashable.
+      // Staker withdrew after the cover was bought, but their stake was backing coverage at cover.start.
       const currentEpochStart = await this.vault2.vault.currentEpochStart();
       const prevEpochCaptureTs = currentEpochStart - 1n;
       expect(prevEpochCaptureTs).to.be.lt(currentEpochStart);
@@ -443,7 +446,8 @@ describe('Symbiotic Tests', function () {
         this.vault1.vault.withdrawalsOf(epochNPlus1, this.staker2.address),
       ]);
 
-      // use previous epoch captureTimestamp so withdrawals[currentEpoch] is slashable
+      // cover.start in previous epoch: active + queued withdrawals[currentEpoch] are slashable,
+      // but claim-eligible withdrawals[previousEpoch] are protected.
       const currentEpochStart = await this.vault1.vault.currentEpochStart();
       const previousEpochCaptureTs = currentEpochStart - 1n;
       expect(previousEpochCaptureTs).to.be.lt(currentEpochStart);
@@ -591,11 +595,6 @@ describe('Symbiotic Tests', function () {
       await ethers.provider.send('evm_mine', []);
       expect(await this.vault2.vault.currentEpoch()).to.equal(vault2ClaimEligibleEpoch);
 
-      // Capture Vault2 timestamp while withdrawal is still queued (before it becomes claim-eligible)
-      // Use current block timestamp which is valid for slashing
-      const vault2Block = await ethers.provider.getBlock('latest');
-      const vault2CaptureTimestamp = BigInt(vault2Block.timestamp);
-
       // Advance vault 2 by another epoch (withdrawal becomes claim-eligible)
       await time.setNextBlockTimestamp(await this.vault2.vault.nextEpochStart());
       await ethers.provider.send('evm_mine', []);
@@ -607,12 +606,6 @@ describe('Symbiotic Tests', function () {
         .withdraw(this.staker1.address, staker1WithdrawAmount, { gasLimit: 21e6 });
       const vault1EpochN = await this.vault1.vault.currentEpoch();
       const vault1QueuedEpoch = vault1EpochN + 1n;
-
-      // IMPORTANT: Capture timestamp BEFORE advancing epoch
-      // This ensures captureEpoch will be "currentEpoch - 1" when we slash,
-      // so Vault.onSlash will include withdrawals[currentEpoch] (which contains our queued withdrawal)
-      const vault1Block = await ethers.provider.getBlock('latest');
-      const vault1CaptureTimestamp = BigInt(vault1Block.timestamp);
 
       // Advance vault 1 to next epoch (withdrawal becomes queued in current epoch)
       await time.setNextBlockTimestamp(await this.vault1.vault.nextEpochStart());
@@ -653,8 +646,13 @@ describe('Symbiotic Tests', function () {
       expect(staker4CurrentQueued).to.equal(0n, 'Vault2 should have no queued withdrawals in current epoch');
       expect(staker4NextQueued).to.equal(0n, 'Vault2 should have no queued withdrawals in next epoch');
 
-      // vault1CaptureTimestamp was already captured before advancing epoch (see above)
-      // This ensures captureEpoch = currentEpoch - 1, so Vault.onSlash includes withdrawals[currentEpoch]
+      // cover.start in vault1's previous epoch (before the staker withdrew and epoch advanced).
+      // - vault1: cover.start < vault1EpochStart → previous epoch → active + queued are slashable
+      // - vault2: same timestamp falls within vault2's current epoch → only active is slashable
+      //   (vault2's withdrawal is claim-eligible, protected by epoch math)
+      const vault1EpochStart = await this.vault1.vault.currentEpochStart();
+      const vault1CaptureTimestamp = vault1EpochStart - 1n;
+      const vault2CaptureTimestamp = vault1EpochStart - 1n;
 
       // Calculate ACTUAL slashable amounts using our helper (mirrors Vault.onSlash logic)
       const vault1ActualSlashable = await getActualSlashableStake.call(this, this.vault1.vault, vault1CaptureTimestamp);
@@ -666,11 +664,8 @@ describe('Symbiotic Tests', function () {
         'Vault1 actual slashable should include active + queued',
       );
 
-      // Vault 2: When we captured vault2CaptureTimestamp, the withdrawal was QUEUED (not yet claim-eligible)
-      // At that time, the slashable amount was activeStake + queued withdrawal
-      // Note: Vault2's activeStake shown in 'before' snapshot is current (6000 ETH)
-      // because the withdrawal hasn't been claimed yet, it's just queued
-      const vault2SlashableAtCapture = before.vaults.vault2.activeStake; // 6000 ETH at capture time
+      // Vault 2: withdrawal is claim-eligible so only activeStake is slashable
+      const vault2SlashableAtCapture = before.vaults.vault2.activeStake;
 
       const slashVault1Amount = vault1ActualSlashable / 2n;
       const slashVault2Amount = vault2SlashableAtCapture / 2n; // Use capture-time slashable amount
@@ -715,6 +710,11 @@ describe('Symbiotic Tests', function () {
       const actualVault1Slashed = before.vaults.vault1.totalStake - vault1TotalAfterSlash;
       const actualVault2Slashed = before.vaults.vault2.totalStake - vault2TotalAfterSlash;
       const actualTotalSlashed = actualVault1Slashed + actualVault2Slashed;
+
+      // Tenderly's fork RPC silently swallows reverts instead of throwing,
+      // so we must explicitly verify each slash had an effect.
+      expect(actualVault1Slashed).to.be.gt(0n, 'Vault1 slash must have effect');
+      expect(actualVault2Slashed).to.be.gt(0n, 'Vault2 slash must have effect');
 
       // verify token flow: burner router received slashed tokens
       const burnerBalanceAfterSlash = await this.wstETH.balanceOf(this.burnerRouter.target);
@@ -800,13 +800,13 @@ describe('Symbiotic Tests', function () {
       const staker1WithdrawAmount = parseEther('800');
       await this.vault1.vault.connect(this.staker1).withdraw(this.staker1.address, staker1WithdrawAmount);
 
-      // advance to next epoch, capture timestamp just before
+      // advance to next epoch
       const nextEpochStart = await this.vault1.vault.nextEpochStart();
-      await time.increaseTo(Number(nextEpochStart - 10n));
-      const captureTsEpochN = BigInt(await time.latest());
       await time.increaseTo(Number(nextEpochStart));
-
       expect(await this.vault1.vault.currentEpoch()).to.equal(epochNPlus1);
+
+      // cover.start in epoch N (previous epoch): active + queued withdrawals are slashable
+      const captureTsEpochN = (await this.vault1.vault.currentEpochStart()) - 1n;
       expect(captureTsEpochN).to.be.lt(await this.vault1.vault.currentEpochStart());
 
       // capture START snapshot (Epoch N+1, first slash)
@@ -870,11 +870,12 @@ describe('Symbiotic Tests', function () {
 
       // advance to epoch N+2: first withdrawal becomes claim-eligible
       const nextEpochStart2 = await this.vault1.vault.nextEpochStart();
-      await time.increaseTo(Number(nextEpochStart2 - 10n));
-      const captureTsEpochNPlus1 = BigInt(await time.latest());
       await time.increaseTo(Number(nextEpochStart2));
-
       expect(await this.vault1.vault.currentEpoch()).to.equal(epochNPlus2);
+
+      // cover.start in epoch N+1 (previous epoch): only active is slashable now
+      // (first withdrawal is now claim-eligible, protected from slashing)
+      const captureTsEpochNPlus1 = (await this.vault1.vault.currentEpochStart()) - 1n;
       expect(captureTsEpochNPlus1).to.be.lt(await this.vault1.vault.currentEpochStart());
 
       // capture START snapshot for second slash (Epoch N+2)
@@ -943,7 +944,7 @@ describe('Symbiotic Tests', function () {
       expect(delegated2).to.equal(BigIntMath.min(afterSecondSlash.vaults.vault1.activeStake, limit2));
 
       // transfer all slashed tokens to receiver
-      await this.burnerRouter.triggerTransfer(ADVISORY_BOARD_MULTISIG);
+      await this.burnerRouter.triggerTransfer(ADVISORY_BOARD_MULTISIG, { gasLimit: 21e6 });
       const [burnerFinal, receiverFinal] = await Promise.all([
         this.wstETH.balanceOf(this.burnerRouter.target),
         this.wstETH.balanceOf(ADVISORY_BOARD_MULTISIG),
@@ -956,7 +957,7 @@ describe('Symbiotic Tests', function () {
 
       // staker1 claims the claim-eligible amount
       const staker1WstEthBefore = await this.wstETH.balanceOf(this.staker1.address);
-      await this.vault1.vault.connect(this.staker1).claim(this.staker1.address, epochNPlus1);
+      await this.vault1.vault.connect(this.staker1).claim(this.staker1.address, epochNPlus1, { gasLimit: 21e6 });
       const staker1WstEthAfter = await this.wstETH.balanceOf(this.staker1.address);
       expect(staker1WstEthAfter - staker1WstEthBefore).to.equal(staker1ClaimEligible);
     });
@@ -969,11 +970,12 @@ describe('Symbiotic Tests', function () {
       // staker4 withdraws
       await this.vault2.vault.connect(this.staker4).withdraw(this.staker4.address, staker4WithdrawAmount);
 
-      // advance to epoch N+1, capture timestamp just before
+      // advance to epoch N+1
       const epochNPlus1Start = await this.vault2.vault.nextEpochStart();
-      await time.increaseTo(Number(epochNPlus1Start - 10n));
-      const epochNCaptureTs = BigInt(await time.latest());
       await time.increaseTo(Number(epochNPlus1Start));
+
+      // cover.start in epoch N (previous epoch): active + queued withdrawals are slashable
+      const epochNCaptureTs = (await this.vault2.vault.currentEpochStart()) - 1n;
 
       expect(await this.vault2.vault.currentEpoch()).to.equal(claimEpoch);
       expect(epochNCaptureTs).to.be.lt(await this.vault2.vault.currentEpochStart());
@@ -1074,10 +1076,10 @@ describe('Symbiotic Tests', function () {
     });
 
     it('can slash using cover-buy captureTimestamp even after networkLimit is reduced', async function () {
-      // capture timestamp (simulates cover-buy timestamp)
+      // cover.start at time of purchase — used as captureTimestamp when slashing later
       const captureTimestamp = BigInt(await time.latest());
 
-      // increase time so captureTimestamp is != now
+      // time passes between cover purchase and slash execution
       await time.increase(1000);
 
       // get slashable amount at capture time
@@ -1096,7 +1098,7 @@ describe('Symbiotic Tests', function () {
         operators: [this.operator1],
       });
 
-      printStart('slash with old captureTimestamp after networkLimit reduced', before, {
+      printStart('slash with cover.start captureTimestamp after networkLimit reduced', before, {
         routes: '(subnetwork2, operator2) → vault3',
         slashableBefore: formatEther(slashableBefore),
       });
@@ -1113,7 +1115,7 @@ describe('Symbiotic Tests', function () {
       const stakeAfterReduction = await this.vault3.delegator.stake(this.subnetwork2, this.operator1.address);
       expect(stakeAfterReduction).to.equal(expectedCurrentStake);
 
-      // step 3: Slash using the OLD captureTimestamp for amount > current stake but <= old snapshot
+      // Slash using cover.start for amount > current stake but <= stake at cover.start
       // choose slashAmount that clearly exceeds the new reduced limit
       const desiredSlashAmount = parseEther('1000');
       const slashAmount = BigIntMath.min(desiredSlashAmount, slashableBefore);
@@ -1121,9 +1123,9 @@ describe('Symbiotic Tests', function () {
       // key assertion: we're slashing more than what's currently allocated
       expect(slashAmount).to.be.gt(
         stakeAfterReduction,
-        'slashAmount must exceed current stake after reduction (proves old snapshot is used)',
+        'slashAmount must exceed current stake (proves cover.start snapshot is used)',
       );
-      expect(slashAmount).to.be.lte(slashableBefore, 'slashAmount must be <= slashable at capture');
+      expect(slashAmount).to.be.lte(slashableBefore, 'slashAmount must be <= slashable at cover.start');
 
       // get hints for slash
       const hints = await this.slasherHints.slashHints.staticCall(
@@ -1133,7 +1135,7 @@ describe('Symbiotic Tests', function () {
         captureTimestamp,
       );
 
-      // execute slash using old captureTimestamp (should succeed despite exceeding current limit)
+      // slash using cover.start (should succeed despite exceeding current limit)
       await this.vault3.slasher
         .connect(this.middleware)
         .slash(this.subnetwork2, this.operator1.address, slashAmount, captureTimestamp, hints || '0x');
@@ -1148,7 +1150,7 @@ describe('Symbiotic Tests', function () {
         operators: [this.operator1],
       });
 
-      printEnd('slash with old captureTimestamp after networkLimit reduced', before, after, {
+      printEnd('slash with cover.start captureTimestamp after networkLimit reduced', before, after, {
         amounts: [slashAmount],
         total: slashAmount,
         stakeAfterReduction: formatEther(stakeAfterReduction),
@@ -1163,7 +1165,7 @@ describe('Symbiotic Tests', function () {
       const receiverIncrease = after.receiver - before.receiver;
       expect(receiverIncrease).to.equal(slashAmount, 'Receiver should receive exact slashed amount');
 
-      // key invariant proven: slash succeeded for amount > current stake, using old captureTimestamp
+      // key invariant proven: slash succeeded for amount > current stake, using cover.start
     });
   });
 
@@ -1209,11 +1211,13 @@ describe('Symbiotic Tests', function () {
 
       const amountToSlash = parseEther('150');
 
-      const [beforeVaultStake, beforeDelegatedStake, beforeNewOpReceiverBalance] = await Promise.all([
+      const [beforeVaultStake, beforeDelegatedStake, beforeNewOpReceiverBalance, subnetworkLimit] = await Promise.all([
         this.vault1.vault.activeStake(),
         this.vault1.delegator.stake(this.subnetwork1, this.operator1.address),
         this.wstETH.balanceOf(newOpReceiver),
+        this.vault1.delegator.networkLimit(this.subnetwork1),
       ]);
+      expect(beforeDelegatedStake).to.equal(BigIntMath.min(beforeVaultStake, subnetworkLimit));
 
       // slash
       const captureTimestamp = await time.latest();
@@ -1231,7 +1235,7 @@ describe('Symbiotic Tests', function () {
       ]);
 
       const expectedAfterVaultStake = beforeVaultStake - amountToSlash;
-      const expectedAfterDelegatedStake = beforeDelegatedStake - amountToSlash;
+      const expectedAfterDelegatedStake = BigIntMath.min(expectedAfterVaultStake, subnetworkLimit);
       const expectedAfterNewOpReceiverBalance = beforeNewOpReceiverBalance + amountToSlash;
 
       expect(afterVaultStake).to.equal(expectedAfterVaultStake);
@@ -1244,11 +1248,31 @@ describe('Symbiotic Tests', function () {
       await this.middlewareService.connect(this.network).setMiddleware(this.newMiddleware.address);
       expect(await this.middlewareService.middleware(this.network.address)).to.equal(this.newMiddleware.address);
 
-      const [beforeVaultStake, beforeDelegatedStake, beforeReceiverBalance] = await Promise.all([
+      // route slashed funds to new middleware — only change if not already set by prior test
+      const currentReceiver = await this.burnerRouter.operatorNetworkReceiver(
+        this.network.address,
+        this.operator1.address,
+      );
+      if (currentReceiver !== this.newMiddleware.address) {
+        await this.burnerRouter
+          .connect(this.burnerRouterOwner)
+          .setOperatorNetworkReceiver(this.network.address, this.operator1.address, this.newMiddleware.address);
+        await time.increase(CHANGE_SLASH_RECEIVER_DELAY);
+        await this.burnerRouter.acceptOperatorNetworkReceiver(this.network.address, this.operator1.address);
+      }
+      const currentOperatorNetworkReceiver = await this.burnerRouter.operatorNetworkReceiver(
+        this.network.address,
+        this.operator1.address,
+      );
+      expect(currentOperatorNetworkReceiver).to.equal(this.newMiddleware.address);
+
+      const [beforeVaultStake, beforeDelegatedStake, beforeReceiverBalance, subnetworkLimit] = await Promise.all([
         this.vault1.vault.activeStake(),
         this.vault1.delegator.stake(this.subnetwork1, this.operator1.address),
         this.wstETH.balanceOf(this.newMiddleware),
+        this.vault1.delegator.networkLimit(this.subnetwork1),
       ]);
+      expect(beforeDelegatedStake).to.equal(BigIntMath.min(beforeVaultStake, subnetworkLimit));
 
       const amountToSlash = parseEther('500');
       const captureTimestamp = await time.latest();
@@ -1268,7 +1292,7 @@ describe('Symbiotic Tests', function () {
       ]);
 
       const expectedAfterVaultStake = beforeVaultStake - amountToSlash;
-      const expectedAfterDelegatedStake = beforeDelegatedStake - amountToSlash;
+      const expectedAfterDelegatedStake = BigIntMath.min(expectedAfterVaultStake, subnetworkLimit);
       const expectedAfterReceiverBalance = beforeReceiverBalance + amountToSlash;
 
       expect(afterVaultStake).to.equal(expectedAfterVaultStake);

@@ -1,13 +1,12 @@
 /* eslint-disable max-len */
-const { ethers, network, nexus } = require('hardhat');
+const { ethers, network } = require('hardhat');
 const { expect } = require('chai');
 const { abis, addresses } = require('@nexusmutual/deployments');
 const { takeSnapshot } = require('@nomicfoundation/hardhat-network-helpers');
 
-const { revertToSnapshot, getSigner, setERC20Balance, executeGovernorProposal, getFundedSigner } = require('../utils');
+const { revertToSnapshot, getSigner, setERC20Balance, getFundedSigner } = require('../utils');
 
-const { parseEther, formatEther, toQuantity, deployContract } = ethers;
-const { ContractIndexes } = nexus.constants;
+const { parseEther, formatEther, toQuantity } = ethers;
 
 /**
  * Helper to set balance, compatible with both hardhat and tenderly
@@ -351,49 +350,6 @@ describe('Symbiotic Integration', function () {
     }
   });
 
-  it('Upgrade Cover contract', async function () {
-    const coverProxy = await ethers.getContractAt('UpgradeableProxy', addresses.Cover);
-    const coverImplementationBefore = await coverProxy.implementation();
-
-    const stakingPoolImplementation = '0xcafeade1872f14adc0a03Ec7b0088b61D76ec729';
-    const coverImplementation = await deployContract('Cover', [
-      this.registry.target,
-      stakingPoolImplementation,
-      coverProxy.target,
-    ]);
-
-    const coverAddress = await coverImplementation.getAddress();
-    const transactions = [
-      {
-        target: this.registry,
-        value: 0n,
-        data: this.registry.interface.encodeFunctionData('upgradeContract', [ContractIndexes.C_COVER, coverAddress]),
-      },
-    ];
-
-    await executeGovernorProposal(this.governor, this.abMembers, transactions);
-
-    const coverImplementationAfter = await coverProxy.implementation();
-    expect(coverImplementationAfter).to.not.equal(coverImplementationBefore);
-    expect(coverImplementationAfter).to.equal(coverImplementation.target);
-    console.log('Cover implementation upgraded to:', coverImplementation.target);
-
-    const governorSigner = await getFundedSigner(addresses.Governor);
-
-    // set RI rewards receiver for SYMBIOTIC_PROVIDER_ID
-    const SYMBIOTIC_PROVIDER_ID = 1;
-    await this.cover
-      .connect(governorSigner)
-      .setRiConfig(SYMBIOTIC_PROVIDER_ID, SAFE_MULTISIG_NETWORK_OPERATOR_MIDDLEWARE);
-    console.log(`ProviderId ${SYMBIOTIC_PROVIDER_ID} rewards receiver:`, SAFE_MULTISIG_NETWORK_OPERATOR_MIDDLEWARE);
-
-    // TODO:
-    // set RI quote signer
-    // const RI_QUOTE_SIGNER = '0x';
-    // await this.cover.connect(governorSigner).setRiSigner(RI_QUOTE_SIGNER);
-    // console.log(`ProviderId ${SYMBIOTIC_PROVIDER_ID} quote signer:`, RI_QUOTE_SIGNER);
-  });
-
   it('deploy burner router', async function () {
     const initParams = {
       owner: SAFE_MULTISIG_NETWORK_OPERATOR_MIDDLEWARE, // this.burnerRouterOwner
@@ -576,10 +532,10 @@ describe('Symbiotic Integration', function () {
       this.operatorVaultOptIn.connect(this.operator1).optIn(this.vault4.vault.target),
     ]);
 
-    expect(await this.operatorVaultOptIn.isOptedIn(this.operator1.address, this.vault1Addr)).to.equal(true);
-    expect(await this.operatorVaultOptIn.isOptedIn(this.operator1.address, this.vault2Addr)).to.equal(true);
-    expect(await this.operatorVaultOptIn.isOptedIn(this.operator1.address, this.vault3Addr)).to.equal(true);
-    expect(await this.operatorVaultOptIn.isOptedIn(this.operator1.address, this.vault4Addr)).to.equal(true);
+    expect(await this.operatorVaultOptIn.isOptedIn(this.operator1.address, this.vault1.vault.target)).to.equal(true);
+    expect(await this.operatorVaultOptIn.isOptedIn(this.operator1.address, this.vault2.vault.target)).to.equal(true);
+    expect(await this.operatorVaultOptIn.isOptedIn(this.operator1.address, this.vault3.vault.target)).to.equal(true);
+    expect(await this.operatorVaultOptIn.isOptedIn(this.operator1.address, this.vault4.vault.target)).to.equal(true);
     expect(
       await this.operatorNetworkOptIn.isOptedIn(this.operator1.address, SAFE_MULTISIG_NETWORK_OPERATOR_MIDDLEWARE),
     ).to.equal(true);

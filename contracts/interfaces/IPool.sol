@@ -53,6 +53,8 @@ interface IPool {
 
   function setAssetDetails(uint assetId, bool isCoverAsset, bool isAbandoned) external;
 
+  function setAssetOracle(address assetAddress, address aggregator, AggregatorType aggregatorType, uint8 assetDecimals) external;
+
   function sendPayout(uint assetIndex, address payable payoutAddress, uint amount, uint depositInETH) external;
 
   function sendEth(address payable payoutAddress, uint amount) external;
@@ -113,6 +115,7 @@ interface IPool {
 
   // price feed
   error AggregatorMustNotBeZeroAddress();
+  error AggregatorAssetMustNotBeETH();
   error IncompatibleAggregatorDecimals(address aggregator, uint expectedDecimals, uint aggregatorDecimals);
   error InvalidEthAggregatorType(AggregatorType actual, AggregatorType expected);
   error NonPositiveRate(address aggregator, int rate);

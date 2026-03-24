@@ -480,6 +480,29 @@ contract Pool is IPool, ReentrancyGuard, RegistryAware {
     return uint(rate) * 1 ether / uint(ethUsdRate);
   }
 
+  function setAssetOracle(address assetAddress, address aggregator, AggregatorType aggregatorType, uint8 assetDecimals) external onlyContracts(C_GOVERNOR) {
+    require(assetAddress != address(0), AssetMustNotBeZeroAddress());
+    require(assetAddress != ETH, AggregatorAssetMustNotBeETH());
+    require(aggregator != address(0), AggregatorMustNotBeZeroAddress());
+
+    // require asset to be registered in the pool (reverts AssetNotFound otherwise)
+    getAssetId(assetAddress);
+    uint8 aggregatorDecimals = Aggregator(aggregator).decimals();
+
+    if (aggregatorType == AggregatorType.ETH && aggregatorDecimals != 18) {
+      revert IncompatibleAggregatorDecimals(address(aggregator), 18, aggregatorDecimals);
+    }
+    if (aggregatorType == AggregatorType.USD && aggregatorDecimals != 8) {
+      revert IncompatibleAggregatorDecimals(address(aggregator), 8, aggregatorDecimals);
+    }
+
+    oracles[assetAddress] = Oracle({
+      aggregator: Aggregator(aggregator),
+      aggregatorType: aggregatorType,
+      assetDecimals: assetDecimals
+    });
+  }
+
   /* ========== MIGRATION ========== */
 
   function migrate(

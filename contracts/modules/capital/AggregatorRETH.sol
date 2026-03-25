@@ -15,8 +15,8 @@ contract AggregatorRETH {
     rETH = IRETH(_rETH);
   }
 
-  function latestAnswer() public view returns (uint256) {
-    return rETH.getExchangeRate();
+  function latestAnswer() public view returns (int256) {
+    return int256(rETH.getExchangeRate());
   }
 
 }

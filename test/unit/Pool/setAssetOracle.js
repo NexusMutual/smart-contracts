@@ -38,10 +38,7 @@ describe('setAssetOracle', function () {
     const fixture = await loadFixture(setAssetOracleSetup);
     const { pool, token, tokenAggregatorOne } = fixture;
 
-    await expect(pool.setAssetOracle(token, tokenAggregatorOne, 0, 18)).to.be.revertedWithCustomError(
-      pool,
-      'Unauthorized',
-    );
+    await expect(pool.setAssetOracle(token, tokenAggregatorOne, 0)).to.be.revertedWithCustomError(pool, 'Unauthorized');
   });
 
   it('reverts when asset address is zero address', async function () {
@@ -49,7 +46,7 @@ describe('setAssetOracle', function () {
     const { pool, governor, tokenAggregatorOne } = fixture;
 
     await expect(
-      pool.connect(governor).setAssetOracle(ZeroAddress, tokenAggregatorOne.target, 0, 18),
+      pool.connect(governor).setAssetOracle(ZeroAddress, tokenAggregatorOne.target, 0),
     ).to.be.revertedWithCustomError(pool, 'AssetMustNotBeZeroAddress');
   });
 
@@ -57,7 +54,7 @@ describe('setAssetOracle', function () {
     const fixture = await loadFixture(setAssetOracleSetup);
     const { pool, governor, tokenAggregatorOne } = fixture;
 
-    await expect(pool.connect(governor).setAssetOracle(ETH, tokenAggregatorOne, 0, 18)).to.be.revertedWithCustomError(
+    await expect(pool.connect(governor).setAssetOracle(ETH, tokenAggregatorOne, 0)).to.be.revertedWithCustomError(
       pool,
       'AggregatorAssetMustNotBeETH',
     );
@@ -67,7 +64,7 @@ describe('setAssetOracle', function () {
     const fixture = await loadFixture(setAssetOracleSetup);
     const { pool, governor, token } = fixture;
 
-    await expect(pool.connect(governor).setAssetOracle(token, ZeroAddress, 0, 18)).to.be.revertedWithCustomError(
+    await expect(pool.connect(governor).setAssetOracle(token, ZeroAddress, 0)).to.be.revertedWithCustomError(
       pool,
       'AggregatorMustNotBeZeroAddress',
     );
@@ -82,7 +79,7 @@ describe('setAssetOracle', function () {
     await ethWrongDecimalsAggregator.setDecimals(8);
 
     await expect(
-      pool.connect(governor).setAssetOracle(token, ethWrongDecimalsAggregator, 0, 18),
+      pool.connect(governor).setAssetOracle(token, ethWrongDecimalsAggregator, 0),
     ).to.be.revertedWithCustomError(pool, 'IncompatibleAggregatorDecimals');
   });
 
@@ -90,7 +87,7 @@ describe('setAssetOracle', function () {
     const fixture = await loadFixture(setAssetOracleSetup);
     const { pool, governor, token, tokenAggregatorTwo } = fixture;
 
-    await expect(pool.connect(governor).setAssetOracle(token, tokenAggregatorTwo, 1, 18)).to.be.revertedWithCustomError(
+    await expect(pool.connect(governor).setAssetOracle(token, tokenAggregatorTwo, 1)).to.be.revertedWithCustomError(
       pool,
       'IncompatibleAggregatorDecimals',
     );
@@ -104,7 +101,7 @@ describe('setAssetOracle', function () {
     const token = await ethers.deployContract('ERC20Mock');
     await token.setMetadata('MockWSETH', 'wsETH', tokenDecimals);
 
-    await expect(pool.connect(governor).setAssetOracle(token, tokenAggregatorOne, 0, 18)).to.be.revertedWithCustomError(
+    await expect(pool.connect(governor).setAssetOracle(token, tokenAggregatorOne, 0)).to.be.revertedWithCustomError(
       pool,
       'AssetNotFound',
     );
@@ -114,7 +111,7 @@ describe('setAssetOracle', function () {
     const fixture = await loadFixture(setAssetOracleSetup);
     const { pool, governor, token, tokenAggregatorTwo } = fixture;
 
-    await pool.connect(governor).setAssetOracle(token, tokenAggregatorTwo, 0, 18);
+    await pool.connect(governor).setAssetOracle(token, tokenAggregatorTwo, 0);
     const tokenAsset = await pool.getAsset(3);
 
     const tokenOracle = await pool.oracles(token);

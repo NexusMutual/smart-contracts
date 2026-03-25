@@ -109,7 +109,6 @@ describe('Pool - rETH oracle change', function () {
           this.rEth.target,
           this.rETHAggregator.target,
           nexus.constants.AggregatorType.ETH,
-          18,
         ]),
       },
     ];

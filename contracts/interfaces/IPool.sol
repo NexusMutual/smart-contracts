@@ -53,7 +53,7 @@ interface IPool {
 
   function setAssetDetails(uint assetId, bool isCoverAsset, bool isAbandoned) external;
 
-  function setAssetOracle(address assetAddress, address aggregator, AggregatorType aggregatorType, uint8 assetDecimals) external;
+  function setAssetOracle(address assetAddress, address aggregator, AggregatorType aggregatorType) external;
 
   function sendPayout(uint assetIndex, address payable payoutAddress, uint amount, uint depositInETH) external;
 

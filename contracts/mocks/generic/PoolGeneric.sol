@@ -35,7 +35,7 @@ contract PoolGeneric is IPool {
     revert("transferAssetToSwapOperator unsupported");
   }
 
-  function setAssetOracle(address /* assetAddress */, address /* aggregator */, AggregatorType /* aggregatorType */, uint8 /* assetDecimals */) external virtual {
+  function setAssetOracle(address /* assetAddress */, address /* aggregator */, AggregatorType /* aggregatorType */) external virtual {
     revert("setAssetOracle unsupported");
   }
 

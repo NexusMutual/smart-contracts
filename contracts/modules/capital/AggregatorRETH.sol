@@ -8,7 +8,7 @@ interface IRETH {
 
 contract AggregatorRETH {
 
-  uint8 public decimals = 18;
+  uint8 public constant decimals = 18;
   IRETH public immutable rETH;
 
   constructor(address _rETH) {

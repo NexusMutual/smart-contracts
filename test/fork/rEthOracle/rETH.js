@@ -89,7 +89,7 @@ describe('Pool - rETH oracle change', function () {
     this.poolData.assets = await this.pool.getAssets();
     this.poolData.mcr = await this.pool.getMCR();
     this.poolData.mcrRatio = await this.pool.getMCRRatio();
-    this.rate = await this.pool.getEthForAsset(this.rEth.target, parseEther('1'));
+    this.poolData.rate = await this.pool.getEthForAsset(this.rEth.target, parseEther('1'));
   });
 
   it('Upgrade Pool contracts and change rETH oracle', async function () {
@@ -115,24 +115,38 @@ describe('Pool - rETH oracle change', function () {
 
     await executeGovernorProposal(this.governor, this.abMembers, transactions);
 
-    this.pool = await ethers.getContractAt('Pool', pool.target);
+    this.pool = await ethers.getContractAt('Pool', this.pool.target);
 
     const assets = await this.pool.getAssets();
     const mcr = await this.pool.getMCR();
     const mcrRatio = await this.pool.getMCRRatio();
     const rEthOracle = await this.pool.oracles(this.rEth.target);
+    const rate = await this.pool.getEthForAsset(this.rEth.target, parseEther('1'));
+
+    expect(this.poolData.assets).to.be.deep.equal(assets);
+    expect(rEthOracle.aggregator).to.be.deep.equal(this.rETHAggregator.target);
+    expect(this.poolData.mcr).to.be.equal(mcr);
+    expect(this.poolData.mcrRatio).to.be.closeTo(mcrRatio, 1);
+
+    // Verify the new oracle rate is within 0.1% of the old rate
+    const oldRate = this.poolData.rate;
+    const newRate = rate;
+    const absDiff = oldRate > newRate ? oldRate - newRate : newRate - oldRate;
+    const maxDivergenceBps = 10n; // 0.1%
+    const basisPrecision = 10000n;
+    expect(absDiff * basisPrecision).to.be.lte(
+      oldRate * maxDivergenceBps,
+      `Rate divergence exceeds 0.1%: old=${formatEther(oldRate)}, new=${formatEther(newRate)}`,
+    );
 
     console.log('===================OLD VALUES=====================');
     console.log('mcr', formatEther(this.poolData.mcr));
     console.log('mcrRatio', formatEther(this.poolData.mcrRatio));
-    console.log('rate', formatEther(this.rate));
+    console.log('rate', formatEther(this.poolData.rate));
     console.log('===================NEW VALUES=====================');
     console.log('mcr', formatEther(mcr));
     console.log('mcrRatio', formatEther(mcrRatio));
     console.log('rate', formatEther(await this.rEth.getExchangeRate()));
-
-    expect(this.poolData.assets).to.be.deep.equal(assets);
-    expect(rEthOracle.aggregator).to.be.deep.equal(this.rETHAggregator.target);
   });
 
   require('../basic-functionality-tests');

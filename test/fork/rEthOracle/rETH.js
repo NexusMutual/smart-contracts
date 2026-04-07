@@ -1,14 +1,8 @@
 const { ethers, network, nexus, tracer } = require('hardhat');
 const { expect } = require('chai');
 const { abis, addresses } = require('@nexusmutual/deployments');
-const { setBalance, takeSnapshot } = require('@nomicfoundation/hardhat-network-helpers');
-const {
-  revertToSnapshot,
-  Addresses,
-  createSafeExecutor,
-  getFundedSigner,
-  executeGovernorProposal,
-} = require('../utils');
+const { setBalance, takeSnapshot, time } = require('@nomicfoundation/hardhat-network-helpers');
+const { revertToSnapshot, Addresses, createSafeExecutor, getFundedSigner } = require('../utils');
 const rETHAbi = require('./rETHAbi.json');
 
 const { deployContract, parseEther, formatEther } = ethers;
@@ -84,14 +78,6 @@ describe('Pool - rETH oracle change', function () {
     }
   });
 
-  it('Collect storage data before upgrade', async function () {
-    this.poolData = {};
-    this.poolData.assets = await this.pool.getAssets();
-    this.poolData.mcr = await this.pool.getMCR();
-    this.poolData.mcrRatio = await this.pool.getMCRRatio();
-    this.poolData.rate = await this.pool.getEthForAsset(this.rEth.target, parseEther('1'));
-  });
-
   it('Upgrade Pool contracts and change rETH oracle', async function () {
     this.rETHAggregator = await deployContract('AggregatorRETH', [this.rEth]);
     const pool = await deployContract('Pool', [this.registry.target]);
@@ -113,40 +99,60 @@ describe('Pool - rETH oracle change', function () {
       },
     ];
 
-    await executeGovernorProposal(this.governor, this.abMembers, transactions);
+    const [proposer] = this.abMembers;
+    await this.governor.connect(proposer).propose(transactions, 'Upgrade Pool contracts and change rETH oracle');
+    const proposalId = await this.governor.proposalCount();
 
+    for (const voter of this.abMembers.slice(0, 3)) {
+      await this.governor.connect(voter).vote(proposalId, nexus.constants.Choice.For);
+    }
+
+    const VOTING_PERIOD = await this.governor.VOTING_PERIOD();
+    const TIMELOCK_PERIOD = await this.governor.TIMELOCK_PERIOD();
+    await time.increase(VOTING_PERIOD + TIMELOCK_PERIOD);
+
+    // Snapshot pool state before upgrade
+    const oldAssets = await this.pool.getAssets();
+    const oldMcr = await this.pool.getMCR();
+    const oldRate = await this.pool.getEthForAsset(this.rEth.target, parseEther('1'));
+    const oldEthPoolValue = await this.pool.getPoolValueInEth();
+    const rEthBalance = await this.rEth.balanceOf(this.pool.target);
+    const oldRethEthValue = await this.pool.getEthForAsset(this.rEth.target, rEthBalance);
+
+    // Execute the governance proposal (applies upgrade + oracle change)
+    await this.governor.connect(proposer).execute(proposalId);
     this.pool = await ethers.getContractAt('Pool', this.pool.target);
 
-    const assets = await this.pool.getAssets();
-    const mcr = await this.pool.getMCR();
-    const mcrRatio = await this.pool.getMCRRatio();
+    // Fetch new values after upgrade
+    const newRate = await this.pool.getEthForAsset(this.rEth.target, parseEther('1'));
+    const newRethEthValue = await this.pool.getEthForAsset(this.rEth.target, rEthBalance);
+    const newEthPoolValue = await this.pool.getPoolValueInEth();
+    const newMcrRatio = await this.pool.getMCRRatio();
+
+    // Assets array should be unchanged
+    expect(await this.pool.getAssets()).to.deep.equal(oldAssets);
+
+    // Oracle should point to the new aggregator
     const rEthOracle = await this.pool.oracles(this.rEth.target);
-    const rate = await this.pool.getEthForAsset(this.rEth.target, parseEther('1'));
+    expect(rEthOracle.aggregator).to.equal(this.rETHAggregator.target);
 
-    expect(this.poolData.assets).to.be.deep.equal(assets);
-    expect(rEthOracle.aggregator).to.be.deep.equal(this.rETHAggregator.target);
-    expect(this.poolData.mcr).to.be.equal(mcr);
-    expect(this.poolData.mcrRatio).to.be.closeTo(mcrRatio, 1);
+    // MCR should be unchanged
+    expect(await this.pool.getMCR()).to.equal(oldMcr);
 
-    // Verify the new oracle rate is within 0.1% of the old rate
-    const oldRate = this.poolData.rate;
-    const newRate = rate;
-    const absDiff = oldRate > newRate ? oldRate - newRate : newRate - oldRate;
-    const maxDivergenceBps = 10n; // 0.1%
-    const basisPrecision = 10000n;
-    expect(absDiff * basisPrecision).to.be.lte(
-      oldRate * maxDivergenceBps,
+    // New rate should be within 0.1% of old rate
+    const rateDiff = oldRate > newRate ? oldRate - newRate : newRate - oldRate;
+    expect(rateDiff * 10000n).to.be.lte(
+      oldRate * 10n,
       `Rate divergence exceeds 0.1%: old=${formatEther(oldRate)}, new=${formatEther(newRate)}`,
     );
 
-    console.log('===================OLD VALUES=====================');
-    console.log('mcr', formatEther(this.poolData.mcr));
-    console.log('mcrRatio', formatEther(this.poolData.mcrRatio));
-    console.log('rate', formatEther(this.poolData.rate));
-    console.log('===================NEW VALUES=====================');
-    console.log('mcr', formatEther(mcr));
-    console.log('mcrRatio', formatEther(mcrRatio));
-    console.log('rate', formatEther(await this.rEth.getExchangeRate()));
+    // ethPoolValue diff should match the rETH valuation change
+    const expectedEthPoolValue = oldEthPoolValue - oldRethEthValue + newRethEthValue;
+    expect(newEthPoolValue).to.equal(expectedEthPoolValue);
+
+    // mcrRatio should reflect the new pool value
+    const expectedMcrRatio = (expectedEthPoolValue * 10n ** 4n) / oldMcr;
+    expect(newMcrRatio).to.equal(expectedMcrRatio);
   });
 
   require('../basic-functionality-tests');

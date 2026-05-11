@@ -1,12 +1,14 @@
 const { ethers, nexus } = require('hardhat');
 
 const main = async () => {
-  const testMessage = 'Hello, mutants!';
+  const testMessage = 'I, hereby verify that I am the owner/creator of the address [0xcAFeAA466736ac01e0AC9Ca72644beF348694731]';
 
   // get signer and sign message
   console.log('Getting signer and signing message...');
   const signer = nexus.awsKms.getSigner(ethers.provider);
   const [signature, ethAddress] = await Promise.all([signer.signMessage(testMessage), signer.getAddress()]);
+  console.log('Signature:', signature);
+  console.log('ETH Address:', ethAddress);
 
   // recover address from signature
   console.log('Recovering address from signature...');

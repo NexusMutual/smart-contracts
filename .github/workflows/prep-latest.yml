@@ -1,0 +1,128 @@
+# Prep Latest Workflow
+#
+# Reusable workflow that prepares a production release of
+# @nexusmutual/deployments:
+# - Verifies that commits on release-candidate since the last tag warrant a
+#   version bump
+# - Commits the version bump to release-candidate, then fast-forwards master
+# - Builds the deployments package at the new version
+# - Uploads the package as a build artifact
+# - Creates the git tag and GitHub release
+#
+# Called by release.yml, which performs the npm publish.
+
+name: Prep Latest
+
+on:
+  workflow_call:
+    outputs:
+      bumped_version:
+        description: "The new version after the bump"
+        value: ${{ jobs.bump-version.outputs.bumped_version }}
+      artifact_name:
+        description: "Name of the uploaded deployments package artifact"
+        value: ${{ jobs.build-deployments.outputs.artifact_name }}
+
+env:
+  NODE_VERSION: 22
+
+jobs:
+  # Determines if the commits since last tag trigger a version bump.
+  # Outputs: bump_type (major|minor|patch), triggers_bump (true|false)
+  check-version-bump:
+    uses: NexusMutual/workflows/.github/workflows/check-version-bump.yml@master
+    with:
+      ref: release-candidate
+      environment: production
+      bump-command: |
+        timeout 5s npx conventional-recommended-bump --config .github/config/conventional-bump-setup.js
+    secrets:
+      DEPLOYER_APP_ID: ${{ secrets.DEPLOYER_APP_ID }}
+      DEPLOYER_APP_PK: ${{ secrets.DEPLOYER_APP_PK }}
+
+  # Stops the release when nothing meaningful has landed, so tags always
+  # correspond to a real change.
+  validate-version-bump:
+    needs: check-version-bump
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Verify version bump is triggered
+        if: needs.check-version-bump.outputs.triggers_bump != 'true'
+        run: |
+          echo "::error::Forbidden to release a version without a version bump"
+          echo "::warning::Commit messages on the release-candidate branch must include changes beyond 'docs', 'style', 'test', or 'ci'"
+          exit 1
+      - name: Confirm version bump
+        run: |
+          echo "Version bump of type '${{ needs.check-version-bump.outputs.bump_type }}' will be applied"
+
+  # Updates the version in root and deployments package.json and commits it to
+  # release-candidate.
+  bump-version:
+    needs: [check-version-bump, validate-version-bump]
+    uses: NexusMutual/workflows/.github/workflows/bump.yml@master
+    with:
+      environment: production
+      ref: release-candidate
+      bump-command: |
+        echo 'Executing npm version bump: ${{ needs.check-version-bump.outputs.bump_type }} on root and deployments package.json'
+        npm version "${{ needs.check-version-bump.outputs.bump_type }}" --no-git-tag-version
+        cd deployments
+        npm version $(jq -r '.version' ../package.json) --no-git-tag-version
+    secrets:
+      DEPLOYER_APP_ID: ${{ secrets.DEPLOYER_APP_ID }}
+      DEPLOYER_APP_PK: ${{ secrets.DEPLOYER_APP_PK }}
+
+  # Carries the bump commit onto master, so master holds the released state.
+  ff-master:
+    needs: bump-version
+    uses: NexusMutual/workflows/.github/workflows/fast-forward.yml@master
+    with:
+      environment: production
+      source-ref: release-candidate
+      target-ref: master
+    secrets:
+      DEPLOYER_APP_ID: ${{ secrets.DEPLOYER_APP_ID }}
+      DEPLOYER_APP_PK: ${{ secrets.DEPLOYER_APP_PK }}
+
+  build-deployments:
+    needs: [bump-version, ff-master]
+    runs-on: ubuntu-latest
+    outputs:
+      artifact_name: deployments-${{ needs.bump-version.outputs.bumped_version }}
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts --prefer-offline --no-audit --no-fund
+
+      - name: Build deployments
+        run: npm run deployments:build
+
+      - name: Upload deployments package
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployments-${{ needs.bump-version.outputs.bumped_version }}
+          path: deployments
+          if-no-files-found: error
+
+  git-tag-release:
+    needs: build-deployments
+    uses: NexusMutual/workflows/.github/workflows/git-tag-github-release.yml@master
+    with:
+      environment: production
+      ref: master
+    secrets:
+      DEPLOYER_APP_ID: ${{ secrets.DEPLOYER_APP_ID }}
+      DEPLOYER_APP_PK: ${{ secrets.DEPLOYER_APP_PK }}

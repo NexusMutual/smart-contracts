@@ -1,0 +1,108 @@
+# Prep Next Workflow
+#
+# Reusable workflow that prepares a release-candidate build of
+# @nexusmutual/deployments:
+# - Verifies that commits on release-candidate since the last tag warrant a
+#   version bump
+# - Works out the next RC number for that base version
+# - Builds the deployments package at the RC version
+# - Uploads the package as a build artifact
+#
+# Called by release.yml, which performs the npm publish.
+#
+# NOTE: This workflow commits nothing. The RC version is applied to the working
+# tree so the built package carries it; the real bump commit happens in
+# prep-latest.yml.
+
+name: Prep Next
+
+on:
+  workflow_call:
+    outputs:
+      rc_version:
+        description: "The RC version, e.g. 3.5.0-rc.0"
+        value: ${{ jobs.rc-version.outputs.rc_version }}
+      artifact_name:
+        description: "Name of the uploaded deployments package artifact"
+        value: ${{ jobs.build-deployments.outputs.artifact_name }}
+
+env:
+  NODE_VERSION: 22
+
+jobs:
+  # Determines if the commits since last tag trigger a version bump.
+  # Outputs: bump_type (major|minor|patch), triggers_bump (true|false)
+  check-version-bump:
+    uses: NexusMutual/workflows/.github/workflows/check-version-bump.yml@master
+    with:
+      ref: release-candidate
+      environment: production
+      bump-command: |
+        timeout 5s npx conventional-recommended-bump --config .github/config/conventional-bump-setup.js
+    secrets:
+      DEPLOYER_APP_ID: ${{ secrets.DEPLOYER_APP_ID }}
+      DEPLOYER_APP_PK: ${{ secrets.DEPLOYER_APP_PK }}
+
+  # Stops the run when nothing meaningful has landed, so an RC always
+  # corresponds to a real change.
+  validate-version-bump:
+    needs: check-version-bump
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Verify version bump is triggered
+        if: needs.check-version-bump.outputs.triggers_bump != 'true'
+        run: |
+          echo "::error::Forbidden to release a version without a version bump"
+          echo "::warning::Commit messages on the release-candidate branch must include changes beyond 'docs', 'style', 'test', or 'ci'"
+          exit 1
+      - name: Confirm version bump
+        run: |
+          echo "Version bump of type '${{ needs.check-version-bump.outputs.bump_type }}' will be applied"
+
+  # Works out the next free RC number for this base version.
+  # Outputs: rc_version (e.g. 3.5.0-rc.0)
+  rc-version:
+    needs: [check-version-bump, validate-version-bump]
+    uses: NexusMutual/workflows/.github/workflows/determine-rc-version.yml@master
+    with:
+      package-name: "@nexusmutual/deployments"
+      bump-type: ${{ needs.check-version-bump.outputs.bump_type }}
+
+  build-deployments:
+    needs: rc-version
+    runs-on: ubuntu-latest
+    outputs:
+      artifact_name: deployments-${{ needs.rc-version.outputs.rc_version }}
+    steps:
+      - name: Checkout release-candidate
+        uses: actions/checkout@v4
+        with:
+          ref: release-candidate
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts --prefer-offline --no-audit --no-fund
+
+      # Applied to the working tree only, so the built package carries the RC
+      # version. deployments/build.js copies the root version into the package.
+      - name: Apply RC version
+        env:
+          RC_VERSION: ${{ needs.rc-version.outputs.rc_version }}
+        run: npm version "$RC_VERSION" --no-git-tag-version
+
+      - name: Build deployments
+        run: npm run deployments:build
+
+      - name: Upload deployments package
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployments-${{ needs.rc-version.outputs.rc_version }}
+          path: deployments
+          if-no-files-found: error

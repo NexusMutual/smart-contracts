@@ -85,8 +85,6 @@
     "test-fork": "TEST_ENV_FORK=http://localhost:8545 hardhat test test/fork/index.js",
     "typechain": "hardhat typechain",
     "deployments:build": "node deployments/build.js",
-    "deployments:publish:next": "cd deployments && npm publish --access public --tag next",
-    "deployments:publish:latest": "cd deployments && npm publish --access public",
     "prepare": "husky"
   }
 }

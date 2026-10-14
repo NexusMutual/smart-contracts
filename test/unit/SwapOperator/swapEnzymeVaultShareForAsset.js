@@ -7,13 +7,13 @@ const setup = require('./setup');
 const { Assets, SwapKind, PauseTypes } = nexus.constants;
 const { parseEther } = ethers;
 
-describe('swapEnzymeVaultShareForETH', function () {
+describe('swapEnzymeVaultShareForAsset', function () {
   it('reverts if caller is not the swap controller', async function () {
     const fixture = await loadFixture(setup);
     const { swapOperator } = fixture.contracts;
     const { alice } = fixture.accounts;
 
-    await expect(swapOperator.connect(alice).swapEnzymeVaultShareForETH(0, 0)) //
+    await expect(swapOperator.connect(alice).swapEnzymeVaultShareForAsset(0, 0)) //
       .to.be.revertedWithCustomError(swapOperator, 'OnlyController');
   });
 
@@ -36,13 +36,17 @@ describe('swapEnzymeVaultShareForETH', function () {
 
     // pause swaps only
     await registry.setPauseConfig(PauseTypes.PAUSE_SWAPS);
-    await expect(swapOperator.connect(swapController).swapEnzymeVaultShareForETH(request.fromAmount, request.toAmount))
+    await expect(
+      swapOperator.connect(swapController).swapEnzymeVaultShareForAsset(request.fromAmount, request.toAmount),
+    )
       .to.be.revertedWithCustomError(swapOperator, 'Paused')
       .withArgs(PauseTypes.PAUSE_SWAPS, PauseTypes.PAUSE_SWAPS);
 
     // pause globally
     await registry.setPauseConfig(PauseTypes.PAUSE_GLOBAL);
-    await expect(swapOperator.connect(swapController).swapEnzymeVaultShareForETH(request.fromAmount, request.toAmount))
+    await expect(
+      swapOperator.connect(swapController).swapEnzymeVaultShareForAsset(request.fromAmount, request.toAmount),
+    )
       .to.be.revertedWithCustomError(swapOperator, 'Paused')
       .withArgs(PauseTypes.PAUSE_GLOBAL, PauseTypes.PAUSE_SWAPS);
   });
@@ -82,7 +86,7 @@ describe('swapEnzymeVaultShareForETH', function () {
     const orderUID = await swapOperator.getUID(order);
     await swapOperator.connect(swapController).placeOrder(order, orderUID);
 
-    await expect(swapOperator.connect(swapController).swapEnzymeVaultShareForETH(0, 0))
+    await expect(swapOperator.connect(swapController).swapEnzymeVaultShareForAsset(0, 0))
       .to.be.revertedWithCustomError(swapOperator, 'OrderInProgress')
       .withArgs(orderUID);
   });
@@ -104,31 +108,21 @@ describe('swapEnzymeVaultShareForETH', function () {
 
     await swapOperator.connect(governor).requestAssetSwap(request);
 
-    await expect(swapOperator.connect(swapController).swapEnzymeVaultShareForETH(request.fromAmount, request.toAmount))
+    await expect(
+      swapOperator.connect(swapController).swapEnzymeVaultShareForAsset(request.fromAmount, request.toAmount),
+    )
       .to.be.revertedWithCustomError(swapOperator, 'InvalidAsset')
       .withArgs(dai, enzymeV4Vault);
   });
 
-  it('reverts when swapRequest.toAsset is not WETH/ETH', async function () {
+  it('reverts when there is no swap request', async function () {
     const fixture = await loadFixture(setup);
-    const { swapOperator, dai, enzymeV4Vault, weth } = fixture.contracts;
-    const { governor, swapController } = fixture.accounts;
-    const timestamp = await time.latest();
+    const { swapOperator, enzymeV4Vault } = fixture.contracts;
+    const { swapController } = fixture.accounts;
 
-    const request = {
-      fromAsset: enzymeV4Vault,
-      toAsset: dai,
-      fromAmount: parseEther('1'),
-      toAmount: parseEther('1'),
-      deadline: timestamp + 1000,
-      swapKind: SwapKind.ExactInput,
-    };
-
-    await swapOperator.connect(governor).requestAssetSwap(request);
-
-    await expect(swapOperator.connect(swapController).swapEnzymeVaultShareForETH(request.fromAmount, request.toAmount))
+    await expect(swapOperator.connect(swapController).swapEnzymeVaultShareForAsset(parseEther('1'), parseEther('1')))
       .to.be.revertedWithCustomError(swapOperator, 'InvalidAsset')
-      .withArgs(dai, weth);
+      .withArgs(ethers.ZeroAddress, enzymeV4Vault);
   });
 
   it('reverts when the deadline has expired', async function () {
@@ -152,7 +146,7 @@ describe('swapEnzymeVaultShareForETH', function () {
     await time.increase(11);
 
     await expect(
-      swapOperator.connect(swapController).swapEnzymeVaultShareForETH(request.fromAmount, request.toAmount),
+      swapOperator.connect(swapController).swapEnzymeVaultShareForAsset(request.fromAmount, request.toAmount),
     ).to.be.revertedWithCustomError(swapOperator, 'SwapDeadlineExceeded');
   });
 
@@ -174,7 +168,7 @@ describe('swapEnzymeVaultShareForETH', function () {
     await swapOperator.connect(governor).requestAssetSwap(request);
 
     await expect(
-      swapOperator.connect(swapController).swapEnzymeVaultShareForETH(request.fromAmount, request.toAmount),
+      swapOperator.connect(swapController).swapEnzymeVaultShareForAsset(request.fromAmount, request.toAmount),
     ).to.be.revertedWithCustomError(swapOperator, 'InvalidSwapKind');
   });
 
@@ -197,7 +191,9 @@ describe('swapEnzymeVaultShareForETH', function () {
 
     const incorrectFromAmount = request.fromAmount + 1n;
 
-    await expect(swapOperator.connect(swapController).swapEnzymeVaultShareForETH(incorrectFromAmount, request.toAmount))
+    await expect(
+      swapOperator.connect(swapController).swapEnzymeVaultShareForAsset(incorrectFromAmount, request.toAmount),
+    )
       .to.be.revertedWithCustomError(swapOperator, 'FromAmountMismatch')
       .withArgs(request.fromAmount, incorrectFromAmount);
   });
@@ -222,7 +218,7 @@ describe('swapEnzymeVaultShareForETH', function () {
     const insufficientToAmount = request.toAmount - 1n;
 
     await expect(
-      swapOperator.connect(swapController).swapEnzymeVaultShareForETH(request.fromAmount, insufficientToAmount),
+      swapOperator.connect(swapController).swapEnzymeVaultShareForAsset(request.fromAmount, insufficientToAmount),
     )
       .to.be.revertedWithCustomError(swapOperator, 'ToAmountTooLow')
       .withArgs(request.toAmount, insufficientToAmount);
@@ -249,8 +245,33 @@ describe('swapEnzymeVaultShareForETH', function () {
     await enzymeV4Comptroller.setDenominationAsset(usdc);
 
     await expect(
-      swapOperator.connect(swapController).swapEnzymeVaultShareForETH(request.fromAmount, request.toAmount),
+      swapOperator.connect(swapController).swapEnzymeVaultShareForAsset(request.fromAmount, request.toAmount),
     ).to.be.revertedWithCustomError(swapOperator, 'InvalidDenominationAsset');
+  });
+
+  it('reverts when denomination asset != WETH even if toAsset is a non-WETH asset', async function () {
+    const fixture = await loadFixture(setup);
+    const { swapOperator, enzymeV4Comptroller, enzymeV4Vault, weEth, usdc } = fixture.contracts;
+    const { governor, swapController } = fixture.accounts;
+    const timestamp = await time.latest();
+
+    const request = {
+      fromAsset: enzymeV4Vault,
+      toAsset: weEth,
+      fromAmount: parseEther('1'),
+      toAmount: parseEther('1'),
+      deadline: timestamp + 3600,
+      swapKind: SwapKind.ExactInput,
+    };
+
+    await swapOperator.connect(governor).requestAssetSwap(request);
+    await enzymeV4Comptroller.setDenominationAsset(usdc);
+
+    await expect(
+      swapOperator.connect(swapController).swapEnzymeVaultShareForAsset(request.fromAmount, request.toAmount),
+    )
+      .to.be.revertedWithCustomError(swapOperator, 'InvalidDenominationAsset')
+      .withArgs(await swapOperator.weth(), usdc);
   });
 
   it('reverts when Enzyme returns insufficient ETH', async function () {
@@ -278,9 +299,70 @@ describe('swapEnzymeVaultShareForETH', function () {
     const amountToPush = toAmountMin - 1n; // insufficient ETH out
     await enzymeV4Comptroller.setRedeemMockAmounts(sharesToBurn, amountToPush);
 
-    await expect(swapOperator.connect(swapController).swapEnzymeVaultShareForETH(fromAmount, toAmountMin))
+    await expect(swapOperator.connect(swapController).swapEnzymeVaultShareForAsset(fromAmount, toAmountMin))
       .to.be.revertedWithCustomError(swapOperator, 'SwappedToAmountTooLow')
       .withArgs(toAmountMin, amountToPush);
+  });
+
+  it('reverts when Enzyme returns insufficient weETH', async function () {
+    const fixture = await loadFixture(setup);
+    const { swapOperator, pool, enzymeV4Comptroller, enzymeV4Vault, weEth } = fixture.contracts;
+    const { governor, swapController } = fixture.accounts;
+    const timestamp = await time.latest();
+
+    const fromAmount = parseEther('1');
+    const toAmountMin = parseEther('0.9');
+
+    const request = {
+      fromAsset: enzymeV4Vault,
+      toAsset: weEth,
+      fromAmount,
+      toAmount: toAmountMin,
+      deadline: timestamp + 3600,
+      swapKind: SwapKind.ExactInput,
+    };
+
+    await enzymeV4Vault.mint(pool, fromAmount);
+    await swapOperator.connect(governor).requestAssetSwap(request);
+
+    const amountToPush = toAmountMin - 1n;
+    await enzymeV4Comptroller.setRedeemMockAmounts(fromAmount, amountToPush);
+
+    await expect(swapOperator.connect(swapController).swapEnzymeVaultShareForAsset(fromAmount, toAmountMin))
+      .to.be.revertedWithCustomError(swapOperator, 'SwappedToAmountTooLow')
+      .withArgs(toAmountMin, amountToPush);
+  });
+
+  it('reverts when Enzyme pays out in a different asset than requested', async function () {
+    const fixture = await loadFixture(setup);
+    const { swapOperator, pool, enzymeV4Comptroller, enzymeV4Vault, weEth, weth } = fixture.contracts;
+    const { governor, swapController } = fixture.accounts;
+    const timestamp = await time.latest();
+
+    const fromAmount = parseEther('1');
+    const toAmountMin = parseEther('0.9');
+
+    const request = {
+      fromAsset: enzymeV4Vault,
+      toAsset: weEth,
+      fromAmount,
+      toAmount: toAmountMin,
+      deadline: timestamp + 3600,
+      swapKind: SwapKind.ExactInput,
+    };
+
+    await enzymeV4Vault.mint(pool, fromAmount);
+    await swapOperator.connect(governor).requestAssetSwap(request);
+
+    // simulate weth landing in the swap operator instead of the requested weETH
+    await enzymeV4Comptroller.setRedeemMockAmounts(fromAmount, 0);
+    await weth.deposit({ value: toAmountMin });
+    await weth.transfer(swapOperator, toAmountMin);
+
+    // the delta is measured on the requested asset only, so the stray weth does not count
+    await expect(swapOperator.connect(swapController).swapEnzymeVaultShareForAsset(fromAmount, toAmountMin))
+      .to.be.revertedWithCustomError(swapOperator, 'SwappedToAmountTooLow')
+      .withArgs(toAmountMin, 0);
   });
 
   it('reverts when spent (shares burned) is unexpectedly high', async function () {
@@ -312,7 +394,7 @@ describe('swapEnzymeVaultShareForETH', function () {
     const amountToPush = request.toAmount; // meets min out
     await enzymeV4Comptroller.setRedeemMockAmounts(sharesToBurn, amountToPush);
 
-    await expect(swapOperator.connect(swapController).swapEnzymeVaultShareForETH(fromAmount, toAmountMin))
+    await expect(swapOperator.connect(swapController).swapEnzymeVaultShareForAsset(fromAmount, toAmountMin))
       .to.be.revertedWithCustomError(swapOperator, 'SwappedFromAmountTooHigh')
       .withArgs(fromAmount, sharesToBurn);
   });
@@ -344,15 +426,81 @@ describe('swapEnzymeVaultShareForETH', function () {
 
     await enzymeV4Comptroller.setRedeemMockAmounts(sharesIn, minEthOut + excessEth);
 
-    await expect(swapOperator.connect(swapController).swapEnzymeVaultShareForETH(sharesIn, minEthOut))
-      .to.emit(enzymeV4Comptroller, 'RedeemCalledWith')
-      .withArgs(swapOperator, sharesIn, [weth], [10000]);
+    const tx = swapOperator.connect(swapController).swapEnzymeVaultShareForAsset(sharesIn, minEthOut);
+
+    await expect(tx).to.emit(enzymeV4Comptroller, 'RedeemCalledWith').withArgs(swapOperator, sharesIn, [weth], [10000]);
+    await expect(tx)
+      .to.emit(swapOperator, 'Swapped')
+      .withArgs(enzymeV4Vault, Assets.ETH, sharesIn, minEthOut + excessEth);
 
     const ethAfter = await ethers.provider.getBalance(pool);
     const sharesAfter = await enzymeV4Vault.balanceOf(pool);
 
     expect(ethAfter).to.equal(ethBefore + minEthOut + excessEth);
     expect(sharesAfter).to.be.equal(sharesBefore - sharesIn);
+
+    // nothing left in the swap operator
+    expect(await ethers.provider.getBalance(swapOperator)).to.equal(0);
+    expect(await weth.balanceOf(swapOperator)).to.equal(0);
+    expect(await enzymeV4Vault.balanceOf(swapOperator)).to.equal(0);
+
+    const assetInSwapOperator = await pool.assetInSwapOperator();
+    expect(assetInSwapOperator.amount).to.equal(0);
+  });
+
+  it('redeems correct amounts of Enzyme vault shares for weETH', async function () {
+    const fixture = await loadFixture(setup);
+    const { pool, swapOperator, enzymeV4Comptroller, enzymeV4Vault, weEth, weth } = fixture.contracts;
+    const { swapController, governor } = fixture.accounts;
+
+    const sharesIn = parseEther('12');
+    const minWeEthOut = parseEther('9.9');
+    const excessWeEth = parseEther('0.1');
+    const timestamp = await time.latest();
+
+    const request = {
+      fromAsset: enzymeV4Vault,
+      toAsset: weEth,
+      fromAmount: sharesIn,
+      toAmount: minWeEthOut,
+      deadline: timestamp + 3600,
+      swapKind: SwapKind.ExactInput,
+    };
+
+    await enzymeV4Vault.mint(pool, sharesIn);
+    await swapOperator.connect(governor).requestAssetSwap(request);
+
+    const ethBefore = await ethers.provider.getBalance(pool);
+    const weEthBefore = await weEth.balanceOf(pool);
+    const sharesBefore = await enzymeV4Vault.balanceOf(pool);
+
+    await enzymeV4Comptroller.setRedeemMockAmounts(sharesIn, minWeEthOut + excessWeEth);
+
+    const tx = swapOperator.connect(swapController).swapEnzymeVaultShareForAsset(sharesIn, minWeEthOut);
+
+    await expect(tx)
+      .to.emit(enzymeV4Comptroller, 'RedeemCalledWith')
+      .withArgs(swapOperator, sharesIn, [weEth], [10000]);
+    await expect(tx)
+      .to.emit(swapOperator, 'Swapped')
+      .withArgs(enzymeV4Vault, weEth, sharesIn, minWeEthOut + excessWeEth);
+
+    const ethAfter = await ethers.provider.getBalance(pool);
+    const weEthAfter = await weEth.balanceOf(pool);
+    const sharesAfter = await enzymeV4Vault.balanceOf(pool);
+
+    expect(weEthAfter).to.equal(weEthBefore + minWeEthOut + excessWeEth);
+    expect(sharesAfter).to.be.equal(sharesBefore - sharesIn);
+    expect(ethAfter).to.equal(ethBefore); // no eth movement on a weETH payout
+
+    // nothing left in the swap operator
+    expect(await weEth.balanceOf(swapOperator)).to.equal(0);
+    expect(await weth.balanceOf(swapOperator)).to.equal(0);
+    expect(await ethers.provider.getBalance(swapOperator)).to.equal(0);
+    expect(await enzymeV4Vault.balanceOf(swapOperator)).to.equal(0);
+
+    const assetInSwapOperator = await pool.assetInSwapOperator();
+    expect(assetInSwapOperator.amount).to.equal(0);
   });
 
   it('returns unburned shares to the pool on partial redeem and extra returned ETH', async function () {
@@ -384,7 +532,7 @@ describe('swapEnzymeVaultShareForETH', function () {
 
     await enzymeV4Comptroller.setRedeemMockAmounts(sharesBurned, minEthOut + excessEth);
 
-    await expect(swapOperator.connect(swapController).swapEnzymeVaultShareForETH(sharesIn, minEthOut))
+    await expect(swapOperator.connect(swapController).swapEnzymeVaultShareForAsset(sharesIn, minEthOut))
       .to.emit(enzymeV4Comptroller, 'RedeemCalledWith')
       .withArgs(swapOperator, sharesIn, [weth], [10000]);
 
@@ -393,6 +541,42 @@ describe('swapEnzymeVaultShareForETH', function () {
 
     expect(ethAfter).to.equal(ethBefore + minEthOut + excessEth);
     expect(sharesAfter).to.be.equal(sharesBefore - sharesBurned);
+  });
+
+  it('returns unburned shares to the pool on partial redeem for weETH', async function () {
+    const fixture = await loadFixture(setup);
+    const { pool, swapOperator, enzymeV4Comptroller, enzymeV4Vault, weEth } = fixture.contracts;
+    const { swapController, governor } = fixture.accounts;
+
+    const sharesIn = parseEther('12');
+    const sharesBurned = parseEther('11');
+    const minWeEthOut = parseEther('9.9');
+    const timestamp = await time.latest();
+
+    const request = {
+      fromAsset: enzymeV4Vault,
+      toAsset: weEth,
+      fromAmount: sharesIn,
+      toAmount: minWeEthOut,
+      deadline: timestamp + 3600,
+      swapKind: SwapKind.ExactInput,
+    };
+
+    await enzymeV4Vault.mint(pool, sharesIn);
+    await swapOperator.connect(governor).requestAssetSwap(request);
+
+    const weEthBefore = await weEth.balanceOf(pool);
+    const sharesBefore = await enzymeV4Vault.balanceOf(pool);
+
+    await enzymeV4Comptroller.setRedeemMockAmounts(sharesBurned, minWeEthOut);
+
+    await expect(swapOperator.connect(swapController).swapEnzymeVaultShareForAsset(sharesIn, minWeEthOut))
+      .to.emit(swapOperator, 'Swapped')
+      .withArgs(enzymeV4Vault, weEth, sharesBurned, minWeEthOut);
+
+    expect(await weEth.balanceOf(pool)).to.equal(weEthBefore + minWeEthOut);
+    expect(await enzymeV4Vault.balanceOf(pool)).to.be.equal(sharesBefore - sharesBurned);
+    expect(await enzymeV4Vault.balanceOf(swapOperator)).to.equal(0);
   });
 
   it('reverts when called again without a new swap request', async function () {
@@ -417,9 +601,9 @@ describe('swapEnzymeVaultShareForETH', function () {
     await enzymeV4Comptroller.setRedeemMockAmounts(sharesIn, ethOut);
 
     await enzymeV4Vault.mint(pool, sharesIn);
-    await swapOperator.connect(swapController).swapEnzymeVaultShareForETH(sharesIn, ethOut);
+    await swapOperator.connect(swapController).swapEnzymeVaultShareForAsset(sharesIn, ethOut);
 
-    await expect(swapOperator.connect(swapController).swapEnzymeVaultShareForETH(sharesIn, ethOut))
+    await expect(swapOperator.connect(swapController).swapEnzymeVaultShareForAsset(sharesIn, ethOut))
       .to.be.revertedWithCustomError(swapOperator, 'InvalidAsset')
       .withArgs(ethers.ZeroAddress, enzymeV4Vault);
   });

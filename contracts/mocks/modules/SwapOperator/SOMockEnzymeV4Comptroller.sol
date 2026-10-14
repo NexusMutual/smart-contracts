@@ -82,8 +82,10 @@ contract SOMockEnzymeV4Comptroller is IEnzymeV4Comptroller {
 
     payoutAmounts = new uint[](0); // unchecked
 
+    require(_payoutAssets.length == 1, "SOMockEnzymeV4Comptroller: single payout asset expected");
+
     vault.burn(_recipient, sharesToBurnOnRedeem);
-    vault.withdraw(denominationAsset, _recipient, amountToPushOnRedeem);
+    vault.withdraw(ERC20(_payoutAssets[0]), _recipient, amountToPushOnRedeem);
 
     emit RedeemCalledWith(_recipient, _sharesQuantity, _payoutAssets, _payoutAssetPercentages);
   }

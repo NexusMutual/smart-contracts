@@ -21,6 +21,7 @@ async function setup() {
   const dai = await deployERC20Mock('MockDai', 'DAI', 18);
   const usdc = await deployERC20Mock('MockUsdc', 'USDC', 6);
   const stEth = await deployERC20Mock('stETH', 'stETH', 18);
+  const weEth = await deployERC20Mock('weETH', 'weETH', 18);
   const safeTracker = await deployERC20Mock('SafeTracker', 'ST', 18);
 
   // deploy cow protocol mocks
@@ -37,12 +38,16 @@ async function setup() {
   await weth.deposit({ value: comptrollerWethReserves });
   await weth.transfer(enzymeV4Vault, comptrollerWethReserves);
 
+  // deposit weETH to Enzyme Vault (non-denomination payout asset)
+  await weEth.mint(enzymeV4Vault, parseEther('10000'));
+
   const assetDetails = [
     { assetAddress: Assets.ETH, isCoverAsset: true, isAbandoned: false },
     { assetAddress: dai, isCoverAsset: true, isAbandoned: false },
     { assetAddress: usdc, isCoverAsset: true, isAbandoned: false },
     { assetAddress: stEth, isCoverAsset: false, isAbandoned: false },
     { assetAddress: enzymeV4Vault, isCoverAsset: false, isAbandoned: false },
+    { assetAddress: weEth, isCoverAsset: false, isAbandoned: false },
   ];
 
   const pool = await ethers.deployContract('SOMockPool', [assetDetails]);
@@ -62,7 +67,7 @@ async function setup() {
 
   const enzymeContracts = { enzymeV4Vault, enzymeV4Comptroller };
   const cowContracts = { cowVaultRelayer, cowSettlement };
-  const tokens = { weth, dai, usdc, stEth };
+  const tokens = { weth, dai, usdc, stEth, weEth };
 
   return {
     accounts: { defaultSender, governor, alice, bob, mallory, swapController },

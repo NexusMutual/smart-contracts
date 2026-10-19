@@ -217,7 +217,6 @@ async function setup() {
     INVESTMENT_LIMIT,
     investmentSafe,
     usdc,
-    weth,
     aWETH,
     debtUsdc,
   ]);
@@ -382,6 +381,11 @@ async function setup() {
   await debtUsdc.mint(safeTracker, parseUnits('50000', debtUsdcDecimals)); // 50k usdc debt
   await usdc.mint(safeTracker, parseUnits('100000', usdcDecimals)); // 100k USDC
   await cbBTC.mint(safeTracker, parseUnits('100000', cbBTCDecimals)); // 100k cbBTC
+
+  // register safe assets: weth is 1:1 to eth so safeTracker is used as its own oracle (same as in the pool)
+  const investmentSafeSigner = await getFundedSigner(investmentSafe.target);
+  await safeTracker.connect(investmentSafeSigner).addAsset(weth, safeTracker);
+  await safeTracker.connect(investmentSafeSigner).addAsset(usdc, chainlinkUSDC);
 
   // TokenController and Governor signers
   const tokenControllerSigner = await getFundedSigner(tokenController.target);

@@ -6,29 +6,29 @@ const { setup } = require('./setup');
 
 const { parseUnits } = ethers;
 
-describe('updateCoverReInvestmentUSDC', function () {
-  it('should update CoverRe investment USDC', async function () {
+describe('updateOffchainInvestmentUSDC', function () {
+  it('should update offchain investment USDC', async function () {
     const fixture = await loadFixture(setup);
     const { safeTracker } = fixture.contracts;
     const { defaultSender } = fixture.accounts;
     const investedAmount = parseUnits('15000000', 6);
 
-    const coverReInvestmentUSDCBefore = await safeTracker.coverReInvestmentUSDC();
-    await safeTracker.connect(defaultSender).updateCoverReInvestmentUSDC(investedAmount);
-    const coverReInvestmentUSDCAfter = await safeTracker.coverReInvestmentUSDC();
+    const offchainInvestmentUSDCBefore = await safeTracker.offchainInvestmentUSDC();
+    await safeTracker.connect(defaultSender).updateOffchainInvestmentUSDC(investedAmount);
+    const offchainInvestmentUSDCAfter = await safeTracker.offchainInvestmentUSDC();
 
-    expect(coverReInvestmentUSDCBefore).to.be.equal(0);
-    expect(coverReInvestmentUSDCAfter).to.be.equal(investedAmount);
+    expect(offchainInvestmentUSDCBefore).to.be.equal(0);
+    expect(offchainInvestmentUSDCAfter).to.be.equal(investedAmount);
   });
 
-  it('should emit event CoverReInvestmentUSDCUpdated', async function () {
+  it('should emit event OffchainInvestmentUSDCUpdated', async function () {
     const fixture = await loadFixture(setup);
     const { safeTracker } = fixture.contracts;
     const { defaultSender } = fixture.accounts;
     const investedAmount = parseUnits('15000000', 6);
 
-    await expect(safeTracker.connect(defaultSender).updateCoverReInvestmentUSDC(investedAmount))
-      .to.emit(safeTracker, 'CoverReInvestmentUSDCUpdated')
+    await expect(safeTracker.connect(defaultSender).updateOffchainInvestmentUSDC(investedAmount))
+      .to.emit(safeTracker, 'OffchainInvestmentUSDCUpdated')
       .withArgs(investedAmount);
   });
 
@@ -40,10 +40,9 @@ describe('updateCoverReInvestmentUSDC', function () {
     } = fixture.accounts;
     const investedAmount = parseUnits('15000000', 6);
 
-    await expect(safeTracker.connect(member).updateCoverReInvestmentUSDC(investedAmount)).to.be.revertedWithCustomError(
-      safeTracker,
-      'OnlySafe',
-    );
+    await expect(
+      safeTracker.connect(member).updateOffchainInvestmentUSDC(investedAmount),
+    ).to.be.revertedWithCustomError(safeTracker, 'OnlySafe');
   });
 
   it('should revert if the investment is over limit', async function () {
@@ -53,7 +52,7 @@ describe('updateCoverReInvestmentUSDC', function () {
     const investedAmount = parseUnits('26000000', 6);
 
     await expect(
-      safeTracker.connect(defaultSender).updateCoverReInvestmentUSDC(investedAmount),
+      safeTracker.connect(defaultSender).updateOffchainInvestmentUSDC(investedAmount),
     ).to.be.revertedWithCustomError(safeTracker, 'InvestmentSurpassesLimit');
   });
 });

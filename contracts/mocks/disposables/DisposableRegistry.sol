@@ -17,8 +17,8 @@ contract DisposableRegistry is Registry {
   }
 
   function replaceGovernor(bytes32 _salt, address _governorImplementation) external {
-    delete contracts[C_GOVERNOR];
     delete contractIndexes[contracts[C_GOVERNOR].addr];
+    delete contracts[C_GOVERNOR];
     _deployContract(C_GOVERNOR, _salt, _governorImplementation);
   }
 

@@ -4,6 +4,7 @@ const { time, setNextBlockBaseFeePerGas } = require('@nomicfoundation/hardhat-ne
 
 const { setupAssessments } = require('./setup');
 const { createCover } = require('../utils/cover');
+const { getFundedSigner } = require('../utils');
 
 const { AssessmentOutcome, AssessmentStatus, PoolAsset } = nexus.constants;
 
@@ -19,6 +20,7 @@ describe('Assessments / Claims', function () {
     this.cover = fixture.contracts.cover;
     this.assessors = fixture.accounts.assessors;
     this.claimant = fixture.accounts.members[0];
+    this.governorSigner = await getFundedSigner(fixture.contracts.governor.target);
   });
 
   it('Happy Path: ETH claim submission and ACCEPTED payout', async function () {
@@ -187,10 +189,10 @@ describe('Assessments / Claims', function () {
     await fixture.contracts.registry.connect(fixture.accounts.emergencyAdmins[1]).confirmPauseConfig(pauseMask);
 
     // governor intervention
-    await this.assessments.undoVotes(fraudulentId, [claimId]);
-    await this.assessments.removeAssessorFromGroup(fraudulentId, groupId);
-    await this.assessments.addAssessorsToGroup([newAssessorId], groupId);
-    await this.assessments.extendVotingPeriod(claimId);
+    await this.assessments.connect(this.governorSigner).undoVotes(fraudulentId, [claimId]);
+    await this.assessments.connect(this.governorSigner).removeAssessorFromGroup(fraudulentId, groupId);
+    await this.assessments.connect(this.governorSigner).addAssessorsToGroup([newAssessorId], groupId);
+    await this.assessments.connect(this.governorSigner).extendVotingPeriod(claimId);
 
     // verify intervention effects
     const assessmentAfter = await this.assessments.getAssessment(claimId);
@@ -273,10 +275,10 @@ describe('Assessments / Claims', function () {
     await fixture.contracts.registry.connect(fixture.accounts.emergencyAdmins[1]).confirmPauseConfig(pauseMask);
 
     // governor intervention
-    await this.assessments.undoVotes(fraudulentId, [claimId]);
-    await this.assessments.removeAssessorFromGroup(fraudulentId, groupId);
-    await this.assessments.addAssessorsToGroup([replacementId], groupId);
-    await this.assessments.extendVotingPeriod(claimId);
+    await this.assessments.connect(this.governorSigner).undoVotes(fraudulentId, [claimId]);
+    await this.assessments.connect(this.governorSigner).removeAssessorFromGroup(fraudulentId, groupId);
+    await this.assessments.connect(this.governorSigner).addAssessorsToGroup([replacementId], groupId);
+    await this.assessments.connect(this.governorSigner).extendVotingPeriod(claimId);
 
     // verify vote count changed
     const assessmentAfter = await this.assessments.getAssessment(claimId);
@@ -422,8 +424,8 @@ describe('Assessments / Claims', function () {
 
     // governor attempts changes after redemption
     const assessorId = await fixture.contracts.registry.getMemberId(this.assessors[0].address);
-    await this.assessments.undoVotes(assessorId, [claimId]);
-    await this.assessments.extendVotingPeriod(claimId);
+    await this.assessments.connect(this.governorSigner).undoVotes(assessorId, [claimId]);
+    await this.assessments.connect(this.governorSigner).extendVotingPeriod(claimId);
 
     // verify double redemption still fails
     await expect(this.claims.connect(this.claimant).redeemClaimPayout(claimId)).to.be.revertedWithCustomError(

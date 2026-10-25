@@ -1,11 +1,11 @@
 const { ethers, network } = require('hardhat');
 const assert = require('assert');
-const { setStorageAt, setNextBlockBaseFeePerGas } = require('@nomicfoundation/hardhat-network-helpers');
+const { setNextBlockBaseFeePerGas } = require('@nomicfoundation/hardhat-network-helpers');
 const { getDeploymentBytecode, calculateCreate2Address } = require('../../scripts/create2/deploy');
 const { executeGovernorProposal } = require('../utils/governor');
 const { getSigner, getFundedSigner } = require('../utils/signer');
 
-const { AbiCoder, Interface, concat, getBytes, keccak256, solidityPacked, toBeHex, zeroPadValue } = ethers;
+const { AbiCoder, Interface, concat, getBytes, keccak256, solidityPacked, toBeHex } = ethers;
 
 const Addresses = {
   ETH: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
@@ -87,6 +87,13 @@ const packMultiSendTx = tx => {
 };
 
 /**
+ * Works on both Hardhat and Tenderly networks.
+ * Tenderly needs slot and value padded to 32 bytes (tenderly quirk)
+ */
+const setStorageAt = (address, slot, value) =>
+  ethers.provider.send('hardhat_setStorageAt', [address, toBeHex(slot, 32), toBeHex(value, 32)]);
+
+/**
  * @param {string} multisigAddress
  * @returns {Promise<typeof executeSafeTransaction>}
  */
@@ -105,8 +112,7 @@ const createSafeExecutor = async multisigAddress => {
   safe = safe.connect(ownerSigner);
 
   // sets threshold to 1
-  const setStorageAtFn = network.name === 'tenderly' ? tenderlySetStorageAt : setStorageAt;
-  await setStorageAtFn(multisigAddress, 4, 1);
+  await setStorageAt(multisigAddress, 4, 1);
 
   /**
    * @param {{ to: string, value?: bigint | number | string, data?: string }[]} txs
@@ -151,8 +157,7 @@ const setERC20Balance = async (token, address, balance) => {
   const standardSlot = 0;
   const abiCoder = new AbiCoder();
   const userBalanceSlot = keccak256(abiCoder.encode(['address', 'uint256'], [address, standardSlot]));
-  const valueHex = zeroPadValue(toBeHex(balance), 32);
-  await ethers.provider.send('hardhat_setStorageAt', [token, userBalanceSlot, valueHex]);
+  await setStorageAt(token, userBalanceSlot, balance);
 };
 
 const setUSDCBalance = async (token, address, balance) => {
@@ -163,16 +168,14 @@ const setUSDCBalance = async (token, address, balance) => {
   const currentBigInt = ethers.getBigInt(currentValue);
   const blacklistBit = currentBigInt >> 255n;
   const newValue = (blacklistBit << 255n) | BigInt(balance);
-  const valueHex = zeroPadValue(toBeHex(newValue), 32);
-  await ethers.provider.send('hardhat_setStorageAt', [token, userBalanceSlot, valueHex]);
+  await setStorageAt(token, userBalanceSlot, newValue);
 };
 
 const setCbBTCBalance = async (token, address, balance) => {
   const slot = 9; // Found to work at slot 9
   const abiCoder = new AbiCoder();
   const userBalanceSlot = keccak256(abiCoder.encode(['address', 'uint256'], [address, slot]));
-  const valueHex = zeroPadValue(toBeHex(balance), 32);
-  await ethers.provider.send('hardhat_setStorageAt', [token, userBalanceSlot, valueHex]);
+  await setStorageAt(token, userBalanceSlot, balance);
 };
 
 const getImplementation = async proxyAddress => {
@@ -216,13 +219,6 @@ const deployCreate2 = async (
   return ethers.getContractAt(contractName, expectedAddress);
 };
 
-/**
- * tenderly_setStorageAt must be 32-byte padded slot which is different from the conventional setStorageAt
- */
-const tenderlySetStorageAt = async (address, slot, value) => {
-  return ethers.provider.send('tenderly_setStorageAt', [address, toBeHex(slot, 32), toBeHex(value, 32)]);
-};
-
 module.exports = {
   Addresses,
   submitGovernanceProposal,
@@ -235,7 +231,7 @@ module.exports = {
   setCbBTCBalance,
   getImplementation,
   deployCreate2,
-  tenderlySetStorageAt,
+  setStorageAt,
   getFundedSigner,
   getSigner,
 };

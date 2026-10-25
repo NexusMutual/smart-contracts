@@ -1,7 +1,7 @@
 const { ethers, network, nexus, tracer } = require('hardhat');
 const { expect } = require('chai');
 const { abis, addresses } = require('@nexusmutual/deployments');
-const { setBalance, setStorageAt, takeSnapshot } = require('@nomicfoundation/hardhat-network-helpers');
+const { setBalance, takeSnapshot } = require('@nomicfoundation/hardhat-network-helpers');
 
 const {
   Addresses,
@@ -10,10 +10,11 @@ const {
   getFundedSigner,
   getSigner,
   revertToSnapshot,
+  setStorageAt,
   submitGovernanceProposal,
 } = require('./utils');
 
-const { AbiCoder, deployContract, encodeBytes32String, parseEther, parseUnits, toBeHex, toUtf8Bytes } = ethers;
+const { AbiCoder, deployContract, encodeBytes32String, parseEther, parseUnits, toUtf8Bytes } = ethers;
 const { ContractCode, ContractIndexes, ProposalCategory } = nexus.constants;
 const { toBytes2 } = nexus.helpers;
 
@@ -287,15 +288,7 @@ describe('v3 launch', function () {
       const targetLength = await this.memberRoles.getMembersArrayLength(2);
       const slot = 18;
 
-      if (network.name === 'tenderly') {
-        // tenderly_setStorageAt must be 32-byte padded slot and value
-        const slotAsHex = toBeHex(slot, 32);
-        const targetLengthAsHex = toBeHex(targetLength, 32);
-        await ethers.provider.send('tenderly_setStorageAt', [this.memberRoles.target, slotAsHex, targetLengthAsHex]);
-      } else {
-        // hardhat_setStorageAt
-        await setStorageAt(this.memberRoles.target, slot, targetLength);
-      }
+      await setStorageAt(this.memberRoles.target, slot, targetLength);
       expect(await this.memberRoles.nextMemberStorageIndex()).to.equal(targetLength);
     }
 

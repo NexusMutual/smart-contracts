@@ -20,6 +20,8 @@ const { ContractIndexes, AssessmentOutcome, AssessmentStatus } = nexus.constants
 const { signRiQuote, encodeRiData } = nexus.signing;
 
 const CLAIM_DEPOSIT = parseEther('0.05');
+const RI_PROVIDER_ID = 1;
+const SWAP_TOLERANCE_PERCENT = 1n;
 
 // eslint-disable-next-line no-unused-vars
 let custodyProductId, custodyCoverId, protocolProductId, protocolCoverId, riCoverId;
@@ -27,6 +29,8 @@ let poolId, trancheId, tokenId;
 
 describe('basic functionality tests', function () {
   before(async function () {
+    // balance checks send txs with gasPrice 0: Hardhat needs a zero base fee for them, Tenderly takes them as is
+    await setNextBlockBaseFeePerGas(0).catch(e => e);
     await time.increase(7 * 24 * 3600); // +7 days
     trancheId = await getTrancheId(await time.latest());
   });
@@ -47,14 +51,14 @@ describe('basic functionality tests', function () {
   it('funds wallets', async function () {
     this.nxm = await ethers.getContractAt(abis.NXMToken, addresses.NXMToken);
 
-    const accounts = await ethers.getSigners();
-    this.members = accounts.slice(1, 15);
+    this.members = Array.from({ length: 14 }, () => ethers.Wallet.createRandom().connect(ethers.provider));
     this.manager = this.members[0];
     this.usdcHolder = this.members[1];
     this.cbBTCHolder = this.members[2];
     this.assessors = this.members.slice(10, 15);
 
     for (const wallet of this.members) {
+      await setBalance(wallet.address, parseEther('1000'));
       await setERC20Balance(this.nxm.target, wallet.address, parseEther('10000'));
     }
 
@@ -120,7 +124,7 @@ describe('basic functionality tests', function () {
     const txs = [
       {
         target: this.cover.target,
-        data: await this.cover.interface.encodeFunctionData('setRiConfig', [1, this.riPremiumDst.address]),
+        data: await this.cover.interface.encodeFunctionData('setRiConfig', [RI_PROVIDER_ID, this.riPremiumDst.address]),
         value: 0,
       },
     ];
@@ -142,8 +146,11 @@ describe('basic functionality tests', function () {
   it('Swap NXM for ETH', async function () {
     const [member] = this.members;
     const nxmIn = parseEther('1');
-    const minEthOut = parseEther('0.022');
-    const maxEthOut = parseEther('0.025');
+    // the price follows mainnet, so allow a margin around the amount at the current RAMM sell price
+    const { spotPriceB } = await this.ramm.getSpotPrices();
+    const expectedEthOut = (nxmIn * spotPriceB) / parseEther('1');
+    const minEthOut = (expectedEthOut * (100n - SWAP_TOLERANCE_PERCENT)) / 100n;
+    const maxEthOut = (expectedEthOut * (100n + SWAP_TOLERANCE_PERCENT)) / 100n;
 
     await this.nxm.connect(member).approve(this.tokenController, nxmIn);
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -154,8 +161,7 @@ describe('basic functionality tests', function () {
     const memberNxmBefore = await this.nxm.balanceOf(member);
     const nxmSupplyBefore = await this.nxm.totalSupply();
 
-    await setNextBlockBaseFeePerGas(0).catch(e => e);
-    const tx = await this.ramm.connect(member).swap(nxmIn, minEthOut, deadline, { maxPriorityFeePerGas: 0 });
+    const tx = await this.ramm.connect(member).swap(nxmIn, minEthOut, deadline, { gasPrice: 0 });
 
     const poolEthAfter = await ethers.provider.getBalance(this.pool);
     const memberEthAfter = await ethers.provider.getBalance(member);
@@ -179,8 +185,11 @@ describe('basic functionality tests', function () {
   it('Swap ETH for NXM', async function () {
     const [member] = this.members;
     const ethIn = parseEther('0.024');
-    const minNxmOut = parseEther('0.95');
-    const maxNxmOut = parseEther('1.05');
+    // the price follows mainnet, so allow a margin around the amount at the current RAMM buy price
+    const { spotPriceA } = await this.ramm.getSpotPrices();
+    const expectedNxmOut = (ethIn * parseEther('1')) / spotPriceA;
+    const minNxmOut = (expectedNxmOut * (100n - SWAP_TOLERANCE_PERCENT)) / 100n;
+    const maxNxmOut = (expectedNxmOut * (100n + SWAP_TOLERANCE_PERCENT)) / 100n;
 
     const poolEthBefore = await ethers.provider.getBalance(this.pool);
     const memberEthBefore = await ethers.provider.getBalance(member);
@@ -190,8 +199,7 @@ describe('basic functionality tests', function () {
     const { timestamp } = await ethers.provider.getBlock('latest');
     const deadline = timestamp + 5 * 60;
 
-    await setNextBlockBaseFeePerGas(0).catch(e => e);
-    const tx = await this.ramm.connect(member).swap(0, minNxmOut, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
+    const tx = await this.ramm.connect(member).swap(0, minNxmOut, deadline, { value: ethIn, gasPrice: 0 });
 
     const poolEthAfter = await ethers.provider.getBalance(this.pool);
     const memberEthAfter = await ethers.provider.getBalance(member);
@@ -697,27 +705,27 @@ describe('basic functionality tests', function () {
       ipfsData: '',
     };
 
-    const deadline = Math.floor(Date.now() / 1000) + 48 * 3600;
-    const data = [{ amount: amount / 2n, vaultId: 1, subnetworkId: 1, providerId: 1 }];
+    const deadline = (await time.latest()) + 48 * 3600;
+    const data = [{ amount: amount / 2n, vaultId: 1, subnetworkId: 1, providerId: RI_PROVIDER_ID }];
     const dataFormat = 1;
     const dataEncoded = encodeRiData(data, dataFormat);
 
     const riSigningData = {
       coverId: 0,
       productId: protocolProductId,
-      providerId: 1,
+      providerId: RI_PROVIDER_ID,
       amount: amount / 2n,
       premium: maxPremiumInAsset / 2n,
       period: 3600 * 24 * 30, // 30 days
       coverAsset,
-      nonce: 0,
+      nonce: (await this.cover.getRiProviderConfig(RI_PROVIDER_ID)).nextNonce,
       data: dataEncoded,
       dataFormat,
       deadline,
     };
 
     await this.cover.connect(coverBuyer).buyCoverWithRi(coverBuyParams, [{ poolId, coverAmountInAsset: amount / 2n }], {
-      providerId: 1,
+      providerId: RI_PROVIDER_ID,
       amount: amount / 2n,
       premium: maxPremiumInAsset / 2n,
       deadline,
@@ -1142,6 +1150,14 @@ describe('basic functionality tests', function () {
 
     const emergencyAdmin1 = await getFundedSigner(Addresses.EMERGENCY_ADMIN_1);
     const emergencyAdmin2 = await getFundedSigner(Addresses.EMERGENCY_ADMIN_2);
+
+    // EMERGENCY_ADMIN_1 is not an emergency admin on mainnet
+    const setAdminTxs = [emergencyAdmin1, emergencyAdmin2].map(admin => ({
+      target: this.registry,
+      data: this.registry.interface.encodeFunctionData('setEmergencyAdmin', [admin.address, true]),
+      value: 0n,
+    }));
+    await executeGovernorProposal(this.governor, this.abMembers, setAdminTxs);
 
     await this.registry.connect(emergencyAdmin1).proposePauseConfig(1);
     await this.registry.connect(emergencyAdmin2).confirmPauseConfig(1);

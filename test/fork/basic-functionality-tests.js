@@ -370,9 +370,11 @@ describe('basic functionality tests', function () {
   it('Deposit to StakingPool', async function () {
     const manager = this.manager;
     const managerAddress = await manager.getAddress();
+    const amount = parseEther('51000');
+
+    await setERC20Balance(this.nxm.target, managerAddress, parseEther('100000'));
     const managerBalanceBefore = await this.nxm.balanceOf(managerAddress);
     const totalSupplyBefore = await this.stakingNFT.totalSupply();
-    const amount = parseEther('100');
 
     await this.nxm.connect(manager).approve(this.tokenController.target, amount);
     await this.stakingPool.connect(manager).depositTo(amount, trancheId + 1, 0, ZeroAddress);

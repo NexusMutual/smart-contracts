@@ -16,12 +16,57 @@ const {
 } = require('./utils');
 
 const { deployContract, formatEther, ZeroAddress, MaxUint256, parseEther, parseUnits } = ethers;
-const { ContractIndexes, AssessmentOutcome, AssessmentStatus } = nexus.constants;
-const { signRiQuote, encodeRiData } = nexus.signing;
+const { ContractIndexes, AssessmentOutcome, AssessmentStatus, PauseTypes, PoolAsset } = nexus.constants;
+const { signLimitOrder, signRiQuote, encodeRiData } = nexus.signing;
 
 const CLAIM_DEPOSIT = parseEther('0.05');
 const RI_PROVIDER_ID = 1;
 const SWAP_TOLERANCE_PERCENT = 1n;
+const COVER_GLOBAL_CAPACITY_DENOMINATOR = 10000n;
+const COMMISSION_DENOMINATOR = 10000n;
+
+// the NXM Cover.burnStake burns from poolId for a payout
+const getExpectedBurn = async (cover, coverId, payout, poolId) => {
+  const { amount, capacityRatio } = await cover.getCoverData(coverId);
+  const allocations = await cover.getPoolAllocations(coverId);
+  let burn = 0n;
+  for (const allocation of allocations.filter(a => a.poolId === poolId)) {
+    const deallocation = (allocation.coverAmountInNXM * payout) / amount;
+    burn += (deallocation * COVER_GLOBAL_CAPACITY_DENOMINATOR) / capacityRatio;
+  }
+  return burn;
+};
+
+// buys a 1 ETH custody cover paid in NXM; returns the NXM premium and the staking rewards the buy minted
+const buyCoverPayingNxm = async (ctx, buyer, commissionRatio, commissionDestination) => {
+  const { rewards: rewardsBefore } = await ctx.tokenController.stakingPoolNXMBalances(poolId);
+  const maxPremiumInNxm = parseEther('10'); // Cover charges the actual premium, up to this
+
+  await ctx.nxm.connect(buyer).approve(ctx.tokenController, maxPremiumInNxm); // burnFrom spends allowance
+  await ctx.cover.connect(buyer).buyCover(
+    {
+      coverId: 0,
+      owner: buyer.address,
+      productId: custodyProductId,
+      coverAsset: PoolAsset.ETH,
+      amount: parseEther('1'),
+      period: 3600 * 24 * 30, // 30 days
+      maxPremiumInAsset: maxPremiumInNxm,
+      paymentAsset: PoolAsset.NXM,
+      commissionRatio,
+      commissionDestination,
+      ipfsData: '',
+    },
+    [{ poolId, coverAmountInAsset: parseEther('1') }],
+  );
+
+  const coverId = await ctx.cover.getCoverDataCount();
+  const allocations = await ctx.cover.getPoolAllocations(coverId);
+  const premium = allocations.reduce((sum, allocation) => sum + allocation.premiumInNXM, 0n);
+  const { rewards: rewardsAfter } = await ctx.tokenController.stakingPoolNXMBalances(poolId);
+
+  return { premium, rewardsMinted: rewardsAfter - rewardsBefore };
+};
 
 // eslint-disable-next-line no-unused-vars
 let custodyProductId, custodyCoverId, protocolProductId, protocolCoverId, riCoverId;
@@ -218,6 +263,36 @@ describe('basic functionality tests', function () {
     expect(actualEthIn).to.be.equal(ethIn);
 
     await expect(tx).to.emit(this.ramm, 'EthSwappedForNxm').withArgs(member, actualEthIn, memberNxmReceived);
+  });
+
+  it('Switch membership to a new address', async function () {
+    const member = this.members[3];
+    const newAddress = ethers.Wallet.createRandom().address;
+    const memberId = await this.registry.getMemberId(member);
+    const nxmBalance = await this.nxm.balanceOf(member);
+
+    await this.nxm.connect(member).approve(this.tokenController, nxmBalance); // the switch moves NXM with transferFrom
+    const tx = await this.registry.connect(member).switchTo(newAddress);
+
+    await expect(tx).to.emit(this.registry, 'MembershipChanged').withArgs(memberId, member.address, newAddress);
+    expect(await this.registry.isMember(member)).to.be.false;
+    expect(await this.registry.isMember(newAddress)).to.be.true;
+    expect(await this.nxm.balanceOf(member)).to.equal(0n);
+    expect(await this.nxm.balanceOf(newAddress)).to.equal(nxmBalance);
+    expect(await this.registry.getMemberId(newAddress)).to.equal(memberId);
+  });
+
+  it('Leave membership', async function () {
+    const member = this.members[4];
+    const memberId = await this.registry.getMemberId(member);
+
+    // leaving needs a zero NXM balance
+    await this.nxm.connect(member).transfer(this.manager, await this.nxm.balanceOf(member));
+    const tx = await this.registry.connect(member).leave();
+
+    await expect(tx).to.emit(this.registry, 'MembershipChanged').withArgs(memberId, member.address, ZeroAddress);
+    expect(await this.registry.getMemberId(member)).to.equal(0n);
+    expect(await this.registry.isMember(member)).to.be.false;
   });
 
   it('Add product types', async function () {
@@ -479,9 +554,16 @@ describe('basic functionality tests', function () {
     const claimDepositAmount = await this.claims.CLAIM_DEPOSIT_IN_ETH();
     const claimantEthBalanceBefore = await ethers.provider.getBalance(coverBuyer.address);
 
+    // the payout burns stake from the pool backing the cover
+    const claim = await this.claims.getClaim(claimId);
+    const expectedBurn = await getExpectedBurn(this.cover, claim.coverId, claim.amount, poolId);
+    const activeStakeBefore = await this.stakingPool.getActiveStake();
+
     // redeem claim payout
     const redeemTx = this.claims.connect(coverBuyer).redeemClaimPayout(claimId, { gasPrice: 0 });
     await expect(redeemTx).to.emit(this.claims, 'ClaimPayoutRedeemed');
+    await expect(redeemTx).to.emit(this.stakingPool, 'StakeBurned').withArgs(expectedBurn);
+    expect(await this.stakingPool.getActiveStake()).to.equal(activeStakeBefore - expectedBurn);
 
     // Verify balances after redemption
     const claimantEthBalanceAfter = await ethers.provider.getBalance(coverBuyer.address);
@@ -572,9 +654,16 @@ describe('basic functionality tests', function () {
     const claimantEthBalanceBefore = await ethers.provider.getBalance(coverBuyer.address);
     const claimantCBBTCBalanceBefore = await this.cbBTC.balanceOf(coverBuyer.address);
 
+    // the payout burns stake from the pool backing the cover
+    const claim = await this.claims.getClaim(claimId);
+    const expectedBurn = await getExpectedBurn(this.cover, claim.coverId, claim.amount, poolId);
+    const activeStakeBefore = await this.stakingPool.getActiveStake();
+
     // redeem claim payout
     const redeemTx = this.claims.connect(coverBuyer).redeemClaimPayout(claimId, { gasPrice: 0 });
     await expect(redeemTx).to.emit(this.claims, 'ClaimPayoutRedeemed');
+    await expect(redeemTx).to.emit(this.stakingPool, 'StakeBurned').withArgs(expectedBurn);
+    expect(await this.stakingPool.getActiveStake()).to.equal(activeStakeBefore - expectedBurn);
 
     // Verify balances after redemption
     const claimantEthBalanceAfter = await ethers.provider.getBalance(coverBuyer.address);
@@ -663,9 +752,16 @@ describe('basic functionality tests', function () {
     const claimantEthBalanceBefore = await ethers.provider.getBalance(coverBuyer.address);
     const claimantUsdcBalanceBefore = await this.usdc.balanceOf(coverBuyer.address);
 
+    // the payout burns stake from the pool backing the cover
+    const claim = await this.claims.getClaim(claimId);
+    const expectedBurn = await getExpectedBurn(this.cover, claim.coverId, claim.amount, poolId);
+    const activeStakeBefore = await this.stakingPool.getActiveStake();
+
     // redeem claim payout
     const redeemTx = this.claims.connect(coverBuyer).redeemClaimPayout(claimId, { gasPrice: 0 });
     await expect(redeemTx).to.emit(this.claims, 'ClaimPayoutRedeemed');
+    await expect(redeemTx).to.emit(this.stakingPool, 'StakeBurned').withArgs(expectedBurn);
+    expect(await this.stakingPool.getActiveStake()).to.equal(activeStakeBefore - expectedBurn);
 
     // Verify balances after redemption
     const claimantEthBalanceAfter = await ethers.provider.getBalance(coverBuyer.address);
@@ -779,9 +875,16 @@ describe('basic functionality tests', function () {
     const claimantEthBalanceBefore = await ethers.provider.getBalance(coverBuyer.address);
     const claimantUsdcBalanceBefore = await this.usdc.balanceOf(coverBuyer.address);
 
+    // the payout burns stake from the pool backing the cover
+    const claim = await this.claims.getClaim(claimId);
+    const expectedBurn = await getExpectedBurn(this.cover, claim.coverId, claim.amount, poolId);
+    const activeStakeBefore = await this.stakingPool.getActiveStake();
+
     // redeem claim payout
     const redeemTx = this.claims.connect(coverBuyer).redeemClaimPayout(claimId, { gasPrice: 0 });
     await expect(redeemTx).to.emit(this.claims, 'ClaimPayoutRedeemed');
+    await expect(redeemTx).to.emit(this.stakingPool, 'StakeBurned').withArgs(expectedBurn);
+    expect(await this.stakingPool.getActiveStake()).to.equal(activeStakeBefore - expectedBurn);
 
     // Verify balances after redemption
     const claimantEthBalanceAfter = await ethers.provider.getBalance(coverBuyer.address);
@@ -789,6 +892,36 @@ describe('basic functionality tests', function () {
 
     expect(claimantEthBalanceAfter).to.be.equal(claimantEthBalanceBefore + claimDepositAmount);
     expect(claimantUsdcBalanceAfter).to.be.equal(claimantUsdcBalanceBefore + requestedAmount);
+  });
+
+  it('Buy cover paying with NXM and 5% commission to another member', async function () {
+    const buyer = this.members[5];
+    const destination = this.members[6]; // NXM only moves to members
+    const commissionRatio = 500n; // 5%
+
+    const buyerNxmBefore = await this.nxm.balanceOf(buyer);
+    const destinationNxmBefore = await this.nxm.balanceOf(destination);
+    const supplyBefore = await this.nxm.totalSupply();
+
+    const { premium, rewardsMinted } = await buyCoverPayingNxm(this, buyer, commissionRatio, destination.address);
+    const commission = (premium * COMMISSION_DENOMINATOR) / (COMMISSION_DENOMINATOR - commissionRatio) - premium;
+
+    // the premium is burned, and the staking pool mints its share of it as rewards
+    expect(supplyBefore - (await this.nxm.totalSupply())).to.equal(premium - rewardsMinted);
+    expect((await this.nxm.balanceOf(destination)) - destinationNxmBefore).to.equal(commission);
+    expect(buyerNxmBefore - (await this.nxm.balanceOf(buyer))).to.equal(premium + commission);
+  });
+
+  it('Buy cover paying with NXM and no commission', async function () {
+    const buyer = this.members[5];
+
+    const buyerNxmBefore = await this.nxm.balanceOf(buyer);
+    const supplyBefore = await this.nxm.totalSupply();
+
+    const { premium, rewardsMinted } = await buyCoverPayingNxm(this, buyer, 0n, buyer.address);
+
+    expect(supplyBefore - (await this.nxm.totalSupply())).to.equal(premium - rewardsMinted);
+    expect(buyerNxmBefore - (await this.nxm.balanceOf(buyer))).to.equal(premium);
   });
 
   it('buy cover through CoverBroker using ETH', async function () {
@@ -959,6 +1092,78 @@ describe('basic functionality tests', function () {
   //
   //   expect(newGearValue).to.be.eq(await this.mcr.gearingFactor());
   // });
+
+  it('Execute a limit order', async function () {
+    const owner = this.members[7];
+    const solver = await getFundedSigner(await this.limitOrders.internalSolver());
+    const amount = parseEther('1');
+    const now = await time.latest();
+
+    const params = {
+      coverId: 0,
+      owner: owner.address,
+      productId: custodyProductId,
+      coverAsset: PoolAsset.ETH,
+      amount,
+      period: 3600 * 24 * 30, // 30 days
+      maxPremiumInAsset: (amount * 260n) / 10000n,
+      paymentAsset: PoolAsset.ETH,
+      commissionRatio: 0,
+      commissionDestination: owner.address,
+      ipfsData: '',
+    };
+    const executionDetails = {
+      buyer: owner.address,
+      notExecutableBefore: now - 1,
+      executableUntil: now + 24 * 3600,
+      renewableUntil: now + 60 * 24 * 3600,
+      renewablePeriodBeforeExpiration: await this.limitOrders.MAX_RENEWABLE_PERIOD_BEFORE_EXPIRATION(),
+      maxPremiumInAsset: params.maxPremiumInAsset,
+    };
+
+    // the order signs every buy param except the max premium
+    const { maxPremiumInAsset: _, ...orderDetails } = params;
+    const { digest, signature } = await signLimitOrder(owner, this.limitOrders, { orderDetails, executionDetails });
+
+    // the order pays in WETH, for this execution and the renewal
+    await this.weth.connect(owner).deposit({ value: 2n * params.maxPremiumInAsset });
+    await this.weth.connect(owner).approve(this.limitOrders, 2n * params.maxPremiumInAsset);
+
+    const settlementDetails = { fee: 0, feeDestination: ZeroAddress };
+    const allocations = [{ poolId, coverAmountInAsset: amount }];
+    const tx = await this.limitOrders
+      .connect(solver)
+      .executeOrder(params, allocations, executionDetails, signature, settlementDetails);
+    const coverId = await this.cover.getCoverDataCount();
+    this.limitOrder = { params, allocations, executionDetails, signature, settlementDetails, digest, solver, coverId };
+
+    expect(await this.coverNFT.ownerOf(coverId)).to.equal(owner.address);
+    await expect(tx).to.emit(this.limitOrders, 'OrderExecuted').withArgs(owner.address, coverId, coverId, digest);
+    expect((await this.limitOrders.orderStatus(digest)).coverId).to.equal(coverId);
+  });
+
+  it('Renew a limit order', async function () {
+    const { params, allocations, executionDetails, signature, settlementDetails, digest, solver } = this.limitOrder;
+    const firstCoverId = this.limitOrder.coverId;
+    const { start, period } = await this.cover.getCoverData(firstCoverId);
+
+    // renewals open renewablePeriodBeforeExpiration before the cover expires
+    await time.increaseTo(start + period - executionDetails.renewablePeriodBeforeExpiration + 1n);
+
+    const tx = await this.limitOrders
+      .connect(solver)
+      .executeOrder(params, allocations, executionDetails, signature, settlementDetails);
+    const newCoverId = await this.cover.getCoverDataCount();
+
+    expect(newCoverId).to.equal(firstCoverId + 1n); // a new cover was bought
+    const { originalCoverId } = await this.cover.getCoverReference(newCoverId);
+    expect(originalCoverId).to.equal(firstCoverId); // the renewal edits the first cover
+    expect(await this.coverNFT.ownerOf(newCoverId)).to.equal(params.owner);
+    await expect(tx)
+      .to.emit(this.limitOrders, 'OrderExecuted')
+      .withArgs(params.owner, firstCoverId, newCoverId, digest);
+    expect((await this.limitOrders.orderStatus(digest)).coverId).to.equal(firstCoverId);
+  });
 
   it('Gets all pool assets balances before upgrade', async function () {
     // Pool value related info
@@ -1152,8 +1357,49 @@ describe('basic functionality tests', function () {
     }));
     await executeGovernorProposal(this.governor, this.abMembers, setAdminTxs);
 
-    await this.registry.connect(emergencyAdmin1).proposePauseConfig(1);
-    await this.registry.connect(emergencyAdmin2).confirmPauseConfig(1);
+    const { PAUSE_GLOBAL, PAUSE_COVER, PAUSE_MEMBERSHIP } = PauseTypes;
+    const buyer = this.members[1];
+    const amount = parseEther('1');
+    const buyCustodyCover = () =>
+      this.cover.connect(buyer).buyCover(
+        {
+          coverId: 0,
+          owner: buyer.address,
+          productId: custodyProductId,
+          coverAsset: PoolAsset.ETH,
+          amount,
+          period: 3600 * 24 * 30, // 30 days
+          maxPremiumInAsset: (amount * 260n) / 10000n,
+          paymentAsset: PoolAsset.ETH,
+          commissionRatio: 0,
+          commissionDestination: buyer.address,
+          ipfsData: '',
+        },
+        [{ poolId, coverAmountInAsset: amount }],
+        { value: amount },
+      );
+
+    await this.registry.connect(emergencyAdmin1).proposePauseConfig(PAUSE_GLOBAL);
+    await this.registry.connect(emergencyAdmin2).confirmPauseConfig(PAUSE_GLOBAL);
+
+    // a global pause stops every module
+    expect(await this.registry.getPauseConfig()).to.equal(PAUSE_GLOBAL);
+    await expect(buyCustodyCover())
+      .to.be.revertedWithCustomError(this.cover, 'Paused')
+      .withArgs(PAUSE_GLOBAL, PAUSE_COVER);
+
+    const joiner = ethers.Wallet.createRandom();
+    const { chainId } = await ethers.provider.getNetwork();
+    const signature = await nexus.signing.signJoinMessage(this.kycAuthSigner, joiner, this.registry, { chainId });
+
+    // a Wallet always estimates gas, so the revert is caught even with TENDERLY_GAS_LIMIT set
+    const payer = ethers.Wallet.createRandom().connect(ethers.provider);
+    await setBalance(payer.address, parseEther('1')); // joinFee + gas
+
+    const joinFee = await this.registry.JOIN_FEE();
+    await expect(this.registry.connect(payer).join(joiner.address, signature, { value: joinFee }))
+      .to.be.revertedWithCustomError(this.registry, 'Paused')
+      .withArgs(PAUSE_GLOBAL, PAUSE_MEMBERSHIP);
 
     const newGovernor = await deployContract('Governor', [this.registry]);
 
@@ -1174,5 +1420,10 @@ describe('basic functionality tests', function () {
 
     await this.registry.connect(emergencyAdmin1).proposePauseConfig(0);
     await this.registry.connect(emergencyAdmin2).confirmPauseConfig(0);
+
+    expect(await this.registry.getPauseConfig()).to.equal(0n);
+    const coverCountBefore = await this.cover.getCoverDataCount();
+    await buyCustodyCover();
+    expect(await this.cover.getCoverDataCount()).to.equal(coverCountBefore + 1n);
   });
 });

@@ -424,7 +424,6 @@ describe('basic functionality tests', function () {
         period: 3600 * 24 * 30, // 30 days
         maxPremiumInAsset: (amount * 260n) / 10000n,
         paymentAsset: coverAsset,
-        payWithNXM: false,
         commissionRatio,
         commissionDestination: coverBuyerAddress,
         ipfsData: '',
@@ -517,7 +516,6 @@ describe('basic functionality tests', function () {
         period: 3600 * 24 * 30, // 30 days
         maxPremiumInAsset,
         paymentAsset: coverAsset,
-        payWithNXM: false,
         commissionRatio,
         commissionDestination: coverBuyerAddress,
         ipfsData: '',
@@ -609,7 +607,6 @@ describe('basic functionality tests', function () {
         period: 3600 * 24 * 30, // 30 days
         maxPremiumInAsset,
         paymentAsset: coverAsset,
-        payWithNXM: false,
         commissionRatio,
         commissionDestination: coverBuyerAddress,
         ipfsData: '',
@@ -699,7 +696,6 @@ describe('basic functionality tests', function () {
       period: 3600 * 24 * 30, // 30 days
       maxPremiumInAsset: maxPremiumInAsset / 2n,
       paymentAsset: coverAsset,
-      payWithNXM: false,
       commissionRatio,
       commissionDestination: coverBuyerAddress,
       ipfsData: '',
@@ -812,7 +808,6 @@ describe('basic functionality tests', function () {
         period: 3600 * 24 * 30, // 30 days
         maxPremiumInAsset: (amount * 260n) / 10000n,
         paymentAsset: 0, // ETH
-        payWithNXM: false,
         commissionRatio: '500', // 5%,
         commissionDestination: coverBuyerAddress,
         ipfsData: '',
@@ -851,7 +846,6 @@ describe('basic functionality tests', function () {
         period: 3600 * 24 * 30, // 30 days
         maxPremiumInAsset: (amount * 260n) / 10000n,
         paymentAsset: 6, // USDC
-        payWithNXM: false,
         commissionRatio: '500', // 5%,
         commissionDestination: coverBuyerAddress,
         ipfsData: '',
@@ -893,7 +887,6 @@ describe('basic functionality tests', function () {
         period,
         maxPremiumInAsset,
         paymentAsset: coverAsset,
-        payWithNXM: false,
         commissionRatio,
         commissionDestination: coverBuyerAddress,
         ipfsData: '',
@@ -927,7 +920,6 @@ describe('basic functionality tests', function () {
         period: increasedPeriod,
         maxPremiumInAsset: extraPremium,
         paymentAsset: coverAsset,
-        payWithNXM: false,
         commissionRatio,
         commissionDestination: coverBuyerAddress,
         ipfsData: '',
@@ -1128,7 +1120,6 @@ describe('basic functionality tests', function () {
         period: 3600 * 24 * 30, // 30 days
         maxPremiumInAsset: (amount * 260n) / 10000n,
         paymentAsset: 6, // USDC
-        payWithNXM: false,
         commissionRatio: '500', // 5%,
         commissionDestination: coverBuyerAddress,
         ipfsData: '',

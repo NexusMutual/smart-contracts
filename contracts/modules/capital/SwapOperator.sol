@@ -297,7 +297,6 @@ contract SwapOperator is ISwapOperator, RegistryAware {
 
     // swap request check
     require(swapRequest.fromAsset == enzymeV4VaultProxyAddress, InvalidAsset(swapRequest.fromAsset, enzymeV4VaultProxyAddress));
-    require(swapRequest.toAsset != address(0), InvalidAsset(swapRequest.toAsset, address(0)));
     require(swapRequest.deadline >= block.timestamp, SwapDeadlineExceeded(swapRequest.deadline, block.timestamp));
     require(swapRequest.swapKind == SwapKind.ExactInput, InvalidSwapKind());
     require(swapRequest.fromAmount == fromAmount, FromAmountMismatch(swapRequest.fromAmount, fromAmount));

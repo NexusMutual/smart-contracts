@@ -363,9 +363,9 @@ describe('swapEnzymeVaultShareForAsset', function () {
       .withArgs(toAmountMin, 0);
   });
 
-  it('ignores balances of assets other than the requested payout asset', async function () {
+  it('does not count the requested asset already held by SwapOperator', async function () {
     const fixture = await loadFixture(setup);
-    const { swapOperator, pool, enzymeV4Comptroller, enzymeV4Vault, weEth, weth } = fixture.contracts;
+    const { swapOperator, pool, enzymeV4Comptroller, enzymeV4Vault, weEth } = fixture.contracts;
     const { governor, swapController } = fixture.accounts;
     const timestamp = await time.latest();
 
@@ -384,12 +384,11 @@ describe('swapEnzymeVaultShareForAsset', function () {
     await enzymeV4Vault.mint(pool, fromAmount);
     await swapOperator.connect(governor).requestAssetSwap(request);
 
-    // simulate weth landing in the swap operator instead of the requested weETH
+    // Enzyme pays out nothing, but SwapOperator already holds enough weETH to satisfy toAmountMin
     await enzymeV4Comptroller.setRedeemMockAmounts(fromAmount, 0);
-    await weth.deposit({ value: toAmountMin });
-    await weth.transfer(swapOperator, toAmountMin);
+    await weEth.mint(swapOperator, toAmountMin);
 
-    // the delta is measured on the requested asset only, so the stray weth does not count
+    // only the balance change counts, so the pre-existing weETH does not satisfy toAmountMin
     await expect(swapOperator.connect(swapController).swapEnzymeVaultShareForAsset(fromAmount, toAmountMin))
       .to.be.revertedWithCustomError(swapOperator, 'SwappedToAmountTooLow')
       .withArgs(toAmountMin, 0);

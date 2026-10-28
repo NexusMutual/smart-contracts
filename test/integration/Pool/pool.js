@@ -3,6 +3,7 @@ const { expect } = require('chai');
 const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('../setup');
+const { getFundedSigner } = require('../utils');
 const { getInternalPrice } = require('../../utils/ramm');
 
 const { parseEther, parseUnits } = ethers;
@@ -92,6 +93,10 @@ describe('Pool functions', function () {
     const fixture = await loadFixture(setup);
     const { pool, safeTracker, investmentSafe, weth, usdc, aWETH, debtUsdc } = fixture.contracts;
 
+    const offchainInvestmentUSDC = ethers.parseUnits('500000', 6);
+    const safeSigner = await getFundedSigner(investmentSafe.target);
+    await safeTracker.connect(safeSigner).updateOffchainInvestmentUSDC(offchainInvestmentUSDC);
+
     const ethBalance = await ethers.provider.getBalance(investmentSafe);
     const wethBalance = await weth.balanceOf(investmentSafe);
     const usdcBalance = await usdc.balanceOf(investmentSafe);
@@ -101,7 +106,8 @@ describe('Pool functions', function () {
     expect(wethBalance).to.be.gt(0n);
     expect(usdcBalance).to.be.gt(0n);
 
-    const offchainInvestmentInEth = await pool.getEthForAsset(usdc, await safeTracker.offchainInvestmentUSDC());
+    const offchainInvestmentInEth = await pool.getEthForAsset(usdc, offchainInvestmentUSDC);
+    expect(offchainInvestmentInEth).to.be.gt(0n);
     const usdcValueInEth = await safeTracker.getEthForAsset(usdc, usdcBalance);
     const debtValueInEth = await pool.getEthForAsset(usdc, debtUsdcBalance);
 

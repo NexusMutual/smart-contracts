@@ -38,6 +38,19 @@ describe('getEthForAsset', function () {
       .withArgs(trackedAssetAggregator.target, 0);
   });
 
+  it('reverts when the rate is negative', async function () {
+    const fixture = await loadFixture(getEthForAssetSetup);
+    const { safeTracker, trackedAssetAggregator } = fixture.contracts;
+    const { trackedAsset } = fixture.tokens;
+
+    // the mock stores a uint, MaxUint256 is read as -1 by the int returning SafeAggregator interface
+    await trackedAssetAggregator.setLatestAnswer(ethers.MaxUint256);
+
+    await expect(safeTracker.getEthForAsset(trackedAsset, 1))
+      .to.be.revertedWithCustomError(safeTracker, 'NonPositiveRate')
+      .withArgs(trackedAssetAggregator.target, -1);
+  });
+
   it('converts asset amount to ETH using asset decimals and oracle rate', async function () {
     const fixture = await loadFixture(getEthForAssetSetup);
     const { safeTracker, trackedAssetAggregator } = fixture.contracts;

@@ -13,7 +13,7 @@ const ALLOCATION_UNITS_PER_NXM = 100n;
 const NXM_PER_ALLOCATION_UNIT = ONE_NXM / ALLOCATION_UNITS_PER_NXM;
 
 /**
- * Calculate the exact cover amount that will be allocated by the contract
+ * Calculate the exact cover amount that will be allocated by the contract for a single pool
  * Cover._requestAllocation
  * @param {bigint} requestedAmount - The amount of cover requested
  * @param {bigint} nxmPriceInCoverAsset - The NXM price in the cover asset
@@ -358,19 +358,25 @@ describe('totalActiveCoverInAsset', function () {
     const { amount, coverAsset } = buyCoverFixture;
 
     const nxmPriceInCoverAsset = await pool.getInternalTokenPriceInAsset(coverAsset);
-    // the allocation is rounded up in NXM per pool and the summed NXM amount is converted back once
+
+    // the cover amount is split equally between 2 pools
+    const poolCount = 2n;
+    const poolCoverAmount = amount / poolCount;
+
+    // the allocation is rounded up in NXM per pool and the summed NXM amount is converted back once,
+    // so calculateAllocatedCoverAmount (single pool) can't be reused here
     const { divCeil, roundUpToMultiple } = BigIntMath;
     const poolCoverAmountInNXM = roundUpToMultiple(
-      divCeil((amount / 2n) * ONE_NXM, nxmPriceInCoverAsset),
+      divCeil(poolCoverAmount * ONE_NXM, nxmPriceInCoverAsset),
       NXM_PER_ALLOCATION_UNIT,
     );
-    const expectedAllocatedAmount = (poolCoverAmountInNXM * 2n * nxmPriceInCoverAsset) / ONE_NXM;
+    const expectedAllocatedAmount = (poolCoverAmountInNXM * poolCount * nxmPriceInCoverAsset) / ONE_NXM;
 
     await cover.connect(coverBuyer).buyCover(
       { ...buyCoverFixture, owner: coverBuyer.address },
       [
-        { poolId: 1, coverAmountInAsset: amount / 2n },
-        { poolId: 2, coverAmountInAsset: amount / 2n },
+        { poolId: 1, coverAmountInAsset: poolCoverAmount },
+        { poolId: 2, coverAmountInAsset: poolCoverAmount },
       ],
       { value: amount },
     );

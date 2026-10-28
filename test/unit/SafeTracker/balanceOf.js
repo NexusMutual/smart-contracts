@@ -186,4 +186,46 @@ describe('balanceOf', function () {
     const balance = await safeTracker.balanceOf(pool.target);
     expect(balance).to.be.equal(expectedBalance);
   });
+
+  it('should value an asset at zero if its aggregator returns a negative rate', async function () {
+    const fixture = await loadFixture(setup);
+    const { pool, safeTracker, trackedAssetAggregator } = fixture.contracts;
+    const { weth, trackedAsset } = fixture.tokens;
+    const { defaultSender } = fixture.accounts;
+
+    await safeTracker.connect(defaultSender).addAsset(trackedAsset, trackedAssetAggregator);
+    await safeTracker.connect(defaultSender).addAsset(weth, safeTracker);
+    // the mock stores a uint, MaxUint256 is read as -1 by the int returning SafeAggregator interface
+    await trackedAssetAggregator.setLatestAnswer(ethers.MaxUint256);
+    await expect(safeTracker.getEthForAsset(trackedAsset, 1))
+      .to.be.revertedWithCustomError(safeTracker, 'NonPositiveRate')
+      .withArgs(trackedAssetAggregator.target, -1);
+
+    const wethBalance = await weth.balanceOf(defaultSender.address);
+    const expectedBalance = (await getBaseBalance(fixture)) + wethBalance;
+
+    const balance = await safeTracker.balanceOf(pool.target);
+    expect(balance).to.be.equal(expectedBalance);
+  });
+
+  it('should value an asset at zero if its value overflows', async function () {
+    const fixture = await loadFixture(setup);
+    const { pool, safeTracker, trackedAssetAggregator } = fixture.contracts;
+    const { weth, trackedAsset } = fixture.tokens;
+    const { defaultSender } = fixture.accounts;
+
+    await safeTracker.connect(defaultSender).addAsset(trackedAsset, trackedAssetAggregator);
+    await safeTracker.connect(defaultSender).addAsset(weth, safeTracker);
+    await trackedAssetAggregator.setLatestAnswer(ethers.MaxInt256);
+
+    const trackedAssetBalance = await trackedAsset.balanceOf(defaultSender.address);
+    await expect(safeTracker.getEthForAsset(trackedAsset, trackedAssetBalance)).to.be.revertedWithPanic(0x11);
+
+    const wethBalance = await weth.balanceOf(defaultSender.address);
+    const expectedBalance = (await getBaseBalance(fixture)) + wethBalance;
+
+    const balance = await safeTracker.balanceOf(pool.target);
+    expect(balance).to.be.equal(expectedBalance);
+    expect(await safeTracker.totalSupply()).to.be.equal(expectedBalance);
+  });
 });

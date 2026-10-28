@@ -33,6 +33,16 @@ async function setup() {
   await aweth.mint(accounts.defaultSender.address, parseEther('100000'));
   await debtUsdc.mint(accounts.defaultSender.address, parseUnits('100000', 6));
 
+  // dynamically tracked asset: 8 decimals token priced at 0.5 ETH
+  const trackedAssetDecimals = 8;
+  const trackedAsset = await ethers.deployContract('ERC20Mock');
+  await trackedAsset.setMetadata('Tracked Asset', 'TRK', trackedAssetDecimals);
+  await trackedAsset.mint(accounts.defaultSender.address, parseUnits('1000', trackedAssetDecimals));
+
+  const trackedAssetAggregator = await ethers.deployContract('ChainlinkAggregatorMock');
+  await trackedAssetAggregator.setDecimals(18);
+  await trackedAssetAggregator.setLatestAnswer(parseEther('0.5'));
+
   await registry.addContract(ContractIndexes.C_POOL, pool.target, false);
 
   // use defaultSender for safe in unit tests
@@ -41,16 +51,28 @@ async function setup() {
     investmentLimit,
     accounts.defaultSender.address,
     usdc.target,
-    weth.target,
     aweth.target,
     debtUsdc.target,
   ]);
 
-  await setBalance(pool.target, parseEther('145000'));
-  const contracts = { registry, pool, safeTracker, swapOperator, priceFeedOracle };
-  const tokens = { usdc, weth, aweth, debtUsdc };
+  // ETH denominated aggregator for usdc (1 USDC = 0.0005 ETH)
+  const usdcAggregator = await ethers.deployContract('ChainlinkAggregatorMock');
+  await usdcAggregator.setDecimals(18);
+  await usdcAggregator.setLatestAnswer(parseEther('0.0005'));
 
-  return { accounts, contracts, tokens };
+  await setBalance(pool.target, parseEther('145000'));
+  const contracts = {
+    registry,
+    pool,
+    safeTracker,
+    swapOperator,
+    priceFeedOracle,
+    trackedAssetAggregator,
+    usdcAggregator,
+  };
+  const tokens = { usdc, weth, aweth, debtUsdc, trackedAsset };
+
+  return { accounts, contracts, tokens, trackedAssetDecimals };
 }
 
 module.exports = {

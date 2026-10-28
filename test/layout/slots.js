@@ -140,6 +140,9 @@ describe('Storage layout', function () {
         internalContracts: {
           deleted: true,
         },
+        coverReInvestmentUSDC: {
+          label: 'offchainInvestmentUSDC',
+        },
       },
       // Example overrides:
       // PooledStaking: {

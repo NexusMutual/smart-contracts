@@ -217,7 +217,6 @@ async function setup() {
     INVESTMENT_LIMIT,
     investmentSafe,
     usdc,
-    weth,
     aWETH,
     debtUsdc,
   ]);
@@ -374,14 +373,14 @@ async function setup() {
   await rETH.mint(pool, parseEther('12000'));
   await enzymeVault.mint(pool, parseEther('15000'));
 
-  // mint safeTracker funds
-  await setBalance(safeTracker.target, parseEther('100')); // 100 eth
+  // fund investmentSafe with weth, the rest of its funds are set above
   await weth.deposit({ value: parseEther('100') }); // create 100 weth
-  await weth.transfer(safeTracker, parseEther('100'));
-  await aWETH.mint(safeTracker, parseEther('100')); // 100 eth collateral ~= 250k usd
-  await debtUsdc.mint(safeTracker, parseUnits('50000', debtUsdcDecimals)); // 50k usdc debt
-  await usdc.mint(safeTracker, parseUnits('100000', usdcDecimals)); // 100k USDC
-  await cbBTC.mint(safeTracker, parseUnits('100000', cbBTCDecimals)); // 100k cbBTC
+  await weth.transfer(investmentSafe, parseEther('100'));
+
+  // register safe assets: weth is 1:1 to eth so safeTracker is used as its own oracle (same as in the pool)
+  const investmentSafeSigner = await getFundedSigner(investmentSafe.target);
+  await safeTracker.connect(investmentSafeSigner).addAsset(weth, safeTracker);
+  await safeTracker.connect(investmentSafeSigner).addAsset(usdc, chainlinkUSDC);
 
   // TokenController and Governor signers
   const tokenControllerSigner = await getFundedSigner(tokenController.target);
@@ -435,6 +434,7 @@ async function setup() {
     chainlinkEnzymeVault,
     chainlinkCbBTC,
     chainlinkAweth,
+    investmentSafe,
   };
 
   const nonUpgradable = {

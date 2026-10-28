@@ -354,6 +354,36 @@ describe('swapEnzymeVaultShareForAsset', function () {
     await enzymeV4Vault.mint(pool, fromAmount);
     await swapOperator.connect(governor).requestAssetSwap(request);
 
+    // weETH is requested but Enzyme pays out weth
+    await enzymeV4Comptroller.setRedeemMockAmounts(fromAmount, toAmountMin);
+    await enzymeV4Comptroller.setPayoutAssetOverride(weth);
+
+    await expect(swapOperator.connect(swapController).swapEnzymeVaultShareForAsset(fromAmount, toAmountMin))
+      .to.be.revertedWithCustomError(swapOperator, 'SwappedToAmountTooLow')
+      .withArgs(toAmountMin, 0);
+  });
+
+  it('ignores balances of assets other than the requested payout asset', async function () {
+    const fixture = await loadFixture(setup);
+    const { swapOperator, pool, enzymeV4Comptroller, enzymeV4Vault, weEth, weth } = fixture.contracts;
+    const { governor, swapController } = fixture.accounts;
+    const timestamp = await time.latest();
+
+    const fromAmount = parseEther('1');
+    const toAmountMin = parseEther('0.9');
+
+    const request = {
+      fromAsset: enzymeV4Vault,
+      toAsset: weEth,
+      fromAmount,
+      toAmount: toAmountMin,
+      deadline: timestamp + 3600,
+      swapKind: SwapKind.ExactInput,
+    };
+
+    await enzymeV4Vault.mint(pool, fromAmount);
+    await swapOperator.connect(governor).requestAssetSwap(request);
+
     // simulate weth landing in the swap operator instead of the requested weETH
     await enzymeV4Comptroller.setRedeemMockAmounts(fromAmount, 0);
     await weth.deposit({ value: toAmountMin });
@@ -541,6 +571,10 @@ describe('swapEnzymeVaultShareForAsset', function () {
 
     expect(ethAfter).to.equal(ethBefore + minEthOut + excessEth);
     expect(sharesAfter).to.be.equal(sharesBefore - sharesBurned);
+    expect(await enzymeV4Vault.balanceOf(swapOperator)).to.equal(0);
+
+    const assetInSwapOperator = await pool.assetInSwapOperator();
+    expect(assetInSwapOperator.amount).to.equal(0);
   });
 
   it('returns unburned shares to the pool on partial redeem for weETH', async function () {
@@ -577,6 +611,9 @@ describe('swapEnzymeVaultShareForAsset', function () {
     expect(await weEth.balanceOf(pool)).to.equal(weEthBefore + minWeEthOut);
     expect(await enzymeV4Vault.balanceOf(pool)).to.be.equal(sharesBefore - sharesBurned);
     expect(await enzymeV4Vault.balanceOf(swapOperator)).to.equal(0);
+
+    const assetInSwapOperator = await pool.assetInSwapOperator();
+    expect(assetInSwapOperator.amount).to.equal(0);
   });
 
   it('reverts when called again without a new swap request', async function () {

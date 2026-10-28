@@ -16,6 +16,8 @@ contract SOMockEnzymeV4Comptroller is IEnzymeV4Comptroller {
   uint internal amountToPullOnDeposit;
   uint internal sharesToBurnOnRedeem;
   uint internal amountToPushOnRedeem;
+  // pays out this asset instead of the requested one when set
+  ERC20 internal payoutAssetOverride;
 
   // bypasses the allowance and pulls an extra amount using another address
   SOMockExtraSpender public extraSpender;
@@ -39,6 +41,10 @@ contract SOMockEnzymeV4Comptroller is IEnzymeV4Comptroller {
   function setRedeemMockAmounts(uint _sharesToBurnOnRedeem, uint _amountToPushOnRedeem) external {
     sharesToBurnOnRedeem = _sharesToBurnOnRedeem;
     amountToPushOnRedeem = _amountToPushOnRedeem;
+  }
+
+  function setPayoutAssetOverride(address _payoutAssetOverride) external {
+    payoutAssetOverride = ERC20(_payoutAssetOverride);
   }
 
   function setDenominationAsset(address _denominationAsset) external {
@@ -85,7 +91,8 @@ contract SOMockEnzymeV4Comptroller is IEnzymeV4Comptroller {
     require(_payoutAssets.length == 1, "SOMockEnzymeV4Comptroller: single payout asset expected");
 
     vault.burn(_recipient, sharesToBurnOnRedeem);
-    vault.withdraw(ERC20(_payoutAssets[0]), _recipient, amountToPushOnRedeem);
+    ERC20 payoutAsset = address(payoutAssetOverride) != address(0) ? payoutAssetOverride : ERC20(_payoutAssets[0]);
+    vault.withdraw(payoutAsset, _recipient, amountToPushOnRedeem);
 
     emit RedeemCalledWith(_recipient, _sharesQuantity, _payoutAssets, _payoutAssetPercentages);
   }

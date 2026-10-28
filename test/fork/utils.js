@@ -16,11 +16,21 @@ const Addresses = {
   STETH_ADDRESS: '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84',
   RETH_ADDRESS: '0xae78736cd615f374d3085123a210448e74fc6393',
   AWETH_ADDRESS: '0x4d5F47FA6A74757f35C14fD3a6Ef8E3C9BC514E8',
+  WEETH_ADDRESS: '0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee',
+  REUSDE_ADDRESS: '0xdDC0f880ff6e4e22E4B74632fBb43Ce4DF6cCC5a',
+  // chainlink
+  CHAINLINK_WEETH_ETH: '0x5c9C449BbC9a6075A2c061dF312a35fd1E05fF22',
+  CHAINLINK_ETH_USD: '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419',
+  CHAINLINK_USDC_ETH: '0x986b5E1e1755e3C2440e960477f25201B0a8bbD4',
+  // re protocol
+  REUSDE_NAV_ORACLE: '0x7844441f13C61CBD3d297F5d2D7fcaBf17f0b843',
   SWAP_CONTROLLER: '0x551D5500F613a4beC77BA8B834b5eEd52ad5764f',
   // cowswap
   COWSWAP_SETTLEMENT: '0x9008D19f58AAbD9eD0D60971565AA8510560ab41',
   COWSWAP_SOLVER: '0x423cEc87f19F0778f549846e0801ee267a917935',
   COWSWAP_RELAYER: '0xC92E8bdf79f0507f65a392b0ab4667716BFE0110',
+  // redstone
+  REDSTONE_MULTI_FEED_ADAPTER: '0xd72a6ba4a87ddb33e801b3f1c7750b2d0911fc6c',
   // enzyme
   ENZYMEV4_VAULT_PROXY_ADDRESS: '0x27F23c710dD3d878FE9393d93465FeD1302f2EbD',
   ENZYME_FUND_VALUE_CALCULATOR_ROUTER: '0x7c728cd0CfA92401E01A4849a01b57EE53F5b2b9',
@@ -155,6 +165,16 @@ const setERC20Balance = async (token, address, balance) => {
   await ethers.provider.send('hardhat_setStorageAt', [token, userBalanceSlot, valueHex]);
 };
 
+// keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.ERC20")) - 1)) & ~bytes32(uint256(0xff))
+const OZ_V5_ERC20_STORAGE_LOCATION = '0x52c63247e1f47db19d5ce0460030c497f067ca4cebf71ba98eeadabe20bace00';
+
+const setNamespacedERC20Balance = async (token, address, balance) => {
+  const abiCoder = new AbiCoder();
+  const userBalanceSlot = keccak256(abiCoder.encode(['address', 'bytes32'], [address, OZ_V5_ERC20_STORAGE_LOCATION]));
+  const valueHex = zeroPadValue(toBeHex(balance), 32);
+  await ethers.provider.send('hardhat_setStorageAt', [token, userBalanceSlot, valueHex]);
+};
+
 const setUSDCBalance = async (token, address, balance) => {
   const slot = 9;
   const abiCoder = new AbiCoder();
@@ -223,6 +243,33 @@ const tenderlySetStorageAt = async (address, slot, value) => {
   return ethers.provider.send('tenderly_setStorageAt', [address, toBeHex(slot, 32), toBeHex(value, 32)]);
 };
 
+// keccak256("RedStone.MultiFeedAdapterWithoutRounds.dataFeeds")
+const REDSTONE_DATA_FEEDS_STORAGE_LOCATION = '0x5e9fb4cb0eb3c2583734d3394f30bb14b241acb9b3a034f7e7ba1a62db4370f1';
+
+/**
+ * Bumps the RedStone feed timestamps to the latest block so reads don't revert with InvalidLastUpdateDetails
+ * after the fork time was advanced past MAX_DATA_STALENESS (30 hours). The feed value is kept as is.
+ * Storage packing: uint48 dataTimestamp | uint48 blockTimestamp | uint152 value | bool isValueBigger
+ * @param {string} adapter - RedStone MultiFeedAdapterWithoutRounds address
+ * @param {string} feedId - data feed id, e.g. 'weETH/ETH'
+ */
+const refreshRedstoneFeed = async (adapter, feedId) => {
+  const feedIdBytes = ethers.encodeBytes32String(feedId);
+  const slot = keccak256(
+    new AbiCoder().encode(['bytes32', 'bytes32'], [feedIdBytes, REDSTONE_DATA_FEEDS_STORAGE_LOCATION]),
+  );
+
+  const packed = ethers.toBigInt(await ethers.provider.getStorage(adapter, slot));
+  const timestampMask = (1n << 96n) - 1n;
+  const { timestamp } = await ethers.provider.getBlock('latest');
+  const now = BigInt(timestamp);
+
+  const refreshed = (packed & ~timestampMask) | (now << 48n) | now;
+
+  const setStorageAtFn = network.name === 'tenderly' ? tenderlySetStorageAt : setStorageAt;
+  await setStorageAtFn(adapter, slot, refreshed);
+};
+
 module.exports = {
   Addresses,
   submitGovernanceProposal,
@@ -231,11 +278,13 @@ module.exports = {
   getTrancheId,
   revertToSnapshot,
   setERC20Balance,
+  setNamespacedERC20Balance,
   setUSDCBalance,
   setCbBTCBalance,
   getImplementation,
   deployCreate2,
   tenderlySetStorageAt,
+  refreshRedstoneFeed,
   getFundedSigner,
   getSigner,
 };

@@ -53,7 +53,7 @@ interface ISwapOperator {
 
   function closeOrder(GPv2Order.Data calldata order) external;
 
-  function swapEnzymeVaultShareForETH(uint fromAmount, uint toAmountMin) external;
+  function swapEnzymeVaultShareForAsset(uint fromAmount, uint toAmountMin) external;
 
   function swapETHForEnzymeVaultShare(uint fromAmount, uint toAmountMin) external;
 

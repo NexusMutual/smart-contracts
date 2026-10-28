@@ -59,7 +59,7 @@ contract SwapOperatorGeneric is ISwapOperator {
     revert("Unsupported");
   }
 
-  function swapEnzymeVaultShareForETH(uint, uint) external virtual {
+  function swapEnzymeVaultShareForAsset(uint, uint) external virtual {
     revert("Unsupported");
   }
 

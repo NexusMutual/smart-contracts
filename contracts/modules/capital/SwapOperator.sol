@@ -278,10 +278,12 @@ contract SwapOperator is ISwapOperator, RegistryAware {
     emit Swapped(ETH, enzymeV4VaultProxyAddress, actualFromAmount, actualToAmount);
   }
 
-  /// @dev Exchanges Enzyme Vault shares for ETH with slippage control. Emits `Swapped` on success
-  /// @param fromAmount Amount of Enzyme Vault shares to be swapped for ETH
-  /// @param toAmountMin Minimum ETH out expected
-  function swapEnzymeVaultShareForETH(
+  /// @dev Exchanges Enzyme Vault shares for the asset set in the swap request with slippage control.
+  ///      The payout asset is `swapRequest.toAsset` (WETH is unwrapped and returned to the pool as ETH).
+  ///      Emits `Swapped` on success
+  /// @param fromAmount Amount of Enzyme Vault shares to be redeemed
+  /// @param toAmountMin Minimum amount of the payout asset expected out
+  function swapEnzymeVaultShareForAsset(
     uint fromAmount,
     uint toAmountMin
   ) external onlyController whenNotPaused(PAUSE_SWAPS) {
@@ -290,11 +292,11 @@ contract SwapOperator is ISwapOperator, RegistryAware {
     require(orderInProgress() == false, OrderInProgress(currentOrderUID));
 
     IERC20 fromToken = IERC20(enzymeV4VaultProxyAddress);
+    IERC20 toToken = IERC20(swapRequest.toAsset);
     IEnzymeV4Comptroller comptrollerProxy = enzymeComptroller();
 
     // swap request check
     require(swapRequest.fromAsset == enzymeV4VaultProxyAddress, InvalidAsset(swapRequest.fromAsset, enzymeV4VaultProxyAddress));
-    require(swapRequest.toAsset == address(weth), InvalidAsset(swapRequest.toAsset, address(weth)));
     require(swapRequest.deadline >= block.timestamp, SwapDeadlineExceeded(swapRequest.deadline, block.timestamp));
     require(swapRequest.swapKind == SwapKind.ExactInput, InvalidSwapKind());
     require(swapRequest.fromAmount == fromAmount, FromAmountMismatch(swapRequest.fromAmount, fromAmount));
@@ -312,12 +314,12 @@ contract SwapOperator is ISwapOperator, RegistryAware {
     pool.transferAssetToSwapOperator(enzymeV4VaultProxyAddress, fromAmount);
 
     uint fromTokenBalanceBefore = fromToken.balanceOf(address(this));
-    uint toTokenBalanceBefore = weth.balanceOf(address(this));
+    uint toTokenBalanceBefore = toToken.balanceOf(address(this));
 
     // execution
     {
       address[] memory assetsOut = new address[](1);
-      assetsOut[0] = address(weth);
+      assetsOut[0] = address(toToken);
 
       uint[] memory assetsOutPercentages = new uint[](1);
       assetsOutPercentages[0] = 10000; // in bps
@@ -328,7 +330,7 @@ contract SwapOperator is ISwapOperator, RegistryAware {
     }
 
     uint fromTokenBalanceAfter = fromToken.balanceOf(address(this));
-    uint toTokenBalanceAfter = weth.balanceOf(address(this));
+    uint toTokenBalanceAfter = toToken.balanceOf(address(this));
 
     uint actualFromAmount = fromTokenBalanceBefore - fromTokenBalanceAfter;
     require(actualFromAmount <= fromAmount, SwappedFromAmountTooHigh(fromAmount, actualFromAmount));
@@ -336,11 +338,13 @@ contract SwapOperator is ISwapOperator, RegistryAware {
     uint toAmount = toTokenBalanceAfter - toTokenBalanceBefore;
     require(toAmount >= toAmountMin, SwappedToAmountTooLow(toAmountMin, toAmount));
 
-    returnAssetToPool(IERC20(address(weth)));
+    // returnAssetToPool unwraps weth and sends eth to the pool
+    returnAssetToPool(toToken);
     returnAssetToPool(fromToken);
     pool.clearSwapAssetAmount(enzymeV4VaultProxyAddress);
 
-    emit Swapped(enzymeV4VaultProxyAddress, ETH, actualFromAmount, toAmount);
+    address toAsset = address(toToken) == address(weth) ? ETH : address(toToken);
+    emit Swapped(enzymeV4VaultProxyAddress, toAsset, actualFromAmount, toAmount);
   }
 
   /// @dev Create a request to swap two assets

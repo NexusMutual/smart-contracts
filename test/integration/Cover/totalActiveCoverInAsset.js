@@ -358,7 +358,13 @@ describe('totalActiveCoverInAsset', function () {
     const { amount, coverAsset } = buyCoverFixture;
 
     const nxmPriceInCoverAsset = await pool.getInternalTokenPriceInAsset(coverAsset);
-    const expectedAllocatedAmount = calculateAllocatedCoverAmount(amount, nxmPriceInCoverAsset);
+    // the allocation is rounded up in NXM per pool and the summed NXM amount is converted back once
+    const { divCeil, roundUpToMultiple } = BigIntMath;
+    const poolCoverAmountInNXM = roundUpToMultiple(
+      divCeil((amount / 2n) * ONE_NXM, nxmPriceInCoverAsset),
+      NXM_PER_ALLOCATION_UNIT,
+    );
+    const expectedAllocatedAmount = (poolCoverAmountInNXM * 2n * nxmPriceInCoverAsset) / ONE_NXM;
 
     await cover.connect(coverBuyer).buyCover(
       { ...buyCoverFixture, owner: coverBuyer.address },

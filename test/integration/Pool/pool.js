@@ -88,6 +88,30 @@ describe('Pool functions', function () {
     expect(totalAssetValue).to.be.equal(BigIntMath.sum(assetValuesInEth));
   });
 
+  it('SafeTracker balance includes the investment safe holdings and tracked assets', async function () {
+    const fixture = await loadFixture(setup);
+    const { pool, safeTracker, investmentSafe, weth, usdc, aWETH, debtUsdc } = fixture.contracts;
+
+    const ethBalance = await ethers.provider.getBalance(investmentSafe);
+    const wethBalance = await weth.balanceOf(investmentSafe);
+    const usdcBalance = await usdc.balanceOf(investmentSafe);
+    const awethBalance = await aWETH.balanceOf(investmentSafe);
+    const debtUsdcBalance = await debtUsdc.balanceOf(investmentSafe);
+
+    expect(wethBalance).to.be.gt(0n);
+    expect(usdcBalance).to.be.gt(0n);
+
+    const offchainInvestmentInEth = await pool.getEthForAsset(usdc, await safeTracker.offchainInvestmentUSDC());
+    const usdcValueInEth = await safeTracker.getEthForAsset(usdc, usdcBalance);
+    const debtValueInEth = await pool.getEthForAsset(usdc, debtUsdcBalance);
+
+    const expectedBalance =
+      ethBalance + offchainInvestmentInEth + awethBalance + wethBalance + usdcValueInEth - debtValueInEth;
+
+    expect(await safeTracker.balanceOf(pool)).to.be.equal(expectedBalance);
+    expect(await safeTracker.totalSupply()).to.be.equal(expectedBalance);
+  });
+
   it('getMCRRatio calculates MCR ratio correctly', async function () {
     const fixture = await loadFixture(setup);
     const { pool } = fixture.contracts;

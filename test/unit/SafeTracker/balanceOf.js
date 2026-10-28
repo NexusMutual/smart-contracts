@@ -144,4 +144,46 @@ describe('balanceOf', function () {
     const balance = await safeTracker.balanceOf(pool.target);
     expect(balance).to.be.equal(expectedBalance);
   });
+
+  it('should value an asset at zero if its aggregator reverts without affecting other assets', async function () {
+    const fixture = await loadFixture(setup);
+    const { pool, safeTracker } = fixture.contracts;
+    const { weth, trackedAsset } = fixture.tokens;
+    const { defaultSender } = fixture.accounts;
+
+    // ERC20Mock has decimals() but no latestAnswer(), so the aggregator call reverts
+    const revertingAggregator = await ethers.deployContract('ERC20Mock');
+    await safeTracker.connect(defaultSender).addAsset(trackedAsset, revertingAggregator);
+    await safeTracker.connect(defaultSender).addAsset(weth, safeTracker);
+
+    await expect(safeTracker.getEthForAsset(trackedAsset, 1)).to.be.reverted;
+
+    const wethBalance = await weth.balanceOf(defaultSender.address);
+    const expectedBalance = (await getBaseBalance(fixture)) + wethBalance;
+
+    const balance = await safeTracker.balanceOf(pool.target);
+    expect(balance).to.be.equal(expectedBalance);
+    expect(await safeTracker.totalSupply()).to.be.equal(expectedBalance);
+  });
+
+  it('should value an asset at zero if its aggregator returns a zero rate', async function () {
+    const fixture = await loadFixture(setup);
+    const { pool, safeTracker, trackedAssetAggregator } = fixture.contracts;
+    const { weth, trackedAsset } = fixture.tokens;
+    const { defaultSender } = fixture.accounts;
+
+    await safeTracker.connect(defaultSender).addAsset(trackedAsset, trackedAssetAggregator);
+    await safeTracker.connect(defaultSender).addAsset(weth, safeTracker);
+    await trackedAssetAggregator.setLatestAnswer(0);
+
+    await expect(safeTracker.getEthForAsset(trackedAsset, 1))
+      .to.be.revertedWithCustomError(safeTracker, 'NonPositiveRate')
+      .withArgs(trackedAssetAggregator.target, 0);
+
+    const wethBalance = await weth.balanceOf(defaultSender.address);
+    const expectedBalance = (await getBaseBalance(fixture)) + wethBalance;
+
+    const balance = await safeTracker.balanceOf(pool.target);
+    expect(balance).to.be.equal(expectedBalance);
+  });
 });

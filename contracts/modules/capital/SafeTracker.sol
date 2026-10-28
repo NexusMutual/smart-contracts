@@ -322,13 +322,10 @@ contract SafeTracker is ISafeTracker, RegistryAware, ReentrancyGuard {
         continue;
       }
 
-      SafeOracle memory oracle = oracles[assetAddress];
-
-      // a reverting or non-positive aggregator values the asset at 0 so it doesn't block the other assets
-      try oracle.aggregator.latestAnswer() returns (int rate) {
-        if (rate > 0) {
-          total += assetBalance * uint(rate) / 10 ** oracle.assetDecimals;
-        }
+      // external self-call so that overflows and malformed aggregator responses are caught as well
+      // a broken oracle values only this asset at 0 so it doesn't block the other assets
+      try this.getEthForAsset(assetAddress, assetBalance) returns (uint value) {
+        total += value;
       } catch {}
     }
   }
